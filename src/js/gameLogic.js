@@ -307,20 +307,26 @@ const GameLogic = {
             game.player.light = Math.max(0, game.player.light - CONFIG.LIGHT.DEPLETION_RATE * deltaTime / 16);
         }
         
-        // Check death condition
-        if (game.player.light <= 0) {
-            game.deathScreen = true;
-        }
+        // Light depletion handling is done in updateGameRules() to allow for lifeline logic
     },
 
     // Validate position
     isValidPosition(x, y, game) {
         if (!Utils.isInBounds(x, y, game)) return false;
         
-        // Check wall collisions with spatial optimization
-        const nearbyWalls = Utils.getNearbyEntities(x, y, 'walls', 1);
-        for (const wall of nearbyWalls) {
-            if (Utils.fastDistance({ x, y }, wall) < (game.player.size + wall.size) ** 2) {
+        // Allow walking through walls when phase power is active
+        if (game.player.powers.phase > 0) {
+            return true;
+        }
+        
+        // Check wall collisions - walls are positioned at their center
+        for (const wall of game.walls) {
+            const dx = x - wall.x;
+            const dy = y - wall.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            // Player size + wall collision radius (walls are 30x30, so radius ~12 for tighter collision)
+            if (distance < game.player.size + 12) {
                 return false;
             }
         }
@@ -330,12 +336,66 @@ const GameLogic = {
 
     // Update player powers
     updatePlayerPowers(game, deltaTime) {
-        const powers = ['phase', 'regeneration', 'reveal'];
-        powers.forEach(power => {
-            if (game.player.powers[power] > 0) {
-                game.player.powers[power] = Math.max(0, game.player.powers[power] - deltaTime / 16);
+        // Update powers like in original game
+        if (game.player.powers.phase > 0) {
+            game.player.powers.phase--;
+            
+            // Check if phase is about to end while player is in a wall
+            if (game.player.powers.phase === 1) {
+                let inWall = false;
+                for (const wall of game.walls) {
+                    if (Utils.distance(game.player, wall) < 25) {
+                        inWall = true;
+                        break;
+                    }
+                }
+                
+                // If ending in wall, find nearest safe spot
+                if (inWall) {
+                    let bestX = game.player.x;
+                    let bestY = game.player.y;
+                    let bestDist = Infinity;
+                    
+                    // Check surrounding areas for safe spot
+                    for (let dx = -80; dx <= 80; dx += 20) {
+                        for (let dy = -80; dy <= 80; dy += 20) {
+                            const testX = game.player.x + dx;
+                            const testY = game.player.y + dy;
+                            let safe = true;
+                            
+                            // Check if this position is safe
+                            for (const wall of game.walls) {
+                                if (Utils.distance({ x: testX, y: testY }, wall) < 25) {
+                                    safe = false;
+                                    break;
+                                }
+                            }
+                            
+                            if (safe) {
+                                const dist = Math.abs(dx) + Math.abs(dy);
+                                if (dist < bestDist) {
+                                    bestDist = dist;
+                                    bestX = testX;
+                                    bestY = testY;
+                                }
+                            }
+                        }
+                    }
+                    
+                    game.player.x = bestX;
+                    game.player.y = bestY;
+                }
             }
-        });
+        }
+        
+        if (game.player.powers.regeneration > 0) {
+            game.player.powers.regeneration--;
+            game.player.light = Math.min(game.player.light + 0.1, game.player.maxLight);
+        }
+        
+        if (game.player.powers.reveal > 0) {
+            game.player.powers.reveal--;
+        }
     },
 
     // Update entities
@@ -345,6 +405,13 @@ const GameLogic = {
         
         // Add walls to spatial grid
         game.walls.forEach(wall => Utils.addToSpatialGrid(wall, 'walls'));
+        
+        // Update orb pulse animations
+        for (const orb of game.orbs) {
+            if (!orb.collected) {
+                orb.pulse += 0.1;
+            }
+        }
         
         // Update ghouls
         this.updateGhouls(game, deltaTime);
@@ -356,49 +423,48 @@ const GameLogic = {
         this.checkOrbCollection(game);
     },
 
-    // Update ghouls with improved AI
+    // Update ghouls with improved AI and defeat mechanism
     updateGhouls(game, deltaTime) {
-        const playerLight = game.player.light;
-        const lightRadius = playerLight * 3;
-        
-        game.ghouls.forEach((ghoul, index) => {
-            try {
-                const distToPlayer = Utils.distance(ghoul, game.player);
-                
-                if (playerLight > 20 && distToPlayer < lightRadius) {
-                    // Flee from light
-                    const angle = Math.atan2(ghoul.y - game.player.y, ghoul.x - game.player.x);
-                    const fleeSpeed = ghoul.speed * 1.5;
-                    ghoul.x += Math.cos(angle) * fleeSpeed * deltaTime / 16;
-                    ghoul.y += Math.sin(angle) * fleeSpeed * deltaTime / 16;
-                } else if (playerLight <= 20) {
-                    // Swarm towards player
-                    const angle = Math.atan2(game.player.y - ghoul.y, game.player.x - ghoul.x);
-                    ghoul.x += Math.cos(angle) * ghoul.speed * deltaTime / 16;
-                    ghoul.y += Math.sin(angle) * ghoul.speed * deltaTime / 16;
-                    
-                    // Check collision with player
-                    if (distToPlayer < game.player.size + ghoul.size) {
-                        game.player.light = Math.max(0, game.player.light - 2);
-                        Utils.createParticles(game, game.player.x, game.player.y, '#ff0000', 5, 3);
-                    }
+        for (const ghoul of game.ghouls) {
+            const distToPlayer = Utils.distance(ghoul, game.player);
+            
+            if (game.swarming) {
+                // During swarm - move directly toward player
+                const angle = Math.atan2(game.player.y - ghoul.y, game.player.x - ghoul.x);
+                ghoul.x += Math.cos(angle) * ghoul.speed;
+                ghoul.y += Math.sin(angle) * ghoul.speed;
+            } else if (distToPlayer < game.player.lightRadius * 0.6) {
+                // Flee from bright light
+                const angle = Math.atan2(ghoul.y - game.player.y, ghoul.x - game.player.x);
+                ghoul.x += Math.cos(angle) * ghoul.speed * 2;
+                ghoul.y += Math.sin(angle) * ghoul.speed * 2;
+                ghoul.state = 'fleeing';
+            } else if (distToPlayer < game.player.lightRadius * 1.2) {
+                // Stalk in dim light
+                const angle = Math.atan2(game.player.y - ghoul.y, game.player.x - ghoul.x);
+                ghoul.x += Math.cos(angle) * ghoul.speed * 0.7;
+                ghoul.y += Math.sin(angle) * ghoul.speed * 0.7;
+                ghoul.state = 'stalking';
+            } else {
+                // Patrol behavior
+                if (!ghoul.patrolTarget || Utils.distance(ghoul, ghoul.patrolTarget) < 20) {
+                    ghoul.patrolTarget = { 
+                        x: Math.random() * game.mapWidth * 40, 
+                        y: Math.random() * game.mapHeight * 40 
+                    };
                 }
-                
-                // Keep ghouls in bounds
-                if (!Utils.isInBounds(ghoul.x, ghoul.y, game)) {
-                    ghoul.x = Utils.clamp(ghoul.x, 20, game.mapWidth * CONFIG.MAP.CELL_SIZE - 20);
-                    ghoul.y = Utils.clamp(ghoul.y, 20, game.mapHeight * CONFIG.MAP.CELL_SIZE - 20);
-                }
-                
-                // Add to spatial grid
-                Utils.addToSpatialGrid(ghoul, 'ghouls');
-                
-            } catch (error) {
-                this.errorHandler.logError(error, `Ghoul Update ${index}`);
-                // Remove problematic ghoul
-                game.ghouls.splice(index, 1);
+                const angle = Math.atan2(ghoul.patrolTarget.y - ghoul.y, ghoul.patrolTarget.x - ghoul.x);
+                ghoul.x += Math.cos(angle) * ghoul.speed;
+                ghoul.y += Math.sin(angle) * ghoul.speed;
+                ghoul.state = 'patrol';
             }
-        });
+            
+            // Ghoul damage to player when close but not in bright light
+            if (!game.swarming && distToPlayer < 30 && distToPlayer > game.player.lightRadius * 0.8) {
+                game.player.light -= 0.3;
+                game.player.light = Math.max(0, game.player.light);
+            }
+        }
     },
 
     // Update particles with pooling
@@ -431,12 +497,16 @@ const GameLogic = {
                 const dist = Utils.distance(orb, game.player);
                 
                 if (dist < game.player.size + orb.size) {
-                    // Collect orb
-                    const collected = InventoryManager.collectOrb(orb);
+                    // Try to collect orb using EntityManager
+                    const collected = EntityManager.collectOrb(game, orb);
+                    
                     if (collected) {
+                        // Only remove and create particles if successfully collected
                         Utils.createCircularParticles(game, orb.x, orb.y, orb.color, 15, 6);
                         game.orbs.splice(i, 1);
-                        game.player.orbsCollected++;
+                        
+                        // Track statistics
+                        GameState.recordOrbCollection();
                     }
                 }
             } catch (error) {
@@ -453,14 +523,90 @@ const GameLogic = {
 
     // Update game rules
     updateGameRules(game, deltaTime) {
-        // Check floor completion
-        if (game.orbs.length === 0 && game.floor > -50) {
-            this.proceedToNextFloor(game);
+        // Check stairs detection - use same logic as original
+        if (game.stairs && Utils.distance(game.player, game.stairs) < 40) {
+            game.floor++;
+            if (game.floor >= 50) {
+                game.victory = true;
+                GameState.recordGameCompletion();
+            } else {
+                if (game.floor % 5 === 0) {
+                    game.checkpoint = game.floor;
+                    GameState.saveCheckpoint();
+                }
+                MapGenerator.generateFloor(game);
+                game.player.light = Math.min(game.player.light + 30, 100);
+            }
         }
         
-        // Check victory condition
-        if (game.floor <= -50 && game.orbs.length === 0) {
-            game.victory = true;
+        // Handle light depletion and swarm mechanics - trigger immediately when light hits 0
+        if (game.player.light <= 0 && !game.swarming && !game.deathScreen) {
+            // Check for lifeline orb first
+            let hasLifeline = false;
+            let lifelineSlot = -1;
+            
+            for (let i = 0; i < 3; i++) {
+                if (game.player.inventory[i] === 'red') {
+                    hasLifeline = true;
+                    lifelineSlot = i;
+                    break;
+                }
+            }
+            
+            if (hasLifeline) {
+                // Auto-use lifeline immediately - stay in same position and level
+                game.player.light = 100;
+                game.player.inventory[lifelineSlot] = null;
+                
+                // Update inventory display
+                if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {
+                    InventoryManager.updateDisplay();
+                }
+                
+                // Create dramatic revival effect
+                if (typeof Utils !== 'undefined' && Utils.createCircularParticles) {
+                    Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 30, 8);
+                }
+                
+                // Temporary light boost effect
+                game.player.lightRadius = 250;
+                setTimeout(() => game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS || 150, 500);
+                
+                // Show lifeline message
+                const storyElement = document.getElementById('story');
+                if (storyElement) {
+                    if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.LIFELINE_AUTO) {
+                        storyElement.textContent = MESSAGES.STORY.LIFELINE_AUTO;
+                    } else {
+                        storyElement.textContent = 'Lifeline orb activated! Light restored automatically.';
+                    }
+                }
+                
+                console.log('🔴 Lifeline orb auto-used, light restored to 100');
+            } else {
+                // No lifeline available - start the swarm sequence immediately
+                console.log('💀 No lifeline available, starting swarm sequence');
+                this.startSwarmSequence(game);
+            }
+        }
+        
+        // Handle swarm timer and effects
+        if (game.swarming && game.swarmTimer > 0) {
+            game.swarmTimer--;
+            
+            // Create black fade effect during final 2 seconds (longer fade)
+            if (game.swarmTimer < 120) {
+                game.darknessFade = Math.min(1, 1 - (game.swarmTimer / 120));
+            }
+            
+            if (game.swarmTimer <= 0) {
+                // Show death screen after swarm completes
+                game.deathScreen = true;
+                game.swarming = false;
+                game.darknessFade = 0;
+                GameState.recordDeath();
+                console.log('💀 Swarm completed, showing death screen');
+            }
         }
         
         // Update camera
@@ -468,6 +614,70 @@ const GameLogic = {
         
         // Update UI
         Utils.updateUI(game);
+    },
+
+    // Start swarm sequence when light depletes
+    startSwarmSequence(game) {
+        console.log('🌊 Starting swarm sequence...');
+        
+        game.swarming = true;
+        game.swarmTimer = 300; // 5 seconds at 60fps
+        
+        // Show swarm message
+        const storyElement = document.getElementById('story');
+        if (storyElement) {
+            if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.DARKNESS_CONSUMES) {
+                storyElement.textContent = MESSAGES.STORY.DARKNESS_CONSUMES;
+            } else {
+                storyElement.textContent = 'The darkness consumes you! Ghouls swarm from all directions!';
+            }
+        }
+        
+        // Alert all existing ghouls and make them faster
+        for (const ghoul of game.ghouls) {
+            ghoul.state = 'swarming';
+            ghoul.speed *= 2.5;
+        }
+        
+        // Spawn dramatic edge ghouls for swarm effect
+        const canvas = document.getElementById('gameCanvas');
+        const canvasWidth = canvas ? canvas.width : 800;
+        const canvasHeight = canvas ? canvas.height : 600;
+        
+        for (let i = 0; i < 8; i++) {
+            const edge = Math.floor(Math.random() * 4);
+            let x, y;
+            
+            switch(edge) {
+                case 0: // Top
+                    x = Math.random() * canvasWidth + (game.camera ? game.camera.x : 0);
+                    y = (game.camera ? game.camera.y : 0) - 20;
+                    break;
+                case 1: // Right
+                    x = (game.camera ? game.camera.x : 0) + canvasWidth + 20;
+                    y = Math.random() * canvasHeight + (game.camera ? game.camera.y : 0);
+                    break;
+                case 2: // Bottom
+                    x = Math.random() * canvasWidth + (game.camera ? game.camera.x : 0);
+                    y = (game.camera ? game.camera.y : 0) + canvasHeight + 20;
+                    break;
+                case 3: // Left
+                    x = (game.camera ? game.camera.x : 0) - 20;
+                    y = Math.random() * canvasHeight + (game.camera ? game.camera.y : 0);
+                    break;
+            }
+            
+            game.ghouls.push({
+                x: x,
+                y: y,
+                speed: 4,
+                state: 'swarming',
+                size: 15,
+                patrolTarget: { x: game.player.x, y: game.player.y }
+            });
+        }
+        
+        console.log(`🌊 Swarm started: ${game.ghouls.length} total ghouls, timer: ${game.swarmTimer}`);
     },
 
     // Proceed to next floor

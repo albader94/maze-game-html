@@ -11,14 +11,19 @@ const CONFIG = {
     MAP: {
         WIDTH: 30,
         HEIGHT: 20,
-        CELL_SIZE: 40
+        CELL_SIZE: 40,
+        MIN_SIZE: 15 // Minimum map size
     },
     PLAYER: {
         SPEED: 3,
+        SIZE: 15, // Player collision radius
         MAX_LIGHT: 100,
         LIGHT_RADIUS: 150,
         LIGHT_DECAY_RATE: 0.02, // Reduced from 0.05 to 0.02 (60% slower)
         LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
+    },
+    LIGHT: {
+        DEPLETION_RATE: 0.02 // Light depletion rate per frame
     },
     GAME: {
         MAX_FLOORS: 50,

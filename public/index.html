@@ -4,6 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Buried Spire of Kuwait - Explorer Mode</title>
+    
+    <!-- PWA Meta Tags -->
+    <meta name="description" content="A 2D dungeon crawler set in the mystical underground of Kuwait">
+    <meta name="theme-color" content="#8B4513">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Buried Spire">
+    
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="./manifest.json">
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" sizes="32x32" href="./favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="./favicon-16x16.png">
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png">
+    
     <link rel="stylesheet" href="../src/css/styles.css">
     <link rel="stylesheet" href="../src/css/ui.css">
 </head>
@@ -33,6 +49,13 @@
 
         <!-- Story Text -->
         <div id="story">Welcome to the Buried Spire of Kuwait</div>
+        
+        <!-- PWA Install Prompt -->
+        <div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white; padding: 15px; border-radius: 8px; z-index: 10000;">
+            <p>Install this game for offline play!</p>
+            <button id="installBtn" style="background: #8B4513; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Install</button>
+            <button id="dismissInstall" style="background: transparent; color: #ccc; border: 1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;">Not now</button>
+        </div>
     </div>
 
     <!-- JavaScript files in dependency order -->
@@ -58,5 +81,56 @@
     <!-- Game logic and main loop -->
     <script src="../src/js/gameLogic.js"></script>
     <script src="../src/js/main.js"></script>
+    
+    <!-- PWA Service Worker Registration -->
+    <script>
+        // Register service worker for offline support
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('./sw.js')
+                    .then(registration => {
+                        console.log('✅ SW registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('❌ SW registration failed: ', registrationError);
+                    });
+            });
+        }
+        
+        // PWA Install Prompt
+        let deferredPrompt;
+        const installPrompt = document.getElementById('installPrompt');
+        const installBtn = document.getElementById('installBtn');
+        const dismissBtn = document.getElementById('dismissInstall');
+        
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+            installPrompt.style.display = 'block';
+        });
+        
+        installBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+            if (deferredPrompt) {
+                deferredPrompt.prompt();
+                deferredPrompt.userChoice.then((choiceResult) => {
+                    if (choiceResult.outcome === 'accepted') {
+                        console.log('User accepted the install prompt');
+                    }
+                    deferredPrompt = null;
+                });
+            }
+        });
+        
+        dismissBtn.addEventListener('click', () => {
+            installPrompt.style.display = 'none';
+        });
+        
+        // Hide install prompt if already installed
+        window.addEventListener('appinstalled', () => {
+            installPrompt.style.display = 'none';
+            console.log('PWA was installed');
+        });
+    </script>
 </body>
 </html> 

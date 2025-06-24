@@ -20,6 +20,12 @@ const Renderer = {
 
     // Main render function
     render(game) {
+        // Safety check for game object
+        if (!game) {
+            console.warn('⚠️ Renderer.render() called with undefined game object');
+            return;
+        }
+        
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -304,6 +310,7 @@ const Renderer = {
     // Render darkness fade during swarm
     renderDarknessFade(game) {
         if (game.darknessFade > 0) {
+            // Black fade during swarm for dramatic darkness effect
             this.ctx.fillStyle = `rgba(0, 0, 0, ${game.darknessFade})`;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         }
@@ -558,8 +565,8 @@ const Renderer = {
         this.ctx.fillText(`Current Floor: ${-game.floor}`, statsX, 200);
         this.ctx.fillText(`Checkpoint: Floor ${-game.checkpoint}`, statsX, 220);
         this.ctx.fillText(`Orbs Collected: ${game.player.orbsCollected}`, statsX, 240);
-        this.ctx.fillText(`Deaths This Run: ${game.stats.totalDeaths}`, statsX, 260);
-        this.ctx.fillText(`Best Floor Reached: ${-game.stats.bestFloor}`, statsX, 280);
+        this.ctx.fillText(`Deaths This Run: ${GameState.stats.totalDeaths}`, statsX, 260);
+        this.ctx.fillText(`Best Floor Reached: ${-GameState.stats.deepestFloor}`, statsX, 280);
         
         // Leaderboard preview
         this.ctx.textAlign = 'center';
@@ -572,7 +579,7 @@ const Renderer = {
         this.ctx.fillText('1. Shadow_Walker - Floor 47', this.canvas.width / 2, 355);
         this.ctx.fillText('2. LightKeeper - Floor 42', this.canvas.width / 2, 375);
         this.ctx.fillText('3. DuneRunner - Floor 38', this.canvas.width / 2, 395);
-        this.ctx.fillText(`... You - Floor ${-game.stats.bestFloor}`, this.canvas.width / 2, 415);
+        this.ctx.fillText(`... You - Floor ${-GameState.stats.deepestFloor}`, this.canvas.width / 2, 415);
         
         // Buttons
         this.renderDeathScreenButtons();

@@ -1,20 +1,18 @@
-// Main Game Entry Point
-class Game {
-    constructor() {
-        this.lastTime = 0;
-        this.targetFPS = 60;
-        this.frameInterval = 1000 / this.targetFPS;
-        this.settings = {
-            showFPS: false,
-            showDebugInfo: false,
-            enableSoundEffects: true,
-            graphicsQuality: 'high', // low, medium, high
-            autoSave: true,
-            touchSensitivity: 1.0,
-            volume: 0.7
-        };
-    }
-
+// Main Game Initialization and Loop
+const Game = {
+    lastTime: 0,
+    targetFPS: 60,
+    frameInterval: 1000 / 60,
+    settings: {
+        showFPS: false,
+        showDebugInfo: false,
+        enableSoundEffects: true,
+        graphicsQuality: 'high', // low, medium, high
+        autoSave: true,
+        touchSensitivity: 1.0,
+        volume: 0.7
+    },
+    
     // Initialize the game
     init() {
         console.log('🎮 Initializing Buried Spire of Kuwait - Explorer Mode');
@@ -23,7 +21,7 @@ class Game {
             // Load settings from localStorage
             this.loadSettings();
             
-            // Initialize all systems
+            // Initialize all game systems
             GameState.init();
             Renderer.init();
             InputManager.init();
@@ -36,7 +34,7 @@ class Game {
             this.setupSettingsUI();
             
             // Start the game loop
-            this.start();
+            this.startGameLoop();
             
             console.log('✅ Game initialized successfully');
             
@@ -44,79 +42,7 @@ class Game {
             console.error('❌ Failed to initialize game:', error);
             this.showCriticalError(error);
         }
-    }
-
-    // Start the game loop
-    start() {
-        console.log('Starting game loop');
-        this.gameLoop();
-    }
-
-    // Main game loop
-    gameLoop() {
-        const currentTime = performance.now();
-        const deltaTime = currentTime - this.lastTime;
-
-        if (deltaTime >= this.frameInterval) {
-            try {
-                // Update game logic
-                this.update();
-                
-                // Render the game
-                this.render();
-                
-                this.lastTime = currentTime - (deltaTime % this.frameInterval);
-            } catch (error) {
-                console.error('Error in game loop:', error);
-                this.showError('Game encountered an error. Please refresh the page.');
-                return;
-            }
-        }
-
-        // Continue the loop
-        requestAnimationFrame(() => this.gameLoop());
-    }
-
-    // Update game state
-    update() {
-        GameLogic.update();
-    }
-
-    // Render the game
-    render() {
-        const game = GameState.getGame();
-        Renderer.render(game);
-    }
-
-    // Show error message
-    showError(message) {
-        const canvas = document.getElementById('gameCanvas');
-        const ctx = canvas.getContext('2d');
-        
-        ctx.fillStyle = '#000';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
-        ctx.fillStyle = '#f44336';
-        ctx.font = '24px monospace';
-        ctx.textAlign = 'center';
-        ctx.fillText('ERROR', canvas.width / 2, canvas.height / 2 - 20);
-        
-        ctx.fillStyle = '#fff';
-        ctx.font = '14px monospace';
-        ctx.fillText(message, canvas.width / 2, canvas.height / 2 + 20);
-        
-        ctx.textAlign = 'left';
-    }
-
-    // Get current FPS
-    getFPS() {
-        return Math.round(1000 / this.frameInterval);
-    }
-
-    // Get game version
-    getVersion() {
-        return '1.0.0';
-    }
+    },
 
     // Setup development tools
     setupDevTools() {
@@ -292,7 +218,7 @@ class Game {
 
     // Setup settings UI
     setupSettingsUI() {
-        // Add settings button to UI
+        // Create settings button
         const settingsBtn = document.createElement('button');
         settingsBtn.textContent = '⚙️';
         settingsBtn.style.cssText = `
@@ -301,24 +227,25 @@ class Game {
             right: 10px;
             background: rgba(0, 0, 0, 0.7);
             color: white;
-            border: 1px solid #666;
+            border: 2px solid #8B4513;
             border-radius: 5px;
             padding: 8px 12px;
             cursor: pointer;
-            z-index: 1001;
             font-size: 16px;
+            z-index: 1000;
         `;
-        
         settingsBtn.addEventListener('click', () => this.showSettingsModal());
         document.body.appendChild(settingsBtn);
     },
 
     // Show settings modal
     showSettingsModal() {
-        // Remove existing modal
-        const existing = document.getElementById('settingsModal');
-        if (existing) existing.remove();
-        
+        // Remove existing modal if present
+        const existingModal = document.getElementById('settingsModal');
+        if (existingModal) {
+            existingModal.remove();
+        }
+
         const modal = document.createElement('div');
         modal.id = 'settingsModal';
         modal.style.cssText = `
@@ -329,91 +256,169 @@ class Game {
             height: 100%;
             background: rgba(0, 0, 0, 0.8);
             display: flex;
-            align-items: center;
             justify-content: center;
+            align-items: center;
             z-index: 10000;
         `;
-        
-        const content = document.createElement('div');
-        content.style.cssText = `
-            background: #1a1a1a;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            max-width: 400px;
-            width: 90%;
-            max-height: 80%;
-            overflow-y: auto;
+
+        const stats = GameState.getFormattedStats();
+        const achievements = Array.from(GameState.stats.achievements);
+        const achievementsList = achievements.map(id => {
+            const achievement = GameState.achievements[id];
+            return achievement ? `<div style="margin: 5px 0; display: flex; align-items: center; gap: 8px;">
+                <span style="font-size: 18px;">${achievement.icon}</span>
+                <div>
+                    <div style="font-weight: bold;">${achievement.name}</div>
+                    <div style="font-size: 12px; opacity: 0.8;">${achievement.description}</div>
+                </div>
+            </div>` : '';
+        }).join('');
+
+        modal.innerHTML = `
+            <div style="background: #2c1810; border: 3px solid #8B4513; border-radius: 10px; padding: 30px; max-width: 600px; max-height: 80vh; overflow-y: auto; color: white;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                    <h2 style="margin: 0; color: #D2691E;">⚙️ Game Settings & Stats</h2>
+                    <button id="closeModal" style="background: none; border: none; color: white; font-size: 24px; cursor: pointer;">✕</button>
+                </div>
+                
+                <!-- Tabs -->
+                <div style="display: flex; margin-bottom: 20px; border-bottom: 2px solid #8B4513;">
+                    <button id="settingsTab" class="tab-btn active" style="flex: 1; padding: 10px; background: #8B4513; color: white; border: none; cursor: pointer;">Settings</button>
+                    <button id="statsTab" class="tab-btn" style="flex: 1; padding: 10px; background: #2c1810; color: white; border: none; cursor: pointer;">Statistics</button>
+                    <button id="achievementsTab" class="tab-btn" style="flex: 1; padding: 10px; background: #2c1810; color: white; border: none; cursor: pointer;">Achievements</button>
+                </div>
+                
+                <!-- Settings Panel -->
+                <div id="settingsPanel" class="tab-panel">
+                    <div style="display: grid; gap: 15px;">
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Graphics Quality:</label>
+                            <select id="graphicsQuality" style="width: 100%; padding: 5px; background: #1a1a1a; color: white; border: 1px solid #8B4513;">
+                                <option value="low">Low</option>
+                                <option value="medium">Medium</option>
+                                <option value="high">High</option>
+                            </select>
+                        </div>
+                        
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="showFPS" style="transform: scale(1.2);">
+                                Show FPS Counter
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="showDebugInfo" style="transform: scale(1.2);">
+                                Show Debug Panel
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="enableSoundEffects" style="transform: scale(1.2);">
+                                Sound Effects
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label style="display: flex; align-items: center; gap: 10px;">
+                                <input type="checkbox" id="autoSave" style="transform: scale(1.2);">
+                                Auto-save Progress
+                            </label>
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Volume: <span id="volumeValue">${Math.round(this.settings.volume * 100)}%</span></label>
+                            <input type="range" id="volume" min="0" max="1" step="0.1" value="${this.settings.volume}" style="width: 100%;">
+                        </div>
+                        
+                        <div>
+                            <label style="display: block; margin-bottom: 5px;">Touch Sensitivity: <span id="touchSensitivityValue">${this.settings.touchSensitivity}x</span></label>
+                            <input type="range" id="touchSensitivity" min="0.5" max="2" step="0.1" value="${this.settings.touchSensitivity}" style="width: 100%;">
+                        </div>
+                        
+                        <div style="display: flex; gap: 10px; margin-top: 20px;">
+                            <button id="applySettings" style="flex: 1; padding: 10px; background: #8B4513; color: white; border: none; border-radius: 5px; cursor: pointer;">Apply Settings</button>
+                            <button id="resetSettings" style="flex: 1; padding: 10px; background: #8B4513; color: white; border: none; border-radius: 5px; cursor: pointer;">Reset to Defaults</button>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Statistics Panel -->
+                <div id="statsPanel" class="tab-panel" style="display: none;">
+                    <div style="display: grid; gap: 15px;">
+                        <h3 style="margin: 0; color: #D2691E;">📊 Game Statistics</h3>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 14px;">
+                            <div><strong>Total Play Time:</strong> ${stats.totalPlayTime}</div>
+                            <div><strong>Games Played:</strong> ${stats.gamesPlayed}</div>
+                            <div><strong>Deepest Floor:</strong> ${stats.deepestFloor}</div>
+                            <div><strong>Total Deaths:</strong> ${stats.totalDeaths}</div>
+                            <div><strong>Orbs Collected:</strong> ${stats.totalOrbsCollected}</div>
+                            <div><strong>Ghouls Defeated:</strong> ${stats.totalGhoulsDefeated}</div>
+                            <div><strong>Distance Traveled:</strong> ${stats.totalDistanceTraveled}</div>
+                            <div><strong>Fastest Completion:</strong> ${stats.fastestCompletion}</div>
+                        </div>
+                        <div style="margin-top: 15px;">
+                            <strong>Achievements: ${stats.achievementsUnlocked}/${stats.totalAchievements}</strong>
+                            <div style="width: 100%; background: #1a1a1a; border-radius: 10px; overflow: hidden; margin-top: 5px;">
+                                <div style="width: ${(stats.achievementsUnlocked / stats.totalAchievements) * 100}%; height: 20px; background: linear-gradient(90deg, #8B4513, #D2691E); transition: width 0.3s ease;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Achievements Panel -->
+                <div id="achievementsPanel" class="tab-panel" style="display: none;">
+                    <h3 style="margin: 0 0 15px 0; color: #D2691E;">🏆 Achievements</h3>
+                    <div style="max-height: 300px; overflow-y: auto;">
+                        ${achievementsList || '<div style="text-align: center; opacity: 0.6; padding: 20px;">No achievements unlocked yet!</div>'}
+                    </div>
+                    <div style="margin-top: 15px; padding: 10px; background: rgba(139, 69, 19, 0.2); border-radius: 5px; font-size: 12px; opacity: 0.8;">
+                        💡 Tip: Play the game to unlock achievements and track your progress!
+                    </div>
+                </div>
+            </div>
         `;
-        
-        content.innerHTML = `
-            <h2 style="margin-top: 0; color: #ffd700;">⚙️ Settings</h2>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Graphics Quality:</label>
-                <select id="graphicsQuality" style="width: 100%; padding: 5px; background: #333; color: white; border: 1px solid #666;">
-                    <option value="low">Low</option>
-                    <option value="medium">Medium</option>
-                    <option value="high">High</option>
-                </select>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">
-                    <input type="checkbox" id="showFPS" style="margin-right: 8px;">
-                    Show FPS Counter
-                </label>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">
-                    <input type="checkbox" id="showDebugInfo" style="margin-right: 8px;">
-                    Show Debug Panel
-                </label>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">
-                    <input type="checkbox" id="enableSoundEffects" style="margin-right: 8px;">
-                    Enable Sound Effects
-                </label>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">
-                    <input type="checkbox" id="autoSave" style="margin-right: 8px;">
-                    Auto Save Progress
-                </label>
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Volume: <span id="volumeValue">${Math.round(this.settings.volume * 100)}%</span></label>
-                <input type="range" id="volume" min="0" max="1" step="0.1" value="${this.settings.volume}" style="width: 100%;">
-            </div>
-            
-            <div style="margin: 15px 0;">
-                <label style="display: block; margin-bottom: 5px;">Touch Sensitivity: <span id="touchSensitivityValue">${this.settings.touchSensitivity}</span></label>
-                <input type="range" id="touchSensitivity" min="0.5" max="2" step="0.1" value="${this.settings.touchSensitivity}" style="width: 100%;">
-            </div>
-            
-            <div style="margin-top: 20px; text-align: right;">
-                <button id="resetSettings" style="background: #666; color: white; border: none; padding: 8px 16px; border-radius: 5px; margin-right: 10px; cursor: pointer;">Reset to Default</button>
-                <button id="closeSettings" style="background: #4CAF50; color: white; border: none; padding: 8px 16px; border-radius: 5px; cursor: pointer;">Close</button>
-            </div>
-        `;
-        
-        modal.appendChild(content);
+
         document.body.appendChild(modal);
         
-        // Set current values
-        document.getElementById('graphicsQuality').value = this.settings.graphicsQuality;
-        document.getElementById('showFPS').checked = this.settings.showFPS;
-        document.getElementById('showDebugInfo').checked = this.settings.showDebugInfo;
-        document.getElementById('enableSoundEffects').checked = this.settings.enableSoundEffects;
-        document.getElementById('autoSave').checked = this.settings.autoSave;
+        // Setup tab switching
+        this.setupTabSwitching(modal);
         
         // Setup event listeners
         this.setupSettingsEventListeners(modal);
+        
+        // Load current settings
+        this.loadSettingsIntoModal();
+    },
+
+    // Setup tab switching functionality
+    setupTabSwitching(modal) {
+        const tabs = modal.querySelectorAll('.tab-btn');
+        const panels = modal.querySelectorAll('.tab-panel');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                // Remove active class from all tabs and panels
+                tabs.forEach(t => {
+                    t.classList.remove('active');
+                    t.style.background = '#2c1810';
+                });
+                panels.forEach(p => p.style.display = 'none');
+                
+                // Add active class to clicked tab
+                tab.classList.add('active');
+                tab.style.background = '#8B4513';
+                
+                // Show corresponding panel
+                const panelId = tab.id.replace('Tab', 'Panel');
+                const panel = modal.querySelector(`#${panelId}`);
+                if (panel) {
+                    panel.style.display = 'block';
+                }
+            });
+        });
     },
 
     // Setup settings event listeners
@@ -422,37 +427,35 @@ class Game {
         const volumeSlider = document.getElementById('volume');
         const volumeValue = document.getElementById('volumeValue');
         volumeSlider.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            volumeValue.textContent = `${Math.round(value * 100)}%`;
-            this.settings.volume = value;
+            volumeValue.textContent = `${Math.round(e.target.value * 100)}%`;
         });
         
         // Touch sensitivity slider
         const touchSlider = document.getElementById('touchSensitivity');
         const touchValue = document.getElementById('touchSensitivityValue');
         touchSlider.addEventListener('input', (e) => {
-            const value = parseFloat(e.target.value);
-            touchValue.textContent = value;
-            this.settings.touchSensitivity = value;
+            touchValue.textContent = `${e.target.value}x`;
+        });
+        
+        // Apply settings button
+        document.getElementById('applySettings').addEventListener('click', () => {
+            this.applySettingsFromModal();
+        });
+        
+        // Reset settings button
+        document.getElementById('resetSettings').addEventListener('click', () => {
+            this.resetSettings();
+            this.loadSettingsIntoModal();
         });
         
         // Close button
-        document.getElementById('closeSettings').addEventListener('click', () => {
-            this.applySettingsFromModal();
+        document.getElementById('closeModal').addEventListener('click', () => {
             modal.remove();
         });
         
-        // Reset button
-        document.getElementById('resetSettings').addEventListener('click', () => {
-            this.resetSettings();
-            modal.remove();
-            this.showSettingsModal(); // Reopen with default values
-        });
-        
-        // Close on background click
+        // Close on outside click
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
-                this.applySettingsFromModal();
                 modal.remove();
             }
         });
@@ -492,7 +495,6 @@ class Game {
 
     // Apply graphics quality settings
     applyGraphicsQuality() {
-        const canvas = document.getElementById('gameCanvas');
         const quality = this.settings.graphicsQuality;
         
         switch (quality) {
@@ -582,28 +584,41 @@ class Game {
             const deltaTime = currentTime - this.lastTime;
             this.lastTime = currentTime;
             
-            // Update game logic
-            GameLogic.update(deltaTime);
-            
-            // Render game
-            GameLogic.render();
-            
-            // Show FPS if enabled
-            if (this.settings.showFPS) {
-                this.showFPS(deltaTime);
+            try {
+                // Get game state with safety check
+                const game = GameState.getGame();
+                if (!game) {
+                    console.warn('Game object is null/undefined, skipping frame');
+                    requestAnimationFrame(gameLoop);
+                    return;
+                }
+                
+                // Update game state and statistics
+                GameLogic.update(deltaTime);
+                GameState.updateStats(deltaTime);
+                
+                // Render the game
+                Renderer.render(game);
+                
+                // Show FPS if enabled
+                if (this.settings.showFPS) {
+                    this.showFPS(deltaTime);
+                }
+                
+                // Auto-save periodically
+                if (this.settings.autoSave && currentTime % 30000 < 100) { // Every 30 seconds
+                    this.autoSave();
+                }
+                
+            } catch (error) {
+                console.error('Game loop error:', error);
+                // Continue the loop even if there's an error
             }
             
-            // Auto-save if enabled
-            if (this.settings.autoSave && Math.random() < 0.001) { // ~1% chance per frame
-                this.autoSave();
-            }
-            
-            // Continue loop
             requestAnimationFrame(gameLoop);
         };
         
         requestAnimationFrame(gameLoop);
-        console.log('🔄 Game loop started');
     },
 
     // Show FPS counter
@@ -671,11 +686,53 @@ class Game {
                 indicator.parentNode.removeChild(indicator);
             }
         }, 2000);
-    }
-}
+    },
 
-// Global game instance
-let gameInstance = null;
+    // Load settings into modal
+    loadSettingsIntoModal() {
+        // Set current values
+        document.getElementById('graphicsQuality').value = this.settings.graphicsQuality;
+        document.getElementById('showFPS').checked = this.settings.showFPS;
+        document.getElementById('showDebugInfo').checked = this.settings.showDebugInfo;
+        document.getElementById('enableSoundEffects').checked = this.settings.enableSoundEffects;
+        document.getElementById('autoSave').checked = this.settings.autoSave;
+        document.getElementById('volume').value = this.settings.volume;
+        document.getElementById('touchSensitivity').value = this.settings.touchSensitivity;
+        
+        // Update display values
+        document.getElementById('volumeValue').textContent = `${Math.round(this.settings.volume * 100)}%`;
+        document.getElementById('touchSensitivityValue').textContent = `${this.settings.touchSensitivity}x`;
+    }
+};
+
+// Handle page visibility changes (pause/resume)
+document.addEventListener('visibilitychange', () => {
+    try {
+        const game = GameState.getGame();
+        if (game && game.state) {
+            if (document.hidden) {
+                game.paused = true;
+                console.log('Game paused (tab hidden)');
+            } else {
+                game.paused = false;
+                console.log('Game resumed (tab visible)');
+            }
+        }
+    } catch (error) {
+        console.warn('Failed to handle visibility change:', error);
+    }
+});
+
+// Handle beforeunload for auto-save
+window.addEventListener('beforeunload', (e) => {
+    if (Game.settings && Game.settings.autoSave) {
+        try {
+            GameState.saveGame();
+        } catch (error) {
+            console.warn('Failed to save on page unload:', error);
+        }
+    }
+});
 
 // Initialize game when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
@@ -703,17 +760,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
     }
     
-    // Create and initialize game
-    gameInstance = new Game();
-    gameInstance.init();
-});
-
-// Handle page visibility changes
-document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-        console.log('Game paused (tab hidden)');
-    } else {
-        console.log('Game resumed (tab visible)');
+    // Initialize the game
+    try {
+        Game.init();
+        console.log('✅ Game initialized successfully');
+    } catch (error) {
+        console.error('❌ Failed to initialize game:', error);
+        alert('Failed to initialize game: ' + error.message);
     }
 });
 
@@ -726,34 +779,56 @@ window.addEventListener('resize', () => {
 // Handle errors
 window.addEventListener('error', (event) => {
     console.error('Global error:', event.error);
-    if (gameInstance) {
-        gameInstance.showError('An unexpected error occurred.');
-    }
+    // Game object handles its own errors through GameLogic
 });
 
 // Export for debugging
 window.GameDebug = {
     getGame: () => GameState.getGame(),
-    getStats: () => GameLogic.getStatistics(GameState.getGame()),
-    getFPS: () => gameInstance ? gameInstance.getFPS() : 0,
-    getVersion: () => gameInstance ? gameInstance.getVersion() : 'Unknown',
-    resetGame: () => GameLogic.resetGame(),
+    getStats: () => {
+        try {
+            const game = GameState.getGame();
+            return GameState.getFormattedStats();
+        } catch (error) {
+            return { error: 'Could not get stats' };
+        }
+    },
+    resetGame: () => {
+        try {
+            GameState.resetGame();
+            console.log('Game reset');
+        } catch (error) {
+            console.error('Failed to reset game:', error);
+        }
+    },
     teleportToFloor: (floor) => {
-        const game = GameState.getGame();
-        game.floor = Math.max(1, Math.min(floor, CONFIG.GAME.MAX_FLOORS));
-        MapGenerator.generateFloor(game, game.floor);
+        try {
+            const game = GameState.getGame();
+            game.floor = Math.max(1, Math.min(floor, CONFIG.GAME.MAX_FLOORS));
+            MapGenerator.generateFloor(game, game.floor);
+        } catch (error) {
+            console.error('Failed to teleport:', error);
+        }
     },
     giveOrb: (type) => {
-        const game = GameState.getGame();
-        const slot = InventoryManager.getFirstEmptySlot();
-        if (slot >= 0 && ORB_TYPES[type]) {
-            game.player.inventory[slot] = type;
-            InventoryManager.updateDisplay();
+        try {
+            const game = GameState.getGame();
+            const slot = InventoryManager.getFirstEmptySlot();
+            if (slot >= 0 && ORB_TYPES[type]) {
+                game.player.inventory[slot] = type;
+                InventoryManager.updateDisplay();
+            }
+        } catch (error) {
+            console.error('Failed to give orb:', error);
         }
     },
     setLight: (amount) => {
-        const game = GameState.getGame();
-        game.player.light = Math.max(0, Math.min(amount, CONFIG.PLAYER.MAX_LIGHT));
+        try {
+            const game = GameState.getGame();
+            game.player.light = Math.max(0, Math.min(amount, CONFIG.PLAYER.MAX_LIGHT));
+        } catch (error) {
+            console.error('Failed to set light:', error);
+        }
     }
 };
 

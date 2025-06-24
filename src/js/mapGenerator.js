@@ -1,7 +1,12 @@
 // Map Generation
 const MapGenerator = {
     // Generate a new floor
-    generateFloor(game, floorNum) {
+    generateFloor(game, floorNum = null) {
+        // Use the game's floor number if not provided
+        if (floorNum === null) {
+            floorNum = Math.abs(game.floor);
+        }
+        
         // Clear existing floor data
         game.walls = [];
         game.orbs = [];
@@ -35,7 +40,7 @@ const MapGenerator = {
         
         Utils.updateCamera(game);
         
-        console.log('Floor generated:', floorNum, 'Stairs at:', game.stairs);
+        console.log('Floor generated:', floorNum, 'Ghouls placed:', game.ghouls.length, 'Stairs at:', game.stairs);
     },
 
     // Create initial grid
@@ -149,7 +154,9 @@ const MapGenerator = {
                     y: marker.y,
                     type: 'wisp',
                     collected: false,
-                    pulse: 0
+                    pulse: 0,
+                    size: 8, // Add size property for collision detection
+                    color: ORB_TYPES.wisp.color
                 });
             }
         }
@@ -171,7 +178,9 @@ const MapGenerator = {
                 y: space.y,
                 type: orbType,
                 collected: false,
-                pulse: Math.random() * Math.PI * 2
+                pulse: Math.random() * Math.PI * 2,
+                size: 8, // Add size property for collision detection
+                color: ORB_TYPES[orbType].color
             });
         }
     },
@@ -201,6 +210,7 @@ const MapGenerator = {
                 y: space.y,
                 speed: 0.8 + Math.random() * 0.4,
                 state: 'patrol',
+                size: 15, // Add size property for collision detection
                 patrolTarget: { 
                     x: Math.random() * game.mapWidth * CONFIG.MAP.CELL_SIZE, 
                     y: Math.random() * game.mapHeight * CONFIG.MAP.CELL_SIZE 

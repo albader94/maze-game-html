@@ -82,94 +82,7 @@ const EntityManager = {
         // Clamp light to minimum 0
         game.player.light = Math.max(0, game.player.light);
         
-        // Handle light depletion
-        if (game.player.light <= 0 && !game.swarming) {
-            this.handleLightDepletion(game);
-        }
-    },
-
-    // Handle what happens when light reaches 0
-    handleLightDepletion(game) {
-        // Check for lifeline orb
-        let hasLifeline = false;
-        let lifelineSlot = -1;
-        
-        for (let i = 0; i < 3; i++) {
-            if (game.player.inventory[i] === 'red') {
-                hasLifeline = true;
-                lifelineSlot = i;
-                break;
-            }
-        }
-        
-        if (hasLifeline) {
-            // Auto-use lifeline
-            game.player.light = 100;
-            game.player.inventory[lifelineSlot] = null;
-            InventoryManager.updateDisplay();
-            document.getElementById('story').textContent = MESSAGES.STORY.LIFELINE_AUTO;
-            
-            // Create dramatic revival effect
-            Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 30, 5);
-            
-            // Flash effect
-            game.player.lightRadius = 250;
-            setTimeout(() => game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS, 500);
-        } else {
-            // Start the swarm sequence
-            this.startSwarmSequence(game);
-        }
-    },
-
-    // Start swarm sequence when light depletes
-    startSwarmSequence(game) {
-        game.swarming = true;
-        game.swarmTimer = CONFIG.GAME.SWARM_DURATION;
-        document.getElementById('story').textContent = MESSAGES.STORY.DARKNESS_CONSUMES;
-        
-        // Alert all ghouls
-        for (const ghoul of game.ghouls) {
-            ghoul.state = 'swarming';
-            ghoul.speed *= 2.5;
-        }
-        
-        // Spawn edge ghouls
-        this.spawnEdgeGhouls(game);
-    },
-
-    // Spawn ghouls from screen edges during swarm
-    spawnEdgeGhouls(game) {
-        for (let i = 0; i < 8; i++) {
-            const edge = Math.floor(Math.random() * 4);
-            let x, y;
-            
-            switch(edge) {
-                case 0: // Top
-                    x = Math.random() * CONFIG.CANVAS.WIDTH + game.camera.x;
-                    y = game.camera.y - 20;
-                    break;
-                case 1: // Right
-                    x = game.camera.x + CONFIG.CANVAS.WIDTH + 20;
-                    y = Math.random() * CONFIG.CANVAS.HEIGHT + game.camera.y;
-                    break;
-                case 2: // Bottom
-                    x = Math.random() * CONFIG.CANVAS.WIDTH + game.camera.x;
-                    y = game.camera.y + CONFIG.CANVAS.HEIGHT + 20;
-                    break;
-                case 3: // Left
-                    x = game.camera.x - 20;
-                    y = Math.random() * CONFIG.CANVAS.HEIGHT + game.camera.y;
-                    break;
-            }
-            
-            game.ghouls.push({
-                x: x,
-                y: y,
-                speed: 3,
-                state: 'swarming',
-                patrolTarget: { x: game.player.x, y: game.player.y }
-            });
-        }
+        // Light depletion is now handled in GameLogic.updateGameRules()
     },
 
     // Update ghouls
@@ -239,13 +152,13 @@ const EntityManager = {
         if (!orbType) return;
         
         if (orbType.lightBonus) {
-            // Light restoration orbs
+            // Light restoration orbs - always collectible
             game.player.light = Math.min(game.player.light + orbType.lightBonus, game.player.maxLight);
             if (orb.type !== 'wisp') {
                 game.player.orbsCollected++;
             }
         } else if (orbType.power) {
-            // Power orbs - add to inventory
+            // Power orbs - add to inventory only if space available
             let added = false;
             for (let i = 0; i < 3; i++) {
                 if (!game.player.inventory[i]) {
@@ -259,14 +172,16 @@ const EntityManager = {
             }
             
             if (!added) {
+                // Inventory is full - don't collect the orb
                 document.getElementById('story').textContent = MESSAGES.STORY.INVENTORY_FULL;
                 orb.collected = false;
-                return;
+                return false; // Indicate collection failed
             }
         }
         
-        // Create collection particle effect
+        // Create collection particle effect only if successfully collected
         Utils.createParticles(game, orb.x, orb.y, orbType.color, 10, 4);
+        return true; // Indicate collection succeeded
     },
 
     // Update particles
@@ -280,24 +195,6 @@ const EntityManager = {
             
             return particle.life > 0;
         });
-    },
-
-    // Update swarm timer
-    updateSwarmTimer(game) {
-        if (game.swarming && game.swarmTimer > 0) {
-            game.swarmTimer--;
-            
-            if (game.swarmTimer < 60) {
-                game.darknessFade = 1 - (game.swarmTimer / 60);
-            }
-            
-            if (game.swarmTimer <= 0) {
-                // Show death screen
-                game.deathScreen = true;
-                GameState.updateStats();
-                document.getElementById('story').textContent = '';
-            }
-        }
     },
 
     // Check stairs interaction

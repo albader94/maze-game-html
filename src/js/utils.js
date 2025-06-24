@@ -101,6 +101,10 @@ const Utils = {
         document.getElementById('lightBar').style.width = `${Math.max(0, game.player.light)}%`;
         document.getElementById('orbs').textContent = game.player.orbsCollected;
         
+        // Update checkpoint display - calculate checkpoint number based on current floor
+        const checkpointNumber = Math.ceil(Math.abs(game.floor) / 5);
+        document.getElementById('checkpoint').textContent = checkpointNumber;
+        
         // Update power status
         const powerStatus = [];
         if (game.player.powers.phase > 0) 

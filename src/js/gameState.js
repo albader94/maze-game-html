@@ -225,7 +225,7 @@ const GameState = {
         // Set checkpoint with safety check
         const checkpointElement = document.getElementById('checkpoint');
         if (checkpointElement) {
-            checkpointElement.textContent = '1';
+            checkpointElement.textContent = '1'; // Checkpoint 1 for floor 1
         }
         
         console.log('🎮 Game started - Floor 1');
@@ -303,7 +303,9 @@ const GameState = {
         // Update UI
         const checkpointElement = document.getElementById('checkpoint');
         if (checkpointElement) {
-            checkpointElement.textContent = this.game.checkpoint;
+            // Calculate and display the correct checkpoint number
+            const checkpointNumber = Math.ceil(Math.abs(this.game.checkpoint) / 5);
+            checkpointElement.textContent = checkpointNumber;
         }
         
         // Show respawn message

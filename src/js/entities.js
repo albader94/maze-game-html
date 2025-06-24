@@ -207,7 +207,9 @@ const EntityManager = {
             } else {
                 if (game.floor % CONFIG.GAME.CHECKPOINT_INTERVAL === 0) {
                     game.checkpoint = game.floor;
-                    document.getElementById('checkpoint').textContent = game.checkpoint;
+                    // Calculate and display the correct checkpoint number
+                    const checkpointNumber = Math.ceil(Math.abs(game.floor) / 5);
+                    document.getElementById('checkpoint').textContent = checkpointNumber;
                     document.getElementById('story').textContent = MESSAGES.FLOOR.CHECKPOINT(game.floor);
                 } else {
                     document.getElementById('story').textContent = MESSAGES.FLOOR.PROGRESS(game.floor);

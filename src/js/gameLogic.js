@@ -300,12 +300,40 @@ const GameLogic = {
         // Update player powers with validation
         this.updatePlayerPowers(game, deltaTime);
         
+        // Calculate light depletion rate based on ghoul presence
+        let lightDepletionRate = CONFIG.LIGHT.DEPLETION_RATE;
+        
+        // Count stalking ghouls nearby
+        let stalkingGhouls = 0;
+        for (const ghoul of game.ghouls) {
+            const distToPlayer = Utils.distance(ghoul, game.player);
+            if (ghoul.state === 'stalking' && distToPlayer < game.player.lightRadius * 1.5) {
+                stalkingGhouls++;
+            }
+        }
+        
+        // Increase light depletion based on stalking ghouls
+        if (stalkingGhouls > 0) {
+            // Each stalking ghoul increases depletion by 50%
+            lightDepletionRate *= (1 + (stalkingGhouls * 0.5));
+            console.log(`⚡ ${stalkingGhouls} ghouls stalking - increased light depletion: ${lightDepletionRate.toFixed(3)}`);
+        }
+        
         // Update light with bounds checking
         if (game.player.powers.regeneration > 0) {
             game.player.light = Math.min(100, game.player.light + 0.5);
         } else {
-            game.player.light = Math.max(0, game.player.light - CONFIG.LIGHT.DEPLETION_RATE * deltaTime / 16);
+            game.player.light = Math.max(0, game.player.light - lightDepletionRate * deltaTime / 16);
         }
+        
+        // Update light radius based on current light level (dynamic radius)
+        const baseLightRadius = CONFIG.PLAYER.LIGHT_RADIUS || 150;
+        const lightPercentage = game.player.light / 100;
+        
+        // Light radius scales from 30% to 100% of base radius based on light level
+        const minRadiusPercent = 0.3;
+        const radiusScale = minRadiusPercent + (lightPercentage * (1 - minRadiusPercent));
+        game.player.lightRadius = Math.floor(baseLightRadius * radiusScale);
         
         // Light depletion handling is done in updateGameRules() to allow for lifeline logic
     },

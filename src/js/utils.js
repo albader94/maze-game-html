@@ -111,6 +111,25 @@ const Utils = {
             powerStatus.push(`Reveal: ${Math.ceil(game.player.powers.reveal / 60)}s`);
         
         document.getElementById('powerStatus').textContent = powerStatus.join(' | ');
+        
+        // Update stalking indicator
+        let stalkingGhouls = 0;
+        for (const ghoul of game.ghouls) {
+            const distToPlayer = this.distance(ghoul, game.player);
+            if (ghoul.state === 'stalking' && distToPlayer < game.player.lightRadius * 1.5) {
+                stalkingGhouls++;
+            }
+        }
+        
+        const stalkingIndicator = document.getElementById('stalkingIndicator');
+        if (stalkingIndicator) {
+            if (stalkingGhouls > 0) {
+                stalkingIndicator.style.display = 'block';
+                stalkingIndicator.textContent = stalkingGhouls === 1 ? '👁️ STALKED' : `👁️ STALKED (${stalkingGhouls})`;
+            } else {
+                stalkingIndicator.style.display = 'none';
+            }
+        }
     },
 
     // Mark areas as explored

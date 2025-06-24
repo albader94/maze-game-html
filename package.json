@@ -1,0 +1,36 @@
+{
+  "name": "buried-spire-kuwait",
+  "version": "1.0.0",
+  "description": "A 2D dungeon crawler survival game with a unique Middle Eastern theme",
+  "main": "public/index.html",
+  "scripts": {
+    "start": "python -m http.server 8000 --directory .",
+    "serve": "python3 -m http.server 8000 --directory .",
+    "dev": "live-server --port=8000 --entry-file=public/index.html"
+  },
+  "keywords": [
+    "game",
+    "javascript",
+    "html5",
+    "canvas",
+    "dungeon-crawler",
+    "survival",
+    "maze"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/yourusername/buried-spire-kuwait.git"
+  },
+  "bugs": {
+    "url": "https://github.com/yourusername/buried-spire-kuwait/issues"
+  },
+  "homepage": "https://github.com/yourusername/buried-spire-kuwait#readme",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+} 

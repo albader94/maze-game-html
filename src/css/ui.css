@@ -1,0 +1,103 @@
+/* Game UI */
+#ui {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: #fff;
+    font-size: 14px;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+    background: rgba(0,0,0,0.7);
+    padding: 10px;
+    border-radius: 5px;
+    min-width: 220px;
+}
+
+/* Minimap */
+#minimap {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    width: 150px;
+    height: 150px;
+    border: 2px solid #444;
+    background: rgba(0,0,0,0.8);
+    border-radius: 5px;
+}
+
+/* Inventory */
+#inventory {
+    position: absolute;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    gap: 15px;
+    background: rgba(0,0,0,0.8);
+    padding: 15px;
+    border-radius: 10px;
+    border: 2px solid #333;
+}
+
+.inventory-slot {
+    width: 50px;
+    height: 50px;
+    border: 2px solid #444;
+    border-radius: 5px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    background: rgba(0,0,0,0.5);
+    position: relative;
+}
+
+.inventory-slot::before {
+    content: attr(data-key);
+    position: absolute;
+    top: -8px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 10px;
+    color: #666;
+    background: rgba(0,0,0,0.8);
+    padding: 0 4px;
+    border-radius: 2px;
+}
+
+.inventory-slot.active {
+    border-color: #ffeb3b;
+    box-shadow: 0 0 10px #ffeb3b;
+}
+
+/* Light Bar */
+.light-bar {
+    width: 200px;
+    height: 20px;
+    background: #222;
+    border: 1px solid #444;
+    margin-top: 5px;
+}
+
+.light-fill {
+    height: 100%;
+    background: linear-gradient(to right, #ffeb3b, #ff9800);
+    transition: width 0.3s;
+}
+
+/* Power Indicator */
+.power-indicator {
+    margin-top: 10px;
+    font-size: 12px;
+    color: #aaa;
+}
+
+/* Mode Badge */
+.mode-badge {
+    background: #2e7d32;
+    color: white;
+    padding: 2px 8px;
+    border-radius: 3px;
+    font-size: 11px;
+    margin-top: 5px;
+    display: inline-block;
+} 

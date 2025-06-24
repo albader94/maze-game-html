@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Buried Spire of Kuwait - Explorer Mode</title>
+    <link rel="stylesheet" href="../src/css/styles.css">
+    <link rel="stylesheet" href="../src/css/ui.css">
+</head>
+<body>
+    <div id="gameContainer">
+        <canvas id="gameCanvas"></canvas>
+        <canvas id="minimap" style="display: none;"></canvas>
+        
+        <!-- Game UI -->
+        <div id="ui" style="display: none;">
+            <div>Floor: <span id="floor">-1</span> / -50</div>
+            <div>Light: <span id="lightTime">100</span>%</div>
+            <div class="light-bar">
+                <div class="light-fill" id="lightBar"></div>
+            </div>
+            <div>Orbs: <span id="orbs">0</span></div>
+            <div>Checkpoint: <span id="checkpoint">1</span></div>
+            <div id="powerStatus"></div>
+        </div>
+
+        <!-- Inventory -->
+        <div id="inventory" style="display: none;">
+            <div class="inventory-slot" id="slot1" data-key="1"></div>
+            <div class="inventory-slot" id="slot2" data-key="2"></div>
+            <div class="inventory-slot" id="slot3" data-key="3"></div>
+        </div>
+
+        <!-- Story Text -->
+        <div id="story">Welcome to the Buried Spire of Kuwait</div>
+    </div>
+
+    <!-- JavaScript files in dependency order -->
+    <!-- Core configuration and constants -->
+    <script src="../src/js/config.js"></script>
+    <script src="../src/js/messages.js"></script>
+    
+    <!-- Utility and helper functions -->
+    <script src="../src/js/utils.js"></script>
+    
+    <!-- Game state and data management -->
+    <script src="../src/js/gameState.js"></script>
+    
+    <!-- Input handling -->
+    <script src="../src/js/input.js"></script>
+    
+    <!-- Game systems -->
+    <script src="../src/js/mapGenerator.js"></script>
+    <script src="../src/js/entities.js"></script>
+    <script src="../src/js/inventory.js"></script>
+    <script src="../src/js/renderer.js"></script>
+    
+    <!-- Game logic and main loop -->
+    <script src="../src/js/gameLogic.js"></script>
+    <script src="../src/js/main.js"></script>
+</body>
+</html> 

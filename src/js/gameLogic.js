@@ -6,100 +6,136 @@ const GameLogic = {
         
         // Log error with context
         logError(error, context = '') {
-            const errorInfo = {
-                message: error.message || error,
-                stack: error.stack,
-                context,
-                timestamp: Date.now(),
-                gameState: this.getGameStateSnapshot()
-            };
-            
-            this.errors.push(errorInfo);
-            if (this.errors.length > this.maxErrors) {
-                this.errors.shift();
-            }
-            
-            console.error('Game Error:', errorInfo);
-            
-            // Show user-friendly error message for critical errors
-            if (this.isCriticalError(error)) {
-                this.showErrorMessage(error.message);
+            try {
+                const timestamp = new Date().toISOString();
+                const errorInfo = {
+                    timestamp,
+                    context,
+                    message: error && error.message ? error.message : String(error),
+                    stack: error && error.stack ? error.stack : 'No stack trace available',
+                    gameState: this.getGameStateSnapshot()
+                };
+                
+                this.errors.push(errorInfo);
+                
+                // Keep only last 50 errors
+                if (this.errors.length > 50) {
+                    this.errors.shift();
+                }
+                
+                console.error('Game Error:', {
+                    context: errorInfo.context,
+                    message: errorInfo.message,
+                    timestamp: errorInfo.timestamp
+                });
+                
+                // Show user-friendly error message for critical errors
+                if (this.isCriticalError(error)) {
+                    this.showErrorMessage(errorInfo.message);
+                }
+            } catch (logError) {
+                // Fallback error logging if main error logging fails
+                console.error('Error in error handler:', logError.message || String(logError));
+                console.error('Original error:', error && error.message ? error.message : String(error));
             }
         },
         
         // Check if error is critical
         isCriticalError(error) {
-            const criticalPatterns = [
-                'Cannot read property',
-                'Cannot access before initialization',
-                'is not a function',
-                'Network Error'
-            ];
-            
-            return criticalPatterns.some(pattern => 
-                error.message && error.message.includes(pattern)
-            );
+            try {
+                const criticalPatterns = [
+                    'Cannot read property',
+                    'Cannot access before initialization',
+                    'is not a function',
+                    'Network Error'
+                ];
+                
+                return criticalPatterns.some(pattern => 
+                    error.message && error.message.includes(pattern)
+                );
+            } catch (e) {
+                console.error('Error checking if error is critical:', e);
+                return false;
+            }
         },
         
         // Show error message to user
         showErrorMessage(message) {
-            const errorDiv = document.createElement('div');
-            errorDiv.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                background: rgba(255, 0, 0, 0.9);
-                color: white;
-                padding: 15px;
-                border-radius: 5px;
-                z-index: 10000;
-                max-width: 300px;
-                font-family: Arial, sans-serif;
-                font-size: 14px;
-            `;
-            errorDiv.textContent = `Error: ${message}`;
-            
-            document.body.appendChild(errorDiv);
-            
-            setTimeout(() => {
-                if (errorDiv.parentNode) {
-                    errorDiv.parentNode.removeChild(errorDiv);
-                }
-            }, 5000);
+            try {
+                const errorDiv = document.createElement('div');
+                errorDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: rgba(255, 0, 0, 0.9);
+                    color: white;
+                    padding: 15px;
+                    border-radius: 5px;
+                    z-index: 10000;
+                    max-width: 300px;
+                    font-family: Arial, sans-serif;
+                    font-size: 14px;
+                `;
+                errorDiv.textContent = `Error: ${message}`;
+                
+                document.body.appendChild(errorDiv);
+                
+                setTimeout(() => {
+                    if (errorDiv.parentNode) {
+                        errorDiv.parentNode.removeChild(errorDiv);
+                    }
+                }, 5000);
+            } catch (e) {
+                console.error('Error showing error message:', e);
+            }
         },
         
         // Get game state snapshot for debugging
         getGameStateSnapshot() {
             try {
+                if (typeof GameState === 'undefined' || !GameState.getGame) {
+                    return { error: 'GameState not available' };
+                }
+                
                 const game = GameState.getGame();
+                if (!game) {
+                    return { error: 'Game object is null' };
+                }
+                
                 return {
-                    state: game.state,
-                    floor: game.floor,
-                    playerPos: { x: game.player.x, y: game.player.y },
-                    playerLight: game.player.light,
-                    ghoulCount: game.ghouls.length,
-                    orbCount: game.orbs.length,
-                    particleCount: game.particles.length
+                    state: game.state || 'unknown',
+                    floor: game.floor || 0,
+                    playerPos: game.player ? { x: game.player.x, y: game.player.y } : { x: 0, y: 0 },
+                    playerLight: game.player ? game.player.light : 0,
+                    ghoulCount: game.ghouls ? game.ghouls.length : 0,
+                    orbCount: game.orbs ? game.orbs.length : 0,
+                    particleCount: game.particles ? game.particles.length : 0
                 };
             } catch (e) {
-                return { error: 'Could not capture game state' };
+                return { error: 'Could not capture game state: ' + e.message };
             }
         },
         
         // Get error report
         getErrorReport() {
-            return {
-                errorCount: this.errors.length,
-                recentErrors: this.errors.slice(-5),
-                performance: Utils.getPerformanceReport(),
-                device: InputManager.getDeviceInfo()
-            };
+            try {
+                return {
+                    errorCount: this.errors.length,
+                    recentErrors: this.errors.slice(-5),
+                    performance: typeof Utils !== 'undefined' && Utils.getPerformanceReport ? Utils.getPerformanceReport() : null,
+                    device: typeof InputManager !== 'undefined' && InputManager.getDeviceInfo ? InputManager.getDeviceInfo() : null
+                };
+            } catch (e) {
+                return { error: 'Could not generate error report: ' + e.message };
+            }
         }
     },
 
     // Initialize game logic with error handling
     init() {
         try {
+            console.log('🎮 Initializing GameLogic...');
+            
             // Set up global error handler
             window.addEventListener('error', (e) => {
                 this.errorHandler.logError(e.error, 'Global Error');
@@ -109,8 +145,13 @@ const GameLogic = {
                 this.errorHandler.logError(e.reason, 'Unhandled Promise Rejection');
             });
             
-            // Initialize game systems
-            this.initializeSystems();
+            // Validate that required systems are available
+            this.validateSystems();
+            
+            // Validate configuration
+            this.validateConfig();
+            
+            console.log('✅ GameLogic initialized successfully');
             
         } catch (error) {
             this.errorHandler.logError(error, 'Game Initialization');
@@ -118,24 +159,24 @@ const GameLogic = {
         }
     },
 
-    // Initialize all game systems with validation
-    initializeSystems() {
-        const systems = [
-            { name: 'Config', init: () => this.validateConfig() },
-            { name: 'GameState', init: () => GameState.init() },
-            { name: 'InputManager', init: () => InputManager.init() },
-            { name: 'Renderer', init: () => Renderer.init() }
+    // Validate that required systems are available
+    validateSystems() {
+        const requiredSystems = [
+            { name: 'CONFIG', obj: typeof CONFIG !== 'undefined' && CONFIG },
+            { name: 'GameState', obj: typeof GameState !== 'undefined' && GameState },
+            { name: 'InputManager', obj: typeof InputManager !== 'undefined' && InputManager },
+            { name: 'Renderer', obj: typeof Renderer !== 'undefined' && Renderer },
+            { name: 'Utils', obj: typeof Utils !== 'undefined' && Utils }
         ];
 
-        systems.forEach(system => {
-            try {
-                system.init();
-                console.log(`✓ ${system.name} initialized successfully`);
-            } catch (error) {
-                this.errorHandler.logError(error, `${system.name} Initialization`);
-                throw new Error(`Failed to initialize ${system.name}: ${error.message}`);
-            }
-        });
+        const missingSystems = requiredSystems.filter(system => !system.obj);
+        
+        if (missingSystems.length > 0) {
+            const missingNames = missingSystems.map(s => s.name).join(', ');
+            throw new Error(`Missing required systems: ${missingNames}`);
+        }
+        
+        console.log('✓ All required systems are available');
     },
 
     // Validate configuration
@@ -163,15 +204,31 @@ const GameLogic = {
     // Update game with error handling
     update(deltaTime) {
         try {
+            // Validate deltaTime
+            if (typeof deltaTime !== 'number' || deltaTime < 0 || deltaTime > 1000) {
+                console.warn('Invalid deltaTime:', deltaTime);
+                return; // Skip this frame
+            }
+            
             Utils.startPerformanceTimer('update');
             
             const game = GameState.getGame();
             if (!this.validateGameState(game)) {
-                throw new Error('Invalid game state detected');
+                console.warn('Invalid game state detected, attempting recovery...');
+                this.handleGameplayError(new Error('Invalid game state detected'));
+                return;
             }
             
-            if (game.state === 'playing' && !game.deathScreen && !game.showHelp) {
+            // Check if game is paused - if so, skip all gameplay updates
+            const isPaused = (typeof Main !== 'undefined' && Main.isPaused) || false;
+            
+            if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !isPaused) {
                 this.updateGameplay(game, deltaTime);
+            }
+            
+            // Update statistics if playing (but not if paused)
+            if (game.state === 'playing' && !isPaused) {
+                GameState.updateStats(deltaTime);
             }
             
             Utils.endPerformanceTimer('update');
@@ -185,27 +242,94 @@ const GameLogic = {
 
     // Validate game state
     validateGameState(game) {
-        if (!game) return false;
-        if (!game.player) return false;
-        if (typeof game.player.x !== 'number' || typeof game.player.y !== 'number') return false;
-        if (!Array.isArray(game.ghouls)) return false;
-        if (!Array.isArray(game.orbs)) return false;
-        if (!Array.isArray(game.particles)) return false;
-        return true;
+        try {
+            if (!game) {
+                console.warn('Game object is null or undefined');
+                return false;
+            }
+            
+            if (!game.player) {
+                console.warn('Game player object is missing');
+                return false;
+            }
+            
+            if (typeof game.player.x !== 'number' || typeof game.player.y !== 'number') {
+                console.warn('Player position is invalid - not numbers:', {
+                    x: game.player.x, 
+                    y: game.player.y,
+                    xType: typeof game.player.x,
+                    yType: typeof game.player.y
+                });
+                return false;
+            }
+            
+            if (isNaN(game.player.x) || isNaN(game.player.y)) {
+                console.warn('Player position contains NaN:', {
+                    x: game.player.x, 
+                    y: game.player.y
+                });
+                return false;
+            }
+            
+            if (!isFinite(game.player.x) || !isFinite(game.player.y)) {
+                console.warn('Player position is not finite:', {
+                    x: game.player.x, 
+                    y: game.player.y
+                });
+                return false;
+            }
+            
+            if (!Array.isArray(game.ghouls)) {
+                console.warn('Game ghouls is not an array');
+                return false;
+            }
+            
+            if (!Array.isArray(game.orbs)) {
+                console.warn('Game orbs is not an array');
+                return false;
+            }
+            
+            if (!Array.isArray(game.particles)) {
+                console.warn('Game particles is not an array');
+                return false;
+            }
+            
+            if (!Array.isArray(game.walls)) {
+                console.warn('Game walls is not an array');
+                return false;
+            }
+            
+            return true;
+        } catch (e) {
+            console.error('Error validating game state:', e);
+            return false;
+        }
     },
 
     // Handle gameplay errors gracefully
     handleGameplayError(error) {
+        console.warn('Handling gameplay error:', error.message);
+        
         const game = GameState.getGame();
+        if (!game) {
+            console.error('Cannot handle gameplay error: game object is null');
+            return;
+        }
         
         // Try to recover from common errors
-        if (error.message.includes('player')) {
+        if (error.message.includes('player') || error.message.includes('position') || error.message.includes('Invalid game state')) {
             this.recoverPlayerState(game);
-        } else if (error.message.includes('entities')) {
+        } else if (error.message.includes('entities') || error.message.includes('ghouls') || error.message.includes('orbs')) {
             this.recoverEntityStates(game);
+        } else if (error.message.includes('render') || error.message.includes('gradient')) {
+            // For rendering errors, try to reset player light radius
+            if (game.player) {
+                game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS || 150;
+                console.log('Reset player light radius due to rendering error');
+            }
         } else {
             // For severe errors, pause the game
-            game.paused = true;
+            this.isPaused = true;
             this.errorHandler.showErrorMessage('Game paused due to error. Press R to restart.');
         }
     },
@@ -213,20 +337,64 @@ const GameLogic = {
     // Recover player state
     recoverPlayerState(game) {
         try {
-            if (!game.player || typeof game.player.x !== 'number') {
-                game.player = {
-                    x: 100,
-                    y: 100,
-                    light: 100,
-                    speed: CONFIG.PLAYER.SPEED,
-                    size: CONFIG.PLAYER.SIZE,
-                    orbsCollected: 0,
-                    powers: { phase: 0, regeneration: 0, reveal: 0 },
-                    inventory: [null, null, null]
-                };
-                console.log('Player state recovered');
+            console.log('Attempting to recover player state...');
+            
+            // If player object is missing or invalid, recreate it
+            if (!game.player || typeof game.player !== 'object') {
+                console.warn('Player object missing, recreating...');
+                game.player = {};
             }
+            
+            // Ensure all required player properties exist with valid values
+            const playerDefaults = {
+                x: CONFIG.PLAYER.START_X || 100,
+                y: CONFIG.PLAYER.START_Y || 100,
+                speed: CONFIG.PLAYER.SPEED || 3,
+                light: CONFIG.PLAYER.MAX_LIGHT || 100,
+                maxLight: CONFIG.PLAYER.MAX_LIGHT || 100,
+                lightRadius: CONFIG.PLAYER.LIGHT_RADIUS || 150,
+                size: CONFIG.PLAYER.SIZE || 15,
+                orbsCollected: 0,
+                inventory: [null, null, null],
+                selectedSlot: 0,
+                deathMarkers: [],
+                lastPosition: { x: 100, y: 100 },
+                survivalTime: 0,
+                powers: { phase: 0, regeneration: 0, reveal: 0 }
+            };
+            
+            // Apply defaults for missing or invalid properties
+            for (const [key, defaultValue] of Object.entries(playerDefaults)) {
+                if (game.player[key] === undefined || game.player[key] === null) {
+                    game.player[key] = defaultValue;
+                    console.log(`Reset player.${key} to default:`, defaultValue);
+                } else if (key === 'x' || key === 'y') {
+                    // Special handling for coordinates
+                    if (typeof game.player[key] !== 'number' || !isFinite(game.player[key])) {
+                        game.player[key] = defaultValue;
+                        console.log(`Fixed invalid player.${key}:`, defaultValue);
+                    }
+                }
+            }
+            
+            // Ensure arrays are actually arrays
+            if (!Array.isArray(game.player.inventory)) {
+                game.player.inventory = [null, null, null];
+            }
+            if (!Array.isArray(game.player.deathMarkers)) {
+                game.player.deathMarkers = [];
+            }
+            
+            // Ensure powers object exists
+            if (!game.player.powers || typeof game.player.powers !== 'object') {
+                game.player.powers = { phase: 0, regeneration: 0, reveal: 0 };
+            }
+            
+            console.log('✅ Player state recovered successfully');
+            console.log('Player position:', game.player.x, game.player.y);
+            
         } catch (e) {
+            console.error('Failed to recover player state:', e);
             this.errorHandler.logError(e, 'Player Recovery');
         }
     },
@@ -553,6 +721,8 @@ const GameLogic = {
     updateGameRules(game, deltaTime) {
         // Check stairs detection - use same logic as original
         if (game.stairs && Utils.distance(game.player, game.stairs) < 40) {
+            console.log(`🚪 Player using stairs to go from floor ${game.floor} to ${game.floor + 1}`);
+            
             game.floor++;
             if (game.floor >= 50) {
                 game.victory = true;
@@ -562,6 +732,12 @@ const GameLogic = {
                     game.checkpoint = game.floor;
                     GameState.saveCheckpoint();
                 }
+                
+                // IMPORTANT: Set level entry inventory BEFORE generating new floor
+                // This represents what the player has when they ENTER the new level
+                game.levelEntryInventory = [...game.player.inventory];
+                console.log(`🎒 Level entry inventory set for floor ${game.floor}:`, game.levelEntryInventory);
+                
                 MapGenerator.generateFloor(game);
                 game.player.light = Math.min(game.player.light + 30, 100);
             }

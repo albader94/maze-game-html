@@ -324,6 +324,18 @@ const InputManager = {
     handleKeyDown(e) {
         const game = GameState.getGame();
         
+        // ESC key to toggle pause
+        if (e.key === 'Escape') {
+            e.preventDefault();
+            if (game.state === 'playing' && !game.deathScreen && !game.gameOver && !game.victory) {
+                // Access the Game object from main.js
+                if (window.Game) {
+                    window.Game.togglePause();
+                }
+            }
+            return;
+        }
+        
         // Direct orb usage (1-3 keys)
         if (e.key >= '1' && e.key <= '3' && game.state === 'playing' && !game.deathScreen && !game.showHelp) {
             const slot = parseInt(e.key) - 1;

@@ -200,6 +200,8 @@ const EntityManager = {
     // Check stairs interaction
     checkStairs(game) {
         if (game.stairs && Utils.distance(game.player, game.stairs) < 40) {
+            console.log(`🚪 Player using stairs to go from floor ${game.floor} to ${game.floor + 1}`);
+            
             game.floor++;
             if (game.floor >= CONFIG.GAME.MAX_FLOORS) {
                 game.victory = true;
@@ -216,6 +218,11 @@ const EntityManager = {
                 }
                 MapGenerator.generateFloor(game, game.floor);
                 game.player.light = Math.min(game.player.light + 30, 100);
+                
+                // Store current inventory as level entry inventory for the NEW floor
+                // This represents what the player has when they ENTER this level
+                game.levelEntryInventory = [...game.player.inventory];
+                console.log(`🎒 Level entry inventory set for floor ${game.floor}:`, game.levelEntryInventory);
             }
         }
     }

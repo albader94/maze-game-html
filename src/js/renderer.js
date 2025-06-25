@@ -147,39 +147,52 @@ const Renderer = {
         for (const orb of game.orbs) {
             if (orb.collected) continue;
             
+            // Validate orb position
+            if (typeof orb.x !== 'number' || typeof orb.y !== 'number' || 
+                !isFinite(orb.x) || !isFinite(orb.y)) {
+                console.warn('Invalid orb position, skipping render:', orb);
+                continue;
+            }
+            
             const dist = Utils.distance(orb, game.player);
             if (dist < game.player.lightRadius * 1.5 || game.player.powers.reveal > 0) {
                 const pulseSize = Math.sin(orb.pulse) * 3;
                 
-                if (orb.type === 'wisp') {
-                    // Death marker wisp
-                    this.ctx.globalAlpha = 0.6 + Math.sin(game.time * 0.05) * 0.3;
-                    const wispGlow = this.ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 30);
-                    wispGlow.addColorStop(0, 'rgba(200, 200, 255, 0.8)');
-                    wispGlow.addColorStop(1, 'rgba(100, 100, 255, 0)');
-                    this.ctx.fillStyle = wispGlow;
-                    this.ctx.fillRect(orb.x - 30, orb.y - 30, 60, 60);
-                } else {
-                    // Regular orbs
-                    this.ctx.globalAlpha = 0.5;
-                    const glowGradient = this.ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 20 + pulseSize);
-                    glowGradient.addColorStop(0, ORB_TYPES[orb.type].color);
-                    glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
-                    this.ctx.fillStyle = glowGradient;
-                    this.ctx.fillRect(orb.x - 30, orb.y - 30, 60, 60);
+                try {
+                    if (orb.type === 'wisp') {
+                        // Death marker wisp
+                        this.ctx.globalAlpha = 0.6 + Math.sin(game.time * 0.05) * 0.3;
+                        const wispGlow = this.ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 30);
+                        wispGlow.addColorStop(0, 'rgba(200, 200, 255, 0.8)');
+                        wispGlow.addColorStop(1, 'rgba(100, 100, 255, 0)');
+                        this.ctx.fillStyle = wispGlow;
+                        this.ctx.fillRect(orb.x - 30, orb.y - 30, 60, 60);
+                    } else {
+                        // Regular orbs
+                        this.ctx.globalAlpha = 0.5;
+                        const glowGradient = this.ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 20 + pulseSize);
+                        glowGradient.addColorStop(0, ORB_TYPES[orb.type].color);
+                        glowGradient.addColorStop(1, 'rgba(0,0,0,0)');
+                        this.ctx.fillStyle = glowGradient;
+                        this.ctx.fillRect(orb.x - 30, orb.y - 30, 60, 60);
+                    }
+                    
+                    this.ctx.globalAlpha = 1;
+                    this.ctx.fillStyle = ORB_TYPES[orb.type].color;
+                    this.ctx.beginPath();
+                    this.ctx.arc(orb.x, orb.y, 8 + pulseSize, 0, Math.PI * 2);
+                    this.ctx.fill();
+                    
+                    // Inner shine
+                    this.ctx.fillStyle = '#fff';
+                    this.ctx.beginPath();
+                    this.ctx.arc(orb.x - 3, orb.y - 3, 3, 0, Math.PI * 2);
+                    this.ctx.fill();
+                } catch (error) {
+                    console.error('Error rendering orb:', error, orb);
+                    // Reset alpha in case of error
+                    this.ctx.globalAlpha = 1;
                 }
-                
-                this.ctx.globalAlpha = 1;
-                this.ctx.fillStyle = ORB_TYPES[orb.type].color;
-                this.ctx.beginPath();
-                this.ctx.arc(orb.x, orb.y, 8 + pulseSize, 0, Math.PI * 2);
-                this.ctx.fill();
-                
-                // Inner shine
-                this.ctx.fillStyle = '#fff';
-                this.ctx.beginPath();
-                this.ctx.arc(orb.x - 3, orb.y - 3, 3, 0, Math.PI * 2);
-                this.ctx.fill();
             }
         }
         this.ctx.globalAlpha = 1;
@@ -275,36 +288,71 @@ const Renderer = {
 
     // Render light effect
     renderLightEffect(game) {
-        const gradient = this.ctx.createRadialGradient(
-            game.player.x, game.player.y, 0,
-            game.player.x, game.player.y, game.player.lightRadius
-        );
-        gradient.addColorStop(0, 'rgba(255, 248, 200, 0.3)');
-        gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.1)');
-        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
-        
-        this.ctx.globalCompositeOperation = 'lighter';
-        this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(
-            game.player.x - game.player.lightRadius, 
-            game.player.y - game.player.lightRadius,
-            game.player.lightRadius * 2, 
-            game.player.lightRadius * 2
-        );
-        this.ctx.globalCompositeOperation = 'source-over';
+        try {
+            // Validate player and light radius values
+            if (!game.player || 
+                typeof game.player.x !== 'number' || 
+                typeof game.player.y !== 'number' || 
+                typeof game.player.lightRadius !== 'number' ||
+                !isFinite(game.player.x) || 
+                !isFinite(game.player.y) || 
+                !isFinite(game.player.lightRadius) ||
+                game.player.lightRadius <= 0) {
+                console.warn('Invalid light effect values:', {
+                    playerX: game.player?.x,
+                    playerY: game.player?.y,
+                    lightRadius: game.player?.lightRadius
+                });
+                return; // Skip rendering light effect
+            }
+            
+            // Additional validation for extreme values
+            if (game.player.lightRadius > 10000 || 
+                Math.abs(game.player.x) > 100000 || 
+                Math.abs(game.player.y) > 100000) {
+                console.warn('Light effect values too extreme, skipping render');
+                return;
+            }
+            
+            const gradient = this.ctx.createRadialGradient(
+                game.player.x, game.player.y, 0,
+                game.player.x, game.player.y, game.player.lightRadius
+            );
+            gradient.addColorStop(0, 'rgba(255, 248, 200, 0.3)');
+            gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.1)');
+            gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            
+            this.ctx.globalCompositeOperation = 'lighter';
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(
+                game.player.x - game.player.lightRadius, 
+                game.player.y - game.player.lightRadius,
+                game.player.lightRadius * 2, 
+                game.player.lightRadius * 2
+            );
+            this.ctx.globalCompositeOperation = 'source-over';
+        } catch (error) {
+            console.error('Error in renderLightEffect:', error);
+            // Reset composite operation in case of error
+            this.ctx.globalCompositeOperation = 'source-over';
+        }
     },
 
     // Render darkness vignette
     renderVignette() {
-        const vignette = this.ctx.createRadialGradient(
-            this.canvas.width / 2, this.canvas.height / 2, 0,
-            this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
-        );
-        vignette.addColorStop(0, 'rgba(0,0,0,0)');
-        vignette.addColorStop(0.7, 'rgba(0,0,0,0.3)');
-        vignette.addColorStop(1, 'rgba(0,0,0,0.8)');
-        this.ctx.fillStyle = vignette;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        try {
+            const vignette = this.ctx.createRadialGradient(
+                this.canvas.width / 2, this.canvas.height / 2, 0,
+                this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
+            );
+            vignette.addColorStop(0, 'rgba(0,0,0,0)');
+            vignette.addColorStop(0.7, 'rgba(0,0,0,0.3)');
+            vignette.addColorStop(1, 'rgba(0,0,0,0.8)');
+            this.ctx.fillStyle = vignette;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        } catch (error) {
+            console.error('Error in renderVignette:', error);
+        }
     },
 
     // Render darkness fade during swarm

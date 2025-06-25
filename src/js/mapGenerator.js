@@ -147,6 +147,12 @@ const MapGenerator = {
 
     // Place death markers from previous attempts
     placeDeathMarkers(game, floorNum) {
+        // Ensure deathMarkers array exists
+        if (!game.player.deathMarkers || !Array.isArray(game.player.deathMarkers)) {
+            console.warn('Player deathMarkers array not initialized, skipping death marker placement');
+            return;
+        }
+        
         for (const marker of game.player.deathMarkers) {
             if (marker.floor === floorNum) {
                 game.orbs.push({

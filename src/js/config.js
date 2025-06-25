@@ -18,7 +18,10 @@ const CONFIG = {
         SPEED: 3,
         SIZE: 15, // Player collision radius
         MAX_LIGHT: 100,
+        LIGHT: 100, // Starting light level
         LIGHT_RADIUS: 150,
+        START_X: 100, // Starting X position
+        START_Y: 100, // Starting Y position
         LIGHT_DECAY_RATE: 0.02, // Reduced from 0.05 to 0.02 (60% slower)
         LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
     },

@@ -38,6 +38,7 @@ const GameState = {
         },
         floor: 1,
         checkpoint: 1,
+        levelEntryInventory: [null, null, null],
         ghouls: [],
         orbs: [],
         walls: [],
@@ -63,12 +64,11 @@ const GameState = {
         gamesPlayed: 0,
         deepestFloor: 0,
         totalOrbsCollected: 0,
-        totalGhoulsDefeated: 0,
-        totalDistanceTraveled: 0,
         totalDeaths: 0,
         fastestCompletion: null,
-        lastPlayed: null,
-        achievements: new Set()
+        achievements: new Set(),
+        sessionStartTime: Date.now(),
+        totalDistanceTraveled: 0
     },
 
     // Achievement definitions
@@ -76,7 +76,6 @@ const GameState = {
         'first_death': { name: 'First Steps', description: 'Die for the first time', icon: '💀' },
         'orb_collector': { name: 'Orb Collector', description: 'Collect 10 orbs in a single run', icon: '🔮' },
         'deep_explorer': { name: 'Deep Explorer', description: 'Reach floor -25', icon: '⬇️' },
-        'ghoul_slayer': { name: 'Ghoul Slayer', description: 'Defeat 50 ghouls', icon: '⚔️' },
         'marathon_runner': { name: 'Marathon Runner', description: 'Play for 30 minutes total', icon: '🏃' },
         'speed_runner': { name: 'Speed Runner', description: 'Complete the game in under 10 minutes', icon: '⚡' },
         'survivor': { name: 'Survivor', description: 'Survive for 5 minutes without dying', icon: '🛡️' },
@@ -130,7 +129,15 @@ const GameState = {
             console.error('❌ CONFIG is not defined! Cannot reset game properly.');
             // Create a minimal fallback config
             window.CONFIG = {
-                PLAYER: { SIZE: 15, SPEED: 3, MAX_LIGHT: 100, LIGHT_RADIUS: 150 },
+                PLAYER: { 
+                    SIZE: 15, 
+                    SPEED: 3, 
+                    MAX_LIGHT: 100, 
+                    LIGHT_RADIUS: 150,
+                    START_X: 100,
+                    START_Y: 100,
+                    LIGHT: 100
+                },
                 MAP: { WIDTH: 30, HEIGHT: 20 }
             };
         }
@@ -141,23 +148,29 @@ const GameState = {
             deathScreen: false,
             showHelp: false,
             player: {
-                x: 400, // Center of canvas
-                y: 300,
-                size: CONFIG.PLAYER.SIZE || 15,
+                x: CONFIG.PLAYER.START_X || 100,
+                y: CONFIG.PLAYER.START_Y || 100,
                 speed: CONFIG.PLAYER.SPEED || 3,
                 light: CONFIG.PLAYER.MAX_LIGHT || 100,
                 maxLight: CONFIG.PLAYER.MAX_LIGHT || 100,
                 lightRadius: CONFIG.PLAYER.LIGHT_RADIUS || 150,
+                size: CONFIG.PLAYER.SIZE || 15,
                 orbsCollected: 0,
                 inventory: [null, null, null],
                 selectedSlot: 0,
-                powers: { phase: 0, regeneration: 0, reveal: 0 },
                 deathMarkers: [],
-                lastPosition: { x: 400, y: 300 }
+                lastPosition: { x: 100, y: 100 },
+                survivalTime: 0,
+                powers: {
+                    phase: 0,
+                    regeneration: 0,
+                    reveal: 0
+                }
             },
             camera: { x: 0, y: 0 },
             floor: 1,
             checkpoint: 1,
+            levelEntryInventory: [null, null, null],
             ghouls: [],
             orbs: [],
             walls: [],
@@ -174,11 +187,11 @@ const GameState = {
             mapHeight: CONFIG.MAP.HEIGHT || 20,
             gameStartTime: Date.now(),
             distanceTraveled: 0,
-            ghoulsDefeated: 0,
             survivalTime: 0
         };
         
         console.log('✅ Game state reset completed');
+        console.log('Player initialized at:', this.game.player.x, this.game.player.y);
     },
 
     // Start new game
@@ -198,6 +211,17 @@ const GameState = {
             }
         } else {
             console.warn('⚠️ MapGenerator not available');
+        }
+        
+        // Set level entry inventory for first level AFTER floor generation
+        // This represents what the player has when they enter level 1 (should be empty)
+        this.game.levelEntryInventory = [...this.game.player.inventory];
+        console.log(`🎒 Initial level entry inventory set for floor ${this.game.floor}:`, this.game.levelEntryInventory);
+        
+        // Update inventory display to ensure it shows the correct initial state
+        if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {
+            InventoryManager.updateDisplay();
+            console.log(`🎒 Initial inventory display updated`);
         }
         
         // Show UI elements with safety checks
@@ -225,10 +249,13 @@ const GameState = {
         // Set checkpoint with safety check
         const checkpointElement = document.getElementById('checkpoint');
         if (checkpointElement) {
-            checkpointElement.textContent = '1'; // Checkpoint 1 for floor 1
+            checkpointElement.textContent = '1';
         }
         
-        console.log('🎮 Game started - Floor 1');
+        // Record game start
+        this.stats.gamesPlayed++;
+        this.stats.sessionStartTime = Date.now();
+        this.saveStats();
     },
 
     // Quit to menu
@@ -319,6 +346,99 @@ const GameState = {
         }
     },
 
+    // Restart current level with entry inventory
+    restartCurrentLevel() {
+        console.log(`🔄 Restarting current level ${this.game.floor}...`);
+        
+        // Store current floor
+        const currentFloor = this.game.floor;
+        
+        // Debug current state before restart
+        console.log(`🔍 BEFORE RESTART - Current inventory:`, [...this.game.player.inventory]);
+        console.log(`🔍 BEFORE RESTART - Level entry inventory:`, this.game.levelEntryInventory);
+        console.log(`🔍 BEFORE RESTART - Floor:`, this.game.floor);
+        
+        // Get entry inventory - restore what the player had when they ENTERED this level
+        let entryInventory;
+        
+        // If levelEntryInventory exists and is a valid array, use it
+        if (this.game.levelEntryInventory && Array.isArray(this.game.levelEntryInventory)) {
+            entryInventory = [...this.game.levelEntryInventory];
+            console.log(`🎒 Using stored level entry inventory:`, entryInventory);
+        } else {
+            // If no level entry inventory is set, this means we're on the first level
+            // or there was an error - default to empty inventory for first level
+            if (currentFloor === 1) {
+                entryInventory = [null, null, null];
+                console.log(`🎒 Level 1 restart - using empty inventory (starting inventory)`);
+            } else {
+                // For other levels, this shouldn't happen, but use empty as fallback
+                entryInventory = [null, null, null];
+                console.log(`⚠️ No level entry inventory found for floor ${currentFloor}, using empty inventory as fallback`);
+            }
+        }
+        
+        // Reset player to level entry state
+        this.game.player.light = CONFIG.PLAYER.MAX_LIGHT; // Full light at level restart
+        this.game.player.powers = { phase: 0, regeneration: 0, reveal: 0 };
+        this.game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS;
+        this.game.player.inventory = [...entryInventory]; // Restore entry inventory
+        
+        // Clear swarm-related state
+        this.game.swarming = false;
+        this.game.swarmTimer = 0;
+        this.game.darknessFade = 0;
+        this.game.deathScreen = false;
+        
+        // Ensure player position is valid before regenerating floor
+        const cellSize = CONFIG.MAP.CELL_SIZE || 40;
+        this.game.player.x = cellSize + cellSize / 2; // Left side
+        this.game.player.y = (this.game.mapHeight - 2) * cellSize + cellSize / 2; // Bottom
+        
+        // Regenerate the current floor
+        if (typeof MapGenerator !== 'undefined' && MapGenerator.generateFloor) {
+            try {
+                MapGenerator.generateFloor(this.game, currentFloor);
+                
+                // Reset ALL ghouls to normal state
+                for (const ghoul of this.game.ghouls) {
+                    ghoul.state = 'patrol';
+                    ghoul.speed = 2; // Reset to normal speed
+                }
+                
+                // Update camera to follow player
+                if (typeof Utils !== 'undefined' && Utils.updateCamera) {
+                    Utils.updateCamera(this.game);
+                }
+                
+                console.log(`✅ Level ${currentFloor} restarted successfully`);
+                console.log(`🔍 AFTER RESTART - Final inventory:`, [...this.game.player.inventory]);
+            } catch (error) {
+                console.warn('⚠️ Failed to regenerate current level:', error);
+                // Try to recover by ensuring player has valid position
+                this.game.player.x = Math.max(cellSize, this.game.player.x);
+                this.game.player.y = Math.max(cellSize, this.game.player.y);
+            }
+        }
+        
+        // Update inventory display
+        if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {
+            InventoryManager.updateDisplay();
+            console.log(`🎒 Inventory display updated`);
+        }
+        
+        // Show restart message
+        const storyElement = document.getElementById('story');
+        if (storyElement) {
+            storyElement.textContent = `Level ${Math.abs(currentFloor)} restarted. You return to the beginning with your entry inventory.`;
+        }
+        
+        // Debug final state after restart
+        console.log(`🔍 RESTART COMPLETE - Player at (${this.game.player.x}, ${this.game.player.y})`);
+        console.log(`🔍 RESTART COMPLETE - Light: ${this.game.player.light}`);
+        console.log(`🔍 RESTART COMPLETE - Inventory:`, [...this.game.player.inventory]);
+    },
+
     // Update statistics with deltaTime
     updateStats(deltaTime) {
         if (!this.game) {
@@ -373,13 +493,8 @@ const GameState = {
         }
         
         // Deep explorer
-        if (this.game.floor >= 25 && !this.stats.achievements.has('deep_explorer')) {
+        if (this.game.floor <= -25 && !this.stats.achievements.has('deep_explorer')) {
             newAchievements.push('deep_explorer');
-        }
-        
-        // Ghoul slayer
-        if (this.stats.totalGhoulsDefeated >= 50 && !this.stats.achievements.has('ghoul_slayer')) {
-            newAchievements.push('ghoul_slayer');
         }
         
         // Marathon runner (30 minutes = 1,800,000 ms)
@@ -387,19 +502,19 @@ const GameState = {
             newAchievements.push('marathon_runner');
         }
         
-        // Survivor (5 minutes = 300,000 ms)
-        if (this.game.survivalTime >= 300000 && !this.stats.achievements.has('survivor')) {
-            newAchievements.push('survivor');
-        }
-        
-        // Explorer
+        // Explorer (10,000 units traveled)
         if (this.stats.totalDistanceTraveled >= 10000 && !this.stats.achievements.has('explorer')) {
             newAchievements.push('explorer');
         }
         
-        // Persistent
+        // Persistent (10 games played)
         if (this.stats.gamesPlayed >= 10 && !this.stats.achievements.has('persistent')) {
             newAchievements.push('persistent');
+        }
+        
+        // Survivor (5 minutes = 300,000 ms)
+        if (this.game.survivalTime >= 300000 && !this.stats.achievements.has('survivor')) {
+            newAchievements.push('survivor');
         }
         
         // Completionist
@@ -493,12 +608,6 @@ const GameState = {
         this.game.player.orbsCollected++;
     },
 
-    // Record ghoul defeat
-    recordGhoulDefeat() {
-        this.stats.totalGhoulsDefeated++;
-        this.game.ghoulsDefeated++;
-    },
-
     // Record game completion
     recordGameCompletion() {
         const completionTime = Date.now() - this.game.gameStartTime;
@@ -529,7 +638,6 @@ const GameState = {
             gamesPlayed: this.stats.gamesPlayed,
             deepestFloor: `-${this.stats.deepestFloor}`,
             totalOrbsCollected: this.stats.totalOrbsCollected,
-            totalGhoulsDefeated: this.stats.totalGhoulsDefeated,
             totalDistanceTraveled: Math.round(this.stats.totalDistanceTraveled),
             totalDeaths: this.stats.totalDeaths,
             fastestCompletion: this.stats.fastestCompletion ? formatTime(this.stats.fastestCompletion) : 'N/A',

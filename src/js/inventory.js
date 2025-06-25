@@ -80,12 +80,12 @@ const InventoryManager = {
     // Get first empty slot index
     getFirstEmptySlot() {
         const game = GameState.getGame();
-        for (let i = 0; i < 3; i++) {
-            if (game.player.inventory[i] === null) {
+        for (let i = 0; i < game.player.inventory.length; i++) {
+            if (!game.player.inventory[i]) {
                 return i;
             }
         }
-        return -1;
+        return -1; // No empty slots
     },
 
     // Clear all inventory slots

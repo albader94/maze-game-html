@@ -1430,7 +1430,7 @@ const Game = {
     autoSave() {
         try {
             const game = GameState.getGame();
-            if (game.state === 'playing' && !game.deathScreen) {
+            if (game.state === 'playing' && !game.deathScreen && !game.victory) {
                 // Only save every 10 seconds to avoid infinite save loop
                 const now = Date.now();
                 if (!this.lastAutoSave || (now - this.lastAutoSave) >= 10000) {

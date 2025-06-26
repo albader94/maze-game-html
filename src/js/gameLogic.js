@@ -222,12 +222,12 @@ const GameLogic = {
             // Check if game is paused - if so, skip all gameplay updates
             const isPaused = (typeof Main !== 'undefined' && Main.isPaused) || false;
             
-            if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !isPaused) {
+            if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory && !isPaused) {
                 this.updateGameplay(game, deltaTime);
             }
             
             // Update statistics if playing (but not if paused)
-            if (game.state === 'playing' && !isPaused) {
+            if (game.state === 'playing' && !game.victory && !isPaused) {
                 GameState.updateStats(deltaTime);
             }
             

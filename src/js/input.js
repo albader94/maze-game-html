@@ -233,14 +233,14 @@ const InputManager = {
         
         switch (action) {
             case 'help':
-                if (game.state === 'playing' && !game.deathScreen) {
+                if (game.state === 'playing' && !game.deathScreen && !game.victory) {
                     game.showHelp = !game.showHelp;
                 }
                 break;
             case 'orb1':
             case 'orb2':
             case 'orb3':
-                if (game.state === 'playing' && !game.deathScreen && !game.showHelp) {
+                if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory) {
                     const slot = parseInt(action.slice(-1)) - 1;
                     InventoryManager.useOrb(slot);
                 }
@@ -337,14 +337,14 @@ const InputManager = {
         }
         
         // Direct orb usage (1-3 keys)
-        if (e.key >= '1' && e.key <= '3' && game.state === 'playing' && !game.deathScreen && !game.showHelp) {
+        if (e.key >= '1' && e.key <= '3' && game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory) {
             const slot = parseInt(e.key) - 1;
             InventoryManager.useOrb(slot);
         }
         
         // Help toggle
         if (e.key.toLowerCase() === 'h') {
-            if (game.state === 'playing' && !game.deathScreen) {
+            if (game.state === 'playing' && !game.deathScreen && !game.victory) {
                 game.showHelp = !game.showHelp;
             }
         }

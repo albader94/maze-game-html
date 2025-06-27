@@ -219,8 +219,10 @@ const GameLogic = {
                 return;
             }
             
-            // Check if game is paused - if so, skip all gameplay updates
-            const isPaused = (typeof Main !== 'undefined' && Main.isPaused) || false;
+            // Check if game is paused - check both manual pause and tutorial pause
+            const isManuallyPaused = (typeof Game !== 'undefined' && Game.isPaused) || false;
+            const isTutorialPaused = (typeof TutorialSystem !== 'undefined' && TutorialSystem.shouldPauseGame()) || false;
+            const isPaused = isManuallyPaused || isTutorialPaused;
             
             if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory && !isPaused) {
                 this.updateGameplay(game, deltaTime);
@@ -229,6 +231,11 @@ const GameLogic = {
             // Update statistics if playing (but not if paused)
             if (game.state === 'playing' && !game.victory && !isPaused) {
                 GameState.updateStats(deltaTime);
+            }
+            
+            // Update tutorial system (always update to handle UI)
+            if (typeof TutorialSystem !== 'undefined') {
+                TutorialSystem.update(game);
             }
             
             Utils.endPerformanceTimer('update');

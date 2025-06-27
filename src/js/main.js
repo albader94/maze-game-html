@@ -31,6 +31,7 @@ const Game = {
             Renderer.init();
             InputManager.init();
             GameLogic.init();
+            TutorialSystem.init();
             
             // Setup development tools
             this.setupDevTools();
@@ -1327,7 +1328,8 @@ const Game = {
                 }
                 
                 // Skip updates if game is paused, but still render
-                if (!this.isPaused) {
+                const isTutorialPaused = TutorialSystem.shouldPauseGame();
+                if (!this.isPaused && !isTutorialPaused) {
                     // Update game logic
                     Utils.startPerformanceTimer('update');
                     GameLogic.update(deltaTime);

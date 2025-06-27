@@ -6,6 +6,15 @@ const GameState = {
         mode: 'explorer',
         deathScreen: false,
         showHelp: false,
+        // Tutorial system
+        tutorial: {
+            active: false,
+            currentStep: 0,
+            showingOrbTutorial: false,
+            completedSteps: new Set(),
+            firstTimeOrbs: new Set(), // Track which orb types have been collected for the first time
+            tutorialPopup: null
+        },
         stats: {
             totalOrbs: 0,
             totalFloors: 0,
@@ -147,6 +156,22 @@ const GameState = {
             mode: 'explorer',
             deathScreen: false,
             showHelp: false,
+            // Tutorial system
+            tutorial: {
+                active: false,
+                currentStep: 0,
+                showingOrbTutorial: false,
+                completedSteps: new Set(),
+                firstTimeOrbs: new Set(),
+                tutorialPopup: null
+            },
+            stats: {
+                totalOrbs: 0,
+                totalFloors: 0,
+                totalDeaths: 0,
+                bestFloor: 1,
+                sessionTime: 0
+            },
             player: {
                 x: CONFIG.PLAYER.START_X || 100,
                 y: CONFIG.PLAYER.START_Y || 100,
@@ -217,6 +242,11 @@ const GameState = {
         // This represents what the player has when they enter level 1 (should be empty)
         this.game.levelEntryInventory = [...this.game.player.inventory];
         console.log(`🎒 Initial level entry inventory set for floor ${this.game.floor}:`, this.game.levelEntryInventory);
+        
+        // Start tutorial for new players
+        if (typeof TutorialSystem !== 'undefined') {
+            TutorialSystem.startTutorial();
+        }
         
         // Update inventory display to ensure it shows the correct initial state
         if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {

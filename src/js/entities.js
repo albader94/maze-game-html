@@ -151,6 +151,11 @@ const EntityManager = {
         const orbType = ORB_TYPES[orb.type];
         if (!orbType) return;
         
+        // Show tutorial for first-time orb collection
+        if (typeof TutorialSystem !== 'undefined') {
+            TutorialSystem.handleOrbCollection(orb.type);
+        }
+        
         if (orbType.lightBonus) {
             // Light restoration orbs - always collectible
             game.player.light = Math.min(game.player.light + orbType.lightBonus, game.player.maxLight);

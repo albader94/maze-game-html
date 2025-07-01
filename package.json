@@ -1,7 +1,7 @@
 {
-  "name": "buried-spire-kuwait",
+  "name": "buried-spire-quest",
   "version": "1.0.0",
-  "description": "A 2D dungeon crawler survival game with a unique Middle Eastern theme",
+  "description": "A 2D dungeon crawler survival game set in the ancient buried towers of Burj Mubarak",
   "main": "public/index.html",
   "scripts": {
     "start": "python -m http.server 8000 --directory .",
@@ -17,16 +17,16 @@
     "survival",
     "maze"
   ],
-  "author": "Your Name",
+  "author": "Bader K Albader",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/yourusername/buried-spire-kuwait.git"
+    "url": "https://github.com/albader94/maze-game-html.git"
   },
   "bugs": {
-    "url": "https://github.com/yourusername/buried-spire-kuwait/issues"
+    "url": "https://github.com/albader94/maze-game-html/issues"
   },
-  "homepage": "https://github.com/yourusername/buried-spire-kuwait#readme",
+  "homepage": "https://github.com/albader94/maze-game-html#readme",
   "devDependencies": {
     "live-server": "^1.2.2"
   },

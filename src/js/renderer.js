@@ -167,6 +167,25 @@ const Renderer = {
                         wispGlow.addColorStop(1, 'rgba(100, 100, 255, 0)');
                         this.ctx.fillStyle = wispGlow;
                         this.ctx.fillRect(orb.x - 30, orb.y - 30, 60, 60);
+                    } else if (orb.type === 'pearl') {
+                        // Special rendering for the Ancient Pearl
+                        this.ctx.globalAlpha = 0.8;
+                        
+                        // Larger, more dramatic glow for the Pearl
+                        const pearlGlow = this.ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, 40 + pulseSize * 2);
+                        pearlGlow.addColorStop(0, 'rgba(255, 255, 255, 0.8)');
+                        pearlGlow.addColorStop(0.3, 'rgba(255, 235, 59, 0.6)');
+                        pearlGlow.addColorStop(1, 'rgba(0, 0, 0, 0)');
+                        this.ctx.fillStyle = pearlGlow;
+                        this.ctx.fillRect(orb.x - 50, orb.y - 50, 100, 100);
+                        
+                        // Additional mystical aura
+                        this.ctx.globalAlpha = 0.3;
+                        const aura = this.ctx.createRadialGradient(orb.x, orb.y, 20, orb.x, orb.y, 60 + pulseSize * 3);
+                        aura.addColorStop(0, 'rgba(255, 235, 59, 0.4)');
+                        aura.addColorStop(1, 'rgba(156, 39, 176, 0)');
+                        this.ctx.fillStyle = aura;
+                        this.ctx.fillRect(orb.x - 70, orb.y - 70, 140, 140);
                     } else {
                         // Regular orbs
                         this.ctx.globalAlpha = 0.5;
@@ -178,16 +197,46 @@ const Renderer = {
                     }
                     
                     this.ctx.globalAlpha = 1;
-                    this.ctx.fillStyle = ORB_TYPES[orb.type].color;
-                    this.ctx.beginPath();
-                    this.ctx.arc(orb.x, orb.y, 8 + pulseSize, 0, Math.PI * 2);
-                    this.ctx.fill();
                     
-                    // Inner shine
-                    this.ctx.fillStyle = '#fff';
-                    this.ctx.beginPath();
-                    this.ctx.arc(orb.x - 3, orb.y - 3, 3, 0, Math.PI * 2);
-                    this.ctx.fill();
+                    if (orb.type === 'pearl') {
+                        // Draw the Pearl with special styling
+                        const pearlSize = 12 + pulseSize;
+                        
+                        // Main Pearl body (black)
+                        this.ctx.fillStyle = ORB_TYPES.pearl.color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(orb.x, orb.y, pearlSize, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // White outline
+                        this.ctx.strokeStyle = ORB_TYPES.pearl.outline;
+                        this.ctx.lineWidth = 3;
+                        this.ctx.beginPath();
+                        this.ctx.arc(orb.x, orb.y, pearlSize, 0, Math.PI * 2);
+                        this.ctx.stroke();
+                        
+                        // Inner mystical glow
+                        this.ctx.globalAlpha = 0.8;
+                        this.ctx.fillStyle = 'rgba(255, 235, 59, 0.6)';
+                        this.ctx.beginPath();
+                        this.ctx.arc(orb.x - 2, orb.y - 2, 4, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Reset line width
+                        this.ctx.lineWidth = 1;
+                    } else {
+                        // Regular orb rendering
+                        this.ctx.fillStyle = ORB_TYPES[orb.type].color;
+                        this.ctx.beginPath();
+                        this.ctx.arc(orb.x, orb.y, 8 + pulseSize, 0, Math.PI * 2);
+                        this.ctx.fill();
+                        
+                        // Inner shine
+                        this.ctx.fillStyle = '#fff';
+                        this.ctx.beginPath();
+                        this.ctx.arc(orb.x - 3, orb.y - 3, 3, 0, Math.PI * 2);
+                        this.ctx.fill();
+                    }
                 } catch (error) {
                     console.error('Error rendering orb:', error, orb);
                     // Reset alpha in case of error

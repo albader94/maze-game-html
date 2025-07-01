@@ -17,7 +17,7 @@ const Game = {
     
     // Initialize the game
     init() {
-        console.log('🎮 Initializing Buried Spire of Kuwait - Explorer Mode');
+        console.log('🎮 Initializing Buried Spire Quest - Explorer Mode');
         
         try {
             // Make Game object globally accessible
@@ -132,7 +132,7 @@ const Game = {
             
             addOrb: (type) => {
                 const game = GameState.getGame();
-                const orbConfig = CONFIG.ORBS[type.toUpperCase()];
+                const orbConfig = ORB_TYPES[type];
                 if (orbConfig) {
                     game.orbs.push({
                         x: game.player.x + 50,
@@ -943,7 +943,7 @@ const Game = {
                         <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
                             <h4 style="margin: 0 0 12px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">🎯 Mission</h4>
                             <p style="margin: 0; color: #fff; line-height: 1.5; font-size: 14px;">
-                                Descend through the mysterious Buried Spire of Kuwait to reach floor -50 and find the legendary Pearl of Kuwait. Navigate through dark corridors while managing your light and avoiding the lurking ghouls.
+                                Descend through the mysterious Buried Spire to reach floor -50 and find the legendary Ancient Pearl. Navigate through dark corridors of the ancient Burj Mubarak while managing your light and avoiding the lurking ghouls.
                             </p>
                         </div>
                         
@@ -967,7 +967,7 @@ const Game = {
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255, 235, 59, 0.2); border-radius: 5px; border: 1px solid #ffeb3b;">
                                     <span style="color: #ffeb3b; font-size: 18px; text-shadow: 0 0 8px #ffeb3b;">@</span>
-                                    <span><strong style="color: #ffeb3b;">Golden Orb:</strong> Restores 40% light - inventory item</span>
+                                    <span><strong style="color: #ffeb3b;">Golden Orb:</strong> Restores 40% light - collect immediately</span>
                                 </div>
                                 <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(156, 39, 176, 0.2); border-radius: 5px; border: 1px solid #9c27b0;">
                                     <span style="color: #9c27b0; font-size: 18px; text-shadow: 0 0 8px #9c27b0;">P</span>

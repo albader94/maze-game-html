@@ -162,6 +162,31 @@ const EntityManager = {
             if (orb.type !== 'wisp') {
                 game.player.orbsCollected++;
             }
+        } else if (orb.type === 'pearl') {
+            // Special handling for the Ancient Pearl - triggers victory!
+            console.log('🔮 Ancient Pearl collected! Victory achieved!');
+            game.victory = true;
+            game.pearlCollected = true;
+            
+            // Make all ghouls flee in terror
+            for (const ghoul of game.ghouls) {
+                ghoul.state = 'fleeing';
+                ghoul.speed = 6; // Make them run away fast
+                ghoul.fleeStartTime = Date.now();
+            }
+            
+            // Show victory message
+            Utils.showMessage(MESSAGES.STORY.VICTORY, 5000);
+            
+            // Create special victory particle effect
+            Utils.createParticles(game, orb.x, orb.y, '#ffffff', 30, 8);
+            Utils.createParticles(game, orb.x, orb.y, '#ffeb3b', 20, 6);
+            
+            // Trigger victory sequence after a brief delay
+            setTimeout(() => {
+                this.triggerVictorySequence(game);
+            }, 2000);
+            
         } else if (orbType.power) {
             // Power orbs - add to inventory only if space available
             let added = false;
@@ -289,5 +314,121 @@ const EntityManager = {
             }
         }
         return false;
+    },
+
+    // Trigger victory sequence when Pearl is collected
+    triggerVictorySequence(game) {
+        console.log('🎉 Triggering victory sequence...');
+        
+        // Pause the game
+        game.state = 'victory';
+        
+        // Show victory screen
+        this.showVictoryScreen(game);
+    },
+
+    // Show the victory screen
+    showVictoryScreen(game) {
+        // Create victory overlay
+        const victoryOverlay = document.createElement('div');
+        victoryOverlay.id = 'victory-overlay';
+        victoryOverlay.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(45deg, rgba(0,0,0,0.9), rgba(26,26,26,0.95));
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            color: #ffffff;
+            text-align: center;
+            animation: fadeIn 2s ease-in;
+        `;
+
+        const victoryContent = `
+            <div style="max-width: 600px; padding: 40px;">
+                <h1 style="
+                    color: #ffeb3b; 
+                    font-size: 3em; 
+                    margin-bottom: 20px; 
+                    text-shadow: 0 0 20px rgba(255,235,59,0.8);
+                    animation: glow 2s ease-in-out infinite alternate;
+                ">🔮 VICTORY! 🔮</h1>
+                
+                <h2 style="
+                    color: #ffffff; 
+                    font-size: 1.8em; 
+                    margin-bottom: 30px;
+                    text-shadow: 0 0 10px rgba(255,255,255,0.5);
+                ">The Ancient Pearl is Found!</h2>
+                
+                <div style="
+                    background: rgba(255,235,59,0.1); 
+                    border: 2px solid #ffeb3b; 
+                    border-radius: 10px; 
+                    padding: 30px; 
+                    margin: 30px 0;
+                    box-shadow: 0 0 30px rgba(255,235,59,0.3);
+                ">
+                    <p style="font-size: 1.3em; line-height: 1.6; color: #fff;">
+                        You have successfully retrieved the <strong style="color: #ffeb3b;">Ancient Pearl</strong> 
+                        from the depths of Burj Mubarak! Its radiant light will protect your community 
+                        from the ghouls that prowl the night.
+                    </p>
+                    <br>
+                    <p style="font-size: 1.1em; color: #ccc;">
+                        The curse that plagued the buried spire is broken. The ghouls flee in terror 
+                        before the Pearl's divine light, and your people are safe once more.
+                    </p>
+                </div>
+                
+                <div style="margin: 30px 0; color: #aaa;">
+                    <p>🏆 <strong>Explorer</strong> - You conquered all ${Math.abs(game.floor)} floors!</p>
+                    <p>💎 <strong>Light Bearer</strong> - You collected ${game.player.orbsCollected || 0} orbs!</p>
+                    <p>⚡ <strong>Legend</strong> - Your courage saved an entire civilization!</p>
+                </div>
+                
+                <button id="victory-menu-btn" style="
+                    background: linear-gradient(45deg, #4caf50, #45a049);
+                    color: white;
+                    border: none;
+                    padding: 15px 30px;
+                    font-size: 1.2em;
+                    border-radius: 5px;
+                    cursor: pointer;
+                    margin: 10px;
+                    box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+                    transition: all 0.3s ease;
+                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    Return to Menu
+                </button>
+            </div>
+            
+            <style>
+                @keyframes fadeIn {
+                    from { opacity: 0; }
+                    to { opacity: 1; }
+                }
+                @keyframes glow {
+                    from { text-shadow: 0 0 20px rgba(255,235,59,0.8); }
+                    to { text-shadow: 0 0 30px rgba(255,235,59,1), 0 0 40px rgba(255,235,59,0.8); }
+                }
+            </style>
+        `;
+
+        victoryOverlay.innerHTML = victoryContent;
+        document.body.appendChild(victoryOverlay);
+
+        // Add event listener for menu button
+        document.getElementById('victory-menu-btn').addEventListener('click', () => {
+            // Return to main menu
+            window.location.reload();
+        });
+
+        console.log('🎊 Victory screen displayed!');
     }
 }; 

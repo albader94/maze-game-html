@@ -173,9 +173,47 @@ const MapGenerator = {
 
     // Place orbs on the floor
     placeOrbs(game, emptySpaces) {
-        const orbCount = 12;
-        const availableSpaces = [...emptySpaces];
         const floorNum = Math.abs(game.floor);
+        const availableSpaces = [...emptySpaces];
+        
+        // Special handling for final level (Floor 50) - place only the Pearl
+        if (floorNum === 50) {
+            // Find the center of the map for Pearl placement
+            const centerX = (game.mapWidth * (CONFIG.MAP.CELL_SIZE || 40)) / 2;
+            const centerY = (game.mapHeight * (CONFIG.MAP.CELL_SIZE || 40)) / 2;
+            
+            // Find the space closest to center
+            let bestSpace = availableSpaces[0];
+            let minDistance = Infinity;
+            
+            for (const space of availableSpaces) {
+                const distance = Math.sqrt(
+                    Math.pow(space.x - centerX, 2) + Math.pow(space.y - centerY, 2)
+                );
+                if (distance < minDistance) {
+                    minDistance = distance;
+                    bestSpace = space;
+                }
+            }
+            
+            // Place the Ancient Pearl at the center
+            game.orbs.push({
+                x: bestSpace.x,
+                y: bestSpace.y,
+                type: 'pearl',
+                collected: false,
+                pulse: Math.random() * Math.PI * 2,
+                size: 12, // Larger size for the Pearl
+                color: ORB_TYPES.pearl.color,
+                isVictoryOrb: true
+            });
+            
+            console.log(`🔮 Ancient Pearl placed at center position (${bestSpace.x}, ${bestSpace.y})`);
+            return; // Only place the Pearl on final level
+        }
+        
+        // Normal orb placement for other levels
+        const orbCount = 12;
         
         // Place guaranteed introduction orb if this is a new orb introduction floor
         this.placeIntroductionOrb(game, availableSpaces, floorNum);
@@ -287,7 +325,13 @@ const MapGenerator = {
         // Floor 11+: Add Green orbs  
         // Floor 16+: Add White orbs
         // Floor 21+: Add Red orbs
+        // Floor 50: Ancient Pearl (victory orb)
         // Light Wisp: Only appears as death markers (handled separately)
+        
+        // Special case: Floor 50 gets the Ancient Pearl
+        if (floorNum === 50) {
+            return 'pearl';
+        }
         
         const availableOrbs = [];
         
@@ -361,7 +405,7 @@ const MapGenerator = {
         }
     },
 
-    // Place stairs to next floor
+    // Place stairs to next floor with randomized positioning
     placeStairs(game, emptySpaces) {
         if (emptySpaces.length === 0) {
             // Fallback position if no empty spaces
@@ -372,20 +416,54 @@ const MapGenerator = {
             return;
         }
 
-        // Try to place stairs in top-right area first
-        let stairsPlaced = false;
-        for (const space of emptySpaces) {
-            if (space.x > game.mapWidth * 30 && space.y < game.mapHeight * 10) {
-                game.stairs = { x: space.x, y: space.y };
-                stairsPlaced = true;
-                break;
-            }
-        }
+        // Filter out spaces that are too close to the player spawn area (bottom-left)
+        const cellSize = CONFIG.MAP.CELL_SIZE || 40;
+        const validStairSpaces = emptySpaces.filter(space => {
+            const gridX = Math.floor((space.x - cellSize/2) / cellSize);
+            const gridY = Math.floor((space.y - cellSize/2) / cellSize);
+            
+            // Exclude bottom-left quadrant to avoid placing stairs too close to spawn
+            const isBottomLeft = gridX < game.mapWidth / 2 && gridY >= game.mapHeight / 2;
+            
+            // Also ensure minimum distance from typical spawn position (2, mapHeight-3)
+            const spawnX = 2;
+            const spawnY = game.mapHeight - 3;
+            const distanceFromSpawn = Math.abs(gridX - spawnX) + Math.abs(gridY - spawnY);
+            const minDistance = 8; // Minimum Manhattan distance from spawn
+            
+            return !isBottomLeft && distanceFromSpawn >= minDistance;
+        });
         
-        // If no top-right space, use a random empty space
-        if (!stairsPlaced) {
-            const stairSpace = Utils.randomElement(emptySpaces);
+        // If we have valid spaces away from spawn, use those
+        if (validStairSpaces.length > 0) {
+            // Randomize exit position from valid spaces
+            const stairSpace = Utils.randomElement(validStairSpaces);
             game.stairs = { x: stairSpace.x, y: stairSpace.y };
+            console.log(`🚪 Exit placed at grid position (${Math.floor((stairSpace.x - cellSize/2) / cellSize)}, ${Math.floor((stairSpace.y - cellSize/2) / cellSize)})`);
+        } else {
+            // Fallback: use any space that's not in the immediate spawn area
+            const fallbackSpaces = emptySpaces.filter(space => {
+                const gridX = Math.floor((space.x - cellSize/2) / cellSize);
+                const gridY = Math.floor((space.y - cellSize/2) / cellSize);
+                
+                // Just avoid the immediate spawn corner (3x3 area around spawn)
+                const spawnX = 2;
+                const spawnY = game.mapHeight - 3;
+                const isNearSpawn = Math.abs(gridX - spawnX) <= 1 && Math.abs(gridY - spawnY) <= 1;
+                
+                return !isNearSpawn;
+            });
+            
+            if (fallbackSpaces.length > 0) {
+                const stairSpace = Utils.randomElement(fallbackSpaces);
+                game.stairs = { x: stairSpace.x, y: stairSpace.y };
+                console.log(`🚪 Exit placed at fallback position (${Math.floor((stairSpace.x - cellSize/2) / cellSize)}, ${Math.floor((stairSpace.y - cellSize/2) / cellSize)})`);
+            } else {
+                // Last resort: random position
+                const stairSpace = Utils.randomElement(emptySpaces);
+                game.stairs = { x: stairSpace.x, y: stairSpace.y };
+                console.log(`🚪 Exit placed at random position (emergency fallback)`);
+            }
         }
     },
 
@@ -441,8 +519,94 @@ const MapGenerator = {
             }
         } else {
             // Ultimate fallback to original fixed position if no empty spaces found (shouldn't happen)
-            game.player.x = 2 * cellSize + cellSize / 2;
-            game.player.y = (game.mapHeight - 3) * cellSize + cellSize / 2;
+            this.setFallbackPosition(game, cellSize);
         }
+        
+        // Final validation - ensure player position is safe
+        if (!this.validateSpawnPosition(game, game.player.x, game.player.y)) {
+            console.warn('⚠️ Player spawn position validation failed, attempting emergency repositioning');
+            this.emergencyRepositioning(game, cellSize);
+        }
+        
+        console.log(`✅ Player positioned at (${game.player.x}, ${game.player.y})`);
+    },
+    
+    // Validate that a spawn position is safe (no wall collisions)
+    validateSpawnPosition(game, x, y) {
+        // Check bounds
+        const mapWidth = game.mapWidth * (CONFIG.MAP.CELL_SIZE || 40);
+        const mapHeight = game.mapHeight * (CONFIG.MAP.CELL_SIZE || 40);
+        const margin = 20;
+        
+        if (x < margin || x > mapWidth - margin || y < margin || y > mapHeight - margin) {
+            return false;
+        }
+        
+        // Check wall collisions
+        const playerSize = game.player.size || 15;
+        const wallCollisionRadius = 12; // Same as in gameLogic.js
+        
+        for (const wall of game.walls) {
+            const dx = x - wall.x;
+            const dy = y - wall.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            
+            if (distance < playerSize + wallCollisionRadius) {
+                return false;
+            }
+        }
+        
+        return true;
+    },
+    
+    // Find a safe spawn position from a list of candidates
+    findSafeSpawnPosition(game, candidates) {
+        for (const candidate of candidates) {
+            if (this.validateSpawnPosition(game, candidate.x, candidate.y)) {
+                return candidate;
+            }
+        }
+        return null;
+    },
+    
+    // Set fallback position with validation
+    setFallbackPosition(game, cellSize) {
+        const fallbackX = 2 * cellSize + cellSize / 2;
+        const fallbackY = (game.mapHeight - 3) * cellSize + cellSize / 2;
+        
+        if (this.validateSpawnPosition(game, fallbackX, fallbackY)) {
+            game.player.x = fallbackX;
+            game.player.y = fallbackY;
+        } else {
+            this.emergencyRepositioning(game, cellSize);
+        }
+    },
+    
+    // Emergency repositioning when all else fails
+    emergencyRepositioning(game, cellSize) {
+        console.warn('🚨 Emergency repositioning triggered');
+        
+        // Try positions in a spiral pattern from the center
+        const centerX = (game.mapWidth * cellSize) / 2;
+        const centerY = (game.mapHeight * cellSize) / 2;
+        
+        for (let radius = cellSize; radius < game.mapWidth * cellSize / 2; radius += cellSize) {
+            for (let angle = 0; angle < 360; angle += 45) {
+                const x = centerX + radius * Math.cos(angle * Math.PI / 180);
+                const y = centerY + radius * Math.sin(angle * Math.PI / 180);
+                
+                if (this.validateSpawnPosition(game, x, y)) {
+                    game.player.x = x;
+                    game.player.y = y;
+                    console.log(`🔧 Emergency position found at (${x}, ${y})`);
+                    return;
+                }
+            }
+        }
+        
+        // If we get here, something is very wrong - use center position
+        console.error('🚨 Critical: Could not find any safe spawn position');
+        game.player.x = centerX;
+        game.player.y = centerY;
     }
 }; 

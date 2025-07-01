@@ -1,7 +1,7 @@
 {
-  "name": "Buried Spire of Kuwait - Explorer Mode",
+  "name": "Buried Spire Quest - Explorer Mode",
   "short_name": "Buried Spire",
-  "description": "A 2D dungeon crawler set in the mystical underground of Kuwait",
+  "description": "A 2D dungeon crawler set in the ancient buried towers of Burj Mubarak",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#000000",

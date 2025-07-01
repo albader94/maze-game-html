@@ -258,10 +258,8 @@ const GameState = {
             try {
                 MapGenerator.generateFloor(this.game, this.game.floor);
                 
-                // Ensure player is positioned at the start of the floor (bottom-left area)
-                const cellSize = CONFIG.MAP.CELL_SIZE || 40;
-                this.game.player.x = cellSize + cellSize / 2; // Left side
-                this.game.player.y = (this.game.mapHeight - 2) * cellSize + cellSize / 2; // Bottom
+                // Use proper player positioning that validates against walls
+                // This will be handled by MapGenerator.generateFloor() -> resetPlayerPosition()
                 
                 // Reset ALL ghouls to normal state after respawn
                 for (const ghoul of this.game.ghouls) {
@@ -344,10 +342,8 @@ const GameState = {
         this.game.darknessFade = 0;
         this.game.deathScreen = false;
         
-        // Ensure player position is valid before regenerating floor
-        const cellSize = CONFIG.MAP.CELL_SIZE || 40;
-        this.game.player.x = cellSize + cellSize / 2; // Left side
-        this.game.player.y = (this.game.mapHeight - 2) * cellSize + cellSize / 2; // Bottom
+        // Player position will be properly set by MapGenerator.generateFloor() -> resetPlayerPosition()
+        // This ensures the player spawns in a valid, wall-free location
         
         // Regenerate the current floor
         if (typeof MapGenerator !== 'undefined' && MapGenerator.generateFloor) {

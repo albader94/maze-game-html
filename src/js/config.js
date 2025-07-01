@@ -20,8 +20,8 @@ const CONFIG = {
         MAX_LIGHT: 100,
         LIGHT: 100, // Starting light level
         LIGHT_RADIUS: 150,
-        START_X: 100, // Starting X position
-        START_Y: 100, // Starting Y position
+        START_X: 100, // Starting X position (will be corrected by resetPlayerPosition)
+        START_Y: 500, // Starting Y position (bottom-left area)
         LIGHT_DECAY_RATE: 0.02, // Reduced from 0.05 to 0.02 (60% slower)
         LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
     },
@@ -88,6 +88,16 @@ const ORB_TYPES = {
         lightBonus: 50,
         name: 'Light Wisp',
         description: 'Death marker - Restores 50% light'
+    },
+    pearl: {
+        symbol: '●',
+        color: '#1a1a1a',
+        outline: '#ffffff',
+        power: 'victory',
+        name: 'Ancient Pearl',
+        description: 'The legendary black pearl that will end the curse and save your people!',
+        rare: true,
+        finalLevel: true
     }
 };
 
@@ -104,7 +114,7 @@ const MESSAGES = {
         PHASE_ENDING: 'Phase shift ending - moved to safe location!',
         INVENTORY_FULL: 'Inventory full!',
         RESPAWN: 'Respawned at checkpoint. Look for your light wisp!',
-        VICTORY: 'You found the Pearl of Kuwait!'
+        VICTORY: 'You found the Ancient Pearl! The curse is broken and your people are saved!'
     },
     FLOOR: {
         CHECKPOINT: (floor) => `Floor -${floor}: Checkpoint saved!`,

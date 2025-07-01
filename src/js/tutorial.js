@@ -31,7 +31,7 @@ const TutorialSystem = {
         const tutorialSteps = [
             {
                 title: "Welcome to the Buried Spire",
-                message: "Welcome, explorer! You stand at the entrance to the ancient Burj Mubarak, now buried beneath the sands of Kuwait. Your mission is to descend 50 floors to find the legendary Pearl of Kuwait.",
+                message: "Welcome, explorer! You stand at the entrance to the ancient Burj Mubarak, now buried beneath the shifting sands of time. Your mission is to descend 50 floors to find the legendary Ancient Pearl.",
                 instruction: "Use WASD or Arrow Keys to move around."
             },
             {

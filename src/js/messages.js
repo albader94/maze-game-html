@@ -1,7 +1,7 @@
 // Game Messages and Story Content
 const MESSAGES = {
     STORY: {
-        INTRO: "The ancient Burj Mubarak lies buried beneath the sands of Kuwait. Your light is your lifeline in these cursed depths.",
+        INTRO: "The ancient Burj Mubarak lies buried beneath the shifting sands of time. Your light is your lifeline in these cursed depths.",
         PHASE_ACTIVATED: "Purple energy flows through you - walls cannot stop you now!",
         REGENERATION_ACTIVATED: "Green light pulses within you - your energy slowly returns!",
         REVEAL_ACTIVATED: "White light illuminates your mind - the path ahead is clear!",
@@ -11,14 +11,14 @@ const MESSAGES = {
         DARKNESS_CONSUMES: "The darkness closes in... the ghouls are coming for you!",
         INVENTORY_FULL: "Your hands are full - you cannot carry more orbs!",
         RESPAWN: "You awaken at the checkpoint, haunted by whispers of the deep...",
-        VICTORY: "You have found the Pearl of Kuwait! The curse is broken!"
+        VICTORY: "You have found the Ancient Pearl! Its radiant light banishes the ghouls and illuminates your path home. The curse is broken!"
     },
     
     FLOOR: {
         PROGRESS: (floor) => `Floor ${-floor}: The darkness grows thicker as you descend...`,
         CHECKPOINT: (floor) => `CHECKPOINT Floor ${-floor}: Your progress is saved in the ancient stones.`,
         DEEP: (floor) => `Floor ${-floor}: The very air seems to whisper ancient secrets...`,
-        FINAL: "Floor -50: The Pearl of Kuwait awaits in the deepest chamber!"
+        FINAL: "Floor -50: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!"
     },
     
     TUTORIAL: {
@@ -45,7 +45,8 @@ const MESSAGES = {
             GREEN: "A green orb pulses with regenerative force!",
             WHITE: "A white orb reveals the hidden paths!",
             RED: "A red orb binds itself to your soul - a lifeline in the dark!",
-            WISP: "A wisp of your former self grants you light..."
+            WISP: "A wisp of your former self grants you light...",
+            PEARL: "The Ancient Pearl! Its radiant light fills you with hope and power!"
         }
     },
     
@@ -66,10 +67,10 @@ const MESSAGES = {
     },
     
     LORE: {
-        BURJ_MUBARAK: "Once the tallest tower in Kuwait, now buried by time and sand.",
-        PEARL_OF_KUWAIT: "A legendary gem said to hold the power of the desert winds.",
+        BURJ_MUBARAK: "Once a magnificent tower in an ancient utopian civilization, now buried by time and sand.",
+        ANCIENT_PEARL: "A legendary black pearl that holds the concentrated light of a lost civilization. It will protect your community from the ghouls that prowl the night.",
         GHOULS: "Cursed spirits that fled the light when the tower fell.",
-        LIGHT_ORBS: "Remnants of the tower's former glory, still holding traces of sunlight.",
+        LIGHT_ORBS: "Remnants of the tower's former glory, still holding traces of ancient luminous energy.",
         EXPLORER_MODE: "A safer path for those who dare to explore the depths gradually."
     }
 };

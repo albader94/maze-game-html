@@ -86,12 +86,18 @@ const Utils = {
         }
     },
 
-    // Update camera position to follow player
+    // Update camera position to follow player (simple centered approach)
     updateCamera(game) {
-        game.camera.x = Math.max(0, Math.min(game.player.x - CONFIG.CANVAS.WIDTH / 2, 
-                                              game.mapWidth * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.WIDTH));
-        game.camera.y = Math.max(0, Math.min(game.player.y - CONFIG.CANVAS.HEIGHT / 2, 
-                                              game.mapHeight * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.HEIGHT));
+        // Center camera on player with world boundary constraints
+        const targetCameraX = game.player.x - CONFIG.CANVAS.WIDTH / 2;
+        const targetCameraY = game.player.y - CONFIG.CANVAS.HEIGHT / 2;
+
+        // Apply world boundaries
+        const maxCameraX = Math.max(0, game.mapWidth * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.WIDTH);
+        const maxCameraY = Math.max(0, game.mapHeight * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.HEIGHT);
+
+        game.camera.x = Math.max(0, Math.min(targetCameraX, maxCameraX));
+        game.camera.y = Math.max(0, Math.min(targetCameraY, maxCameraY));
     },
 
     // Update UI elements
@@ -267,5 +273,59 @@ const Utils = {
             particlePoolSize: this.particlePool.length,
             spatialGridCells: this.spatialGrid.size
         };
+    },
+
+    // Message system for auto-disappearing messages
+    messageTimeout: null,
+
+    // Show a message that auto-disappears after a specified time
+    showMessage(text, duration = 3000) {
+        // Create a temporary notification element
+        const notification = document.createElement('div');
+        notification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(0, 0, 0, 0.9);
+            color: #fff;
+            padding: 12px 20px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            backdrop-filter: blur(5px);
+            font-family: monospace;
+            font-size: 14px;
+            z-index: 1000;
+            max-width: 600px;
+            text-align: center;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out;
+            pointer-events: none;
+        `;
+        notification.textContent = text;
+        
+        // Add to page
+        document.body.appendChild(notification);
+        
+        // Fade in
+        setTimeout(() => {
+            notification.style.opacity = '1';
+        }, 10);
+        
+        // Auto-remove after duration
+        setTimeout(() => {
+            notification.style.opacity = '0';
+            setTimeout(() => {
+                if (notification.parentNode) {
+                    notification.parentNode.removeChild(notification);
+                }
+            }, 300);
+        }, duration);
+    },
+
+    // Hide message immediately (legacy compatibility)
+    hideMessage() {
+        // This function is kept for compatibility but notifications now auto-remove
+        console.log('hideMessage called - notifications now auto-remove');
     }
 }; 

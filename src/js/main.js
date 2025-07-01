@@ -1528,8 +1528,7 @@ document.addEventListener('DOMContentLoaded', () => {
         'gameCanvas',
         'minimap',
         'ui',
-        'inventory',
-        'story'
+        'inventory'
     ];
     
     let missingElements = [];

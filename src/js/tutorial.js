@@ -256,26 +256,26 @@ const TutorialSystem = {
             
             case 'purple':
                 title = "Purple Orb - Phase Power";
-                message = "You've discovered a Purple Orb! This mystical orb grants you the power to phase through walls for 5 seconds. Use it to escape danger or find shortcuts through the maze.";
-                instruction = "Phase power lets you walk through walls - use it wisely to escape tight situations!";
+                message = "You've discovered a Purple Orb! This mystical orb grants you the power to phase through walls for 5 seconds. It goes into your inventory and can be activated manually.";
+                instruction = "The Purple Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. When activated, you can walk through walls for 5 seconds - perfect for escaping danger or finding shortcuts!";
                 break;
             
             case 'green':
                 title = "Green Orb - Regeneration";
-                message = "A Green Orb! This nature-powered orb slowly regenerates your light over 10 seconds. It's perfect for long-term light management and exploration.";
-                instruction = "Regeneration provides steady light recovery - great for extended exploration!";
+                message = "A Green Orb! This nature-powered orb slowly regenerates your light over 10 seconds. It goes into your inventory and can be activated manually when needed.";
+                instruction = "The Green Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. Perfect for long-term light management during exploration!";
                 break;
             
             case 'white':
                 title = "White Orb - Map Revelation";
-                message = "You've found a White Orb! This illuminating orb reveals the entire floor layout for 5 seconds, showing walls, orbs, ghouls, and most importantly - the stairs!";
-                instruction = "Use map revelation to quickly navigate and find the stairs to the next floor!";
+                message = "You've found a White Orb! This illuminating orb reveals the entire floor layout for 5 seconds, showing walls, orbs, ghouls, and most importantly - the stairs! It goes into your inventory for manual activation.";
+                instruction = "The White Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. Use it strategically to quickly navigate and find the stairs!";
                 break;
             
             case 'red':
                 title = "Red Orb - Lifeline";
-                message = "A rare Red Orb! This goes into your inventory and serves as your lifeline. It will automatically activate when your light reaches 0%, fully restoring your light and saving you from the ghoul swarm. You can also use it manually for full light restoration.";
-                instruction = "Keep lifeline orbs in inventory - they auto-activate at 0% light or can be used manually (keys 1-3)!";
+                message = "A rare Red Orb! This goes into your inventory and serves as your lifeline. It will automatically activate when your light reaches 0%, fully restoring your light and saving you from the ghoul swarm.";
+                instruction = "The Red Orb goes into your inventory (slots 1-3) and auto-activates at 0% light to save you! You can also manually activate it with keys 1, 2, or 3 for full light restoration. Keep it safe - it's your lifeline!";
                 break;
             
             case 'wisp':
@@ -379,10 +379,7 @@ const TutorialSystem = {
         this.hideTutorialPopup();
         
         // Show completion message
-        const storyElement = document.getElementById('story');
-        if (storyElement) {
-            storyElement.textContent = "Tutorial complete! You're now ready to face the deeper mysteries of the Buried Spire. Good luck, explorer!";
-        }
+        Utils.showMessage("Tutorial complete! You're now ready to face the deeper mysteries of the Buried Spire. Good luck, explorer!", 5000);
         
         console.log('🎓 Tutorial system ended');
     },

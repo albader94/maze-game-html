@@ -131,92 +131,17 @@ const GameState = {
 
     // Reset game to initial state
     resetGame() {
-        console.log('🔄 Resetting game state...');
+        console.log('🔄 Resetting game state');
         
-        // Check if CONFIG is available
-        if (typeof CONFIG === 'undefined') {
-            console.error('❌ CONFIG is not defined! Cannot reset game properly.');
-            // Create a minimal fallback config
-            window.CONFIG = {
-                PLAYER: { 
-                    SIZE: 15, 
-                    SPEED: 3, 
-                    MAX_LIGHT: 100, 
-                    LIGHT_RADIUS: 150,
-                    START_X: 100,
-                    START_Y: 100,
-                    LIGHT: 100
-                },
-                MAP: { WIDTH: 30, HEIGHT: 20 }
-            };
+        // Clear any existing timeouts
+        if (Utils.messageTimeout) {
+            clearTimeout(Utils.messageTimeout);
+            Utils.messageTimeout = null;
         }
         
-        this.game = {
-            state: 'menu', // Start in menu state
-            mode: 'explorer',
-            deathScreen: false,
-            showHelp: false,
-            // Tutorial system
-            tutorial: {
-                active: false,
-                currentStep: 0,
-                showingOrbTutorial: false,
-                completedSteps: new Set(),
-                firstTimeOrbs: new Set(),
-                tutorialPopup: null
-            },
-            stats: {
-                totalOrbs: 0,
-                totalFloors: 0,
-                totalDeaths: 0,
-                bestFloor: 1,
-                sessionTime: 0
-            },
-            player: {
-                x: CONFIG.PLAYER.START_X || 100,
-                y: CONFIG.PLAYER.START_Y || 100,
-                speed: CONFIG.PLAYER.SPEED || 3,
-                light: CONFIG.PLAYER.MAX_LIGHT || 100,
-                maxLight: CONFIG.PLAYER.MAX_LIGHT || 100,
-                lightRadius: CONFIG.PLAYER.LIGHT_RADIUS || 150,
-                size: CONFIG.PLAYER.SIZE || 15,
-                orbsCollected: 0,
-                inventory: [null, null, null],
-                selectedSlot: 0,
-                deathMarkers: [],
-                lastPosition: { x: 100, y: 100 },
-                survivalTime: 0,
-                powers: {
-                    phase: 0,
-                    regeneration: 0,
-                    reveal: 0
-                }
-            },
-            camera: { x: 0, y: 0 },
-            floor: 1,
-            checkpoint: 1,
-            levelEntryInventory: [null, null, null],
-            ghouls: [],
-            orbs: [],
-            walls: [],
-            stairs: null,
-            particles: [],
-            explored: new Set(),
-            gameOver: false,
-            victory: false,
-            swarming: false,
-            swarmTimer: 0,
-            darknessFade: 0,
-            time: 0,
-            mapWidth: CONFIG.MAP.WIDTH || 30,
-            mapHeight: CONFIG.MAP.HEIGHT || 20,
-            gameStartTime: Date.now(),
-            distanceTraveled: 0,
-            survivalTime: 0
-        };
-        
-        console.log('✅ Game state reset completed');
-        console.log('Player initialized at:', this.game.player.x, this.game.player.y);
+        this.game = this.createInitialGameState();
+        this.initializeGame();
+        return this.game;
     },
 
     // Start new game
@@ -243,7 +168,17 @@ const GameState = {
         this.game.levelEntryInventory = [...this.game.player.inventory];
         console.log(`🎒 Initial level entry inventory set for floor ${this.game.floor}:`, this.game.levelEntryInventory);
         
-        // Start tutorial for new players
+        // Show intro message
+        const storyElement = document.getElementById('story');
+        if (storyElement) {
+            if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.INTRO) {
+                Utils.showMessage(MESSAGES.STORY.INTRO, 4000);
+            } else {
+                Utils.showMessage('Welcome to the Buried Spire of Kuwait. Navigate the darkness and find the stairs to descend deeper.', 4000);
+            }
+        }
+        
+        // Start tutorial if enabled
         if (typeof TutorialSystem !== 'undefined') {
             TutorialSystem.startTutorial();
         }
@@ -264,17 +199,6 @@ const GameState = {
                 console.warn(`⚠️ Element '${id}' not found`);
             }
         });
-        
-        // Set story text with safety check
-        const storyElement = document.getElementById('story');
-        if (storyElement) {
-            if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.INTRO) {
-                storyElement.textContent = MESSAGES.STORY.INTRO;
-            } else {
-                storyElement.textContent = 'Welcome to the Buried Spire of Kuwait. Navigate the darkness and find the stairs to descend deeper.';
-                console.warn('⚠️ MESSAGES.STORY.INTRO not available, using fallback text');
-            }
-        }
         
         // Set checkpoint with safety check
         const checkpointElement = document.getElementById('checkpoint');
@@ -369,9 +293,9 @@ const GameState = {
         const storyElement = document.getElementById('story');
         if (storyElement) {
             if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.RESPAWN) {
-                storyElement.textContent = MESSAGES.STORY.RESPAWN;
+                Utils.showMessage(MESSAGES.STORY.RESPAWN, 4000);
             } else {
-                storyElement.textContent = `Respawned at checkpoint floor ${this.game.floor}. The darkness claimed you, but you persist.`;
+                Utils.showMessage(`Respawned at checkpoint floor ${this.game.floor}. The darkness claimed you, but you persist.`, 4000);
             }
         }
     },
@@ -458,10 +382,7 @@ const GameState = {
         }
         
         // Show restart message
-        const storyElement = document.getElementById('story');
-        if (storyElement) {
-            storyElement.textContent = `Level ${Math.abs(currentFloor)} restarted. You return to the beginning with your entry inventory.`;
-        }
+        Utils.showMessage(`Level ${Math.abs(currentFloor)} restarted. You return to the beginning with your entry inventory.`, 3000);
         
         // Debug final state after restart
         console.log(`🔍 RESTART COMPLETE - Player at (${this.game.player.x}, ${this.game.player.y})`);
@@ -706,37 +627,66 @@ const GameState = {
         }
     },
 
-    // Save game progress
+    // Save game state to localStorage
     saveGame() {
         try {
-            const gameToSave = {
-                ...this.game,
-                explored: Array.from(this.game.explored)
+            const gameData = {
+                floor: this.game.floor,
+                checkpoint: this.game.checkpoint,
+                player: {
+                    light: this.game.player.light,
+                    orbsCollected: this.game.player.orbsCollected,
+                    inventory: [...this.game.player.inventory],
+                    deathMarkers: [...this.game.player.deathMarkers],
+                    checkpointInventory: [...this.game.player.checkpointInventory]
+                },
+                timestamp: Date.now()
             };
-            localStorage.setItem('buriedSpireGame', JSON.stringify(gameToSave));
-            console.log('Game saved');
+            
+            localStorage.setItem('buriedSpireGame', JSON.stringify(gameData));
+            console.log('💾 Game saved successfully');
+            return true;
         } catch (error) {
-            console.warn('Failed to save game:', error);
+            console.error('❌ Failed to save game:', error);
+            return false;
         }
     },
 
-    // Load game progress
+    // Load game state from localStorage
     loadGame() {
         try {
-            const saved = localStorage.getItem('buriedSpireGame');
-            if (saved) {
-                const parsedGame = JSON.parse(saved);
-                this.game = {
-                    ...parsedGame,
-                    explored: new Set(parsedGame.explored || [])
-                };
-                console.log('Game loaded');
-                return true;
+            const savedData = localStorage.getItem('buriedSpireGame');
+            if (!savedData) return false;
+            
+            const gameData = JSON.parse(savedData);
+            
+            // Validate saved data
+            if (!gameData.player || typeof gameData.floor !== 'number') {
+                console.warn('⚠️ Invalid save data format');
+                return false;
             }
+            
+            // Create fresh game state
+            this.game = this.createInitialGameState();
+            
+            // Restore saved values
+            this.game.floor = gameData.floor;
+            this.game.checkpoint = gameData.checkpoint || 0;
+            this.game.player.light = gameData.player.light || 100;
+            this.game.player.orbsCollected = gameData.player.orbsCollected || 0;
+            this.game.player.inventory = gameData.player.inventory || [null, null, null];
+            this.game.player.deathMarkers = gameData.player.deathMarkers || [];
+            this.game.player.checkpointInventory = gameData.player.checkpointInventory || [null, null, null];
+            
+            // Generate the current floor
+            MapGenerator.generateFloor(this.game);
+            
+            console.log('📂 Game loaded successfully from floor', this.game.floor);
+            return true;
         } catch (error) {
-            console.warn('Failed to load game:', error);
+            console.error('❌ Failed to load game:', error);
+            return false;
         }
-        return false;
     },
 
     // Get current game state
@@ -768,5 +718,76 @@ const GameState = {
         } catch (error) {
             console.error('Failed to load checkpoint:', error);
         }
+    },
+
+    // Create initial game state
+    createInitialGameState() {
+        return {
+            state: 'menu',
+            mode: 'explorer',
+            deathScreen: false,
+            showHelp: false,
+            tutorial: {
+                active: false,
+                currentStep: 0,
+                showingOrbTutorial: false,
+                completedSteps: new Set(),
+                firstTimeOrbs: new Set(),
+                tutorialPopup: null
+            },
+            stats: {
+                totalOrbs: 0,
+                totalFloors: 0,
+                totalDeaths: 0,
+                bestFloor: 1,
+                sessionTime: 0
+            },
+            player: {
+                x: CONFIG.PLAYER.START_X || 100,
+                y: CONFIG.PLAYER.START_Y || 100,
+                speed: CONFIG.PLAYER.SPEED || 3,
+                light: CONFIG.PLAYER.MAX_LIGHT || 100,
+                maxLight: CONFIG.PLAYER.MAX_LIGHT || 100,
+                lightRadius: CONFIG.PLAYER.LIGHT_RADIUS || 150,
+                size: CONFIG.PLAYER.SIZE || 15,
+                orbsCollected: 0,
+                inventory: [null, null, null],
+                selectedSlot: 0,
+                deathMarkers: [],
+                lastPosition: { x: 100, y: 100 },
+                survivalTime: 0,
+                powers: {
+                    phase: 0,
+                    regeneration: 0,
+                    reveal: 0
+                }
+            },
+            camera: { x: 0, y: 0 },
+            floor: 1,
+            checkpoint: 1,
+            levelEntryInventory: [null, null, null],
+            ghouls: [],
+            orbs: [],
+            walls: [],
+            stairs: null,
+            particles: [],
+            explored: new Set(),
+            gameOver: false,
+            victory: false,
+            swarming: false,
+            swarmTimer: 0,
+            darknessFade: 0,
+            time: 0,
+            mapWidth: CONFIG.MAP.WIDTH || 30,
+            mapHeight: CONFIG.MAP.HEIGHT || 20,
+            gameStartTime: Date.now(),
+            distanceTraveled: 0,
+            survivalTime: 0
+        };
+    },
+
+    // Initialize game
+    initializeGame() {
+        // Additional initialization logic if needed
     }
 }; 

@@ -55,7 +55,7 @@ const EntityManager = {
                     const safePos = Utils.findSafePosition(game, game.player.x, game.player.y);
                     game.player.x = safePos.x;
                     game.player.y = safePos.y;
-                    document.getElementById('story').textContent = MESSAGES.STORY.PHASE_ENDING;
+                    Utils.showMessage(MESSAGES.STORY.PHASE_ENDING, 2500);
                 }
             }
         }
@@ -63,7 +63,7 @@ const EntityManager = {
         // Regeneration power
         if (game.player.powers.regeneration > 0) {
             game.player.powers.regeneration--;
-            game.player.light = Math.min(game.player.light + 0.1, game.player.maxLight);
+            game.player.light = Math.min(CONFIG.PLAYER.MAX_LIGHT, game.player.light + 0.15);
         }
         
         // Reveal power
@@ -170,15 +170,14 @@ const EntityManager = {
                     game.player.inventory[i] = orb.type;
                     added = true;
                     InventoryManager.updateDisplay();
-                    document.getElementById('story').textContent = 
-                        `Collected ${orbType.name}! Press ${i + 1} to use.`;
+                    Utils.showMessage(`${orbType.name} added to inventory!`, 2500);
                     break;
                 }
             }
             
             if (!added) {
                 // Inventory is full - don't collect the orb
-                document.getElementById('story').textContent = MESSAGES.STORY.INVENTORY_FULL;
+                Utils.showMessage(MESSAGES.STORY.INVENTORY_FULL, 2000);
                 orb.collected = false;
                 return false; // Indicate collection failed
             }
@@ -210,16 +209,15 @@ const EntityManager = {
             game.floor++;
             if (game.floor >= CONFIG.GAME.MAX_FLOORS) {
                 game.victory = true;
-                document.getElementById('story').textContent = MESSAGES.STORY.VICTORY;
+                Utils.showMessage(MESSAGES.STORY.VICTORY, 5000);
             } else {
                 if (game.floor % CONFIG.GAME.CHECKPOINT_INTERVAL === 0) {
                     game.checkpoint = game.floor;
                     // Calculate and display the correct checkpoint number
                     const checkpointNumber = Math.ceil(Math.abs(game.floor) / 5);
-                    document.getElementById('checkpoint').textContent = checkpointNumber;
-                    document.getElementById('story').textContent = MESSAGES.FLOOR.CHECKPOINT(game.floor);
+                    Utils.showMessage(MESSAGES.FLOOR.CHECKPOINT(game.floor), 3000);
                 } else {
-                    document.getElementById('story').textContent = MESSAGES.FLOOR.PROGRESS(game.floor);
+                    Utils.showMessage(MESSAGES.FLOOR.PROGRESS(game.floor), 2500);
                 }
                 MapGenerator.generateFloor(game, game.floor);
                 game.player.light = Math.min(game.player.light + 30, 100);
@@ -230,5 +228,66 @@ const EntityManager = {
                 console.log(`🎒 Level entry inventory set for floor ${game.floor}:`, game.levelEntryInventory);
             }
         }
+    },
+
+    // Handle orb collection
+    handleOrbCollection(game, orb) {
+        const orbType = ORB_TYPES[orb.type];
+        if (!orbType) return;
+
+        // Play collection sound effect if available
+        // TODO: Add sound effects
+
+        // Handle different orb types
+        if (orbType.lightBonus) {
+            // Direct light restoration (blue, golden, wisp orbs)
+            game.player.light = Math.min(CONFIG.PLAYER.MAX_LIGHT, game.player.light + orbType.lightBonus);
+            game.player.orbsCollected++;
+            
+            Utils.showMessage(`${orbType.name}: +${orbType.lightBonus}% light restored!`, 2000);
+            
+            // Create light particles
+            Utils.createParticles(game, orb.x, orb.y, orbType.color, 8, 3);
+        } else if (orbType.power) {
+            // Power orbs go to inventory
+            const added = this.addToInventory(game, orb.type);
+            if (added) {
+                game.player.orbsCollected++;
+                Utils.showMessage(`${orbType.name} added to inventory!`, 2500);
+                // Create power particles
+                Utils.createCircularParticles(game, orb.x, orb.y, orbType.color, 12, 4);
+            } else {
+                Utils.showMessage(MESSAGES.STORY.INVENTORY_FULL, 2000);
+                return false; // Don't collect if inventory is full
+            }
+        }
+
+        // Tutorial system - handle orb collection
+        if (typeof TutorialSystem !== 'undefined') {
+            TutorialSystem.handleOrbCollection(orb.type);
+        }
+
+        return true;
+    },
+
+    // Check win condition
+    checkWinCondition(game) {
+        const distToStairs = Utils.distance(game.player, game.stairs);
+        if (distToStairs < 30) {
+            if (Math.abs(game.floor) >= CONFIG.GAME.MAX_FLOORS) {
+                // Player reached the bottom floor
+                Utils.showMessage(MESSAGES.STORY.VICTORY, 5000);
+                return true;
+            } else {
+                // Progress to next floor
+                if (Math.abs(game.floor) % CONFIG.GAME.CHECKPOINT_INTERVAL === 0) {
+                    Utils.showMessage(MESSAGES.FLOOR.CHECKPOINT(game.floor), 3000);
+                } else {
+                    Utils.showMessage(MESSAGES.FLOOR.PROGRESS(game.floor), 2500);
+                }
+                return false;
+            }
+        }
+        return false;
     }
 }; 

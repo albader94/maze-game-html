@@ -9,23 +9,23 @@ const InventoryManager = {
         switch (orb) {
             case 'purple':
                 game.player.powers.phase = CONFIG.GAME.PHASE_DURATION;
-                document.getElementById('story').textContent = MESSAGES.STORY.PHASE_ACTIVATED;
+                Utils.showMessage(MESSAGES.STORY.PHASE_ACTIVATED, 2500);
                 break;
                 
             case 'green':
                 game.player.powers.regeneration = CONFIG.GAME.REGENERATION_DURATION;
-                document.getElementById('story').textContent = MESSAGES.STORY.REGENERATION_ACTIVATED;
+                Utils.showMessage(MESSAGES.STORY.REGENERATION_ACTIVATED, 2500);
                 break;
                 
             case 'white':
                 game.player.powers.reveal = CONFIG.GAME.REVEAL_DURATION;
-                document.getElementById('story').textContent = MESSAGES.STORY.REVEAL_ACTIVATED;
+                Utils.showMessage(MESSAGES.STORY.REVEAL_ACTIVATED, 2500);
                 break;
                 
             case 'red':
                 // Manual use of lifeline
                 game.player.light = 100;
-                document.getElementById('story').textContent = MESSAGES.STORY.LIFELINE_USED;
+                Utils.showMessage(MESSAGES.STORY.LIFELINE_USED, 3000);
                 // Create revival effect
                 Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 20, 6);
                 break;

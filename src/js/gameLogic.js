@@ -752,52 +752,51 @@ const GameLogic = {
         
         // Handle light depletion and swarm mechanics - trigger immediately when light hits 0
         if (game.player.light <= 0 && !game.swarming && !game.deathScreen) {
-            // Check for lifeline orb first
-            let hasLifeline = false;
-            let lifelineSlot = -1;
-            
-            for (let i = 0; i < 3; i++) {
-                if (game.player.inventory[i] === 'red') {
-                    hasLifeline = true;
-                    lifelineSlot = i;
-                    break;
-                }
-            }
-            
-            if (hasLifeline) {
-                // Auto-use lifeline immediately - stay in same position and level
-                game.player.light = 100;
-                game.player.inventory[lifelineSlot] = null;
-                
-                // Update inventory display
-                if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {
-                    InventoryManager.updateDisplay();
-                }
-                
-                // Create dramatic revival effect
-                if (typeof Utils !== 'undefined' && Utils.createCircularParticles) {
-                    Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 30, 8);
-                }
-                
-                // Temporary light boost effect
-                game.player.lightRadius = 250;
-                setTimeout(() => game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS || 150, 500);
-                
-                // Show lifeline message
-                const storyElement = document.getElementById('story');
-                if (storyElement) {
-                    if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.LIFELINE_AUTO) {
-                        storyElement.textContent = MESSAGES.STORY.LIFELINE_AUTO;
-                    } else {
-                        storyElement.textContent = 'Lifeline orb activated! Light restored automatically.';
+            // Check for automatic lifeline activation
+            if (game.player.light <= 0 && !game.player.isDead) {
+                // Look for lifeline orb in inventory
+                for (let i = 0; i < game.player.inventory.length; i++) {
+                    if (game.player.inventory[i] === 'red') {
+                        // Use lifeline orb
+                        game.player.inventory[i] = null;
+                        game.player.light = CONFIG.PLAYER.MAX_LIGHT;
+                        InventoryManager.updateDisplay();
+                        
+                        const storyElement = document.getElementById('story');
+                        if (storyElement) {
+                            Utils.showMessage(MESSAGES.STORY.LIFELINE_AUTO, 3000);
+                        } else {
+                            Utils.showMessage('Lifeline orb activated! Light restored automatically.', 3000);
+                        }
+                        
+                        // Create revival effect
+                        Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 30, 8);
+                        
+                        return; // Exit early, player is saved
                     }
                 }
                 
-                console.log('🔴 Lifeline orb auto-used, light restored to 100');
-            } else {
-                // No lifeline available - start the swarm sequence immediately
-                console.log('💀 No lifeline available, starting swarm sequence');
-                this.startSwarmSequence(game);
+                // No lifeline available - player dies
+                game.player.isDead = true;
+                game.player.deathTimer = 0;
+                
+                // Add death marker
+                game.player.deathMarkers.push({
+                    x: game.player.x,
+                    y: game.player.y,
+                    floor: Math.abs(game.floor)
+                });
+                
+                // Show death message
+                const storyElement = document.getElementById('story');
+                if (storyElement) {
+                    Utils.showMessage(MESSAGES.STORY.DARKNESS_CONSUMES, 4000);
+                } else {
+                    Utils.showMessage('The darkness consumes you! Ghouls swarm from all directions!', 4000);
+                }
+                
+                // Spawn swarm of ghouls
+                this.spawnGhoulSwarm(game);
             }
         }
         

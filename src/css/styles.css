@@ -18,18 +18,4 @@ body {
 canvas {
     border: 2px solid #333;
     background: #111;
-}
-
-/* Story Text */
-#story {
-    position: absolute;
-    bottom: 10px;
-    left: 10px;
-    right: 10px;
-    color: #aaa;
-    font-size: 12px;
-    text-align: center;
-    background: rgba(0,0,0,0.7);
-    padding: 5px;
-    border-radius: 5px;
 } 

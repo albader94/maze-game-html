@@ -796,7 +796,7 @@ const GameLogic = {
                 }
                 
                 // Spawn swarm of ghouls
-                this.spawnGhoulSwarm(game);
+                this.startSwarmSequence(game);
             }
         }
         

@@ -773,20 +773,20 @@ const Game = {
             justify-content: center;
             align-items: center;
             z-index: 10000;
-            font-family: monospace;
+            font-family: serif;
         `;
 
         modal.innerHTML = `
             <div style="
-                background: linear-gradient(135deg, #111 0%, #222 50%, #111 100%);
-                border: 3px solid #ffeb3b;
+                background: linear-gradient(135deg, #2a1810 0%, #1a0f08 50%, #0f0705 100%);
+                border: 3px solid #8B4513;
                 border-radius: 15px;
                 padding: 30px;
                 max-width: 700px;
                 width: 90%;
                 max-height: 85vh;
                 overflow-y: auto;
-                box-shadow: 0 0 30px rgba(255, 235, 59, 0.3), inset 0 0 20px rgba(255, 235, 59, 0.1);
+                box-shadow: 0 0 30px rgba(139, 69, 19, 0.5), inset 0 0 20px rgba(218, 165, 32, 0.1);
                 position: relative;
             ">
                 <!-- Golden corner decorations -->
@@ -796,18 +796,18 @@ const Game = {
                 <div style="position: absolute; bottom: -3px; right: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
                 
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h2 style="margin: 0; color: #ffeb3b; text-shadow: 0 0 15px rgba(255, 235, 59, 0.7); font-size: 24px; font-weight: bold;">
-                        ${isPauseMenu ? '⏸️ GAME PAUSED' : '⚙️ SETTINGS & STATISTICS'}
+                    <h2 style="margin: 0; color: #FFD700; text-shadow: 0 0 15px rgba(139, 0, 0, 0.7); font-size: 24px; font-weight: bold; font-family: serif;">
+                        ${isPauseMenu ? '⚜ QUEST PAUSED ⚜' : '⚙ SACRED SETTINGS ⚙'}
                     </h2>
-                    <button id="closeModal" style="background: none; border: 2px solid #ffeb3b; color: #ffeb3b; font-size: 20px; cursor: pointer; padding: 8px 12px; border-radius: 5px; font-weight: bold; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">✕</button>
+                    <button id="closeModal" style="background: none; border: 2px solid #DAA520; color: #DAA520; font-size: 20px; cursor: pointer; padding: 8px 12px; border-radius: 5px; font-weight: bold; text-shadow: 0 0 10px rgba(218, 165, 32, 0.5); font-family: serif;">✕</button>
                 </div>
                 
                 ${isPauseMenu ? `
                 <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 25px;">
-                    <button id="resumeGame" style="padding: 15px; background: linear-gradient(135deg, #333, #555); color: #ffeb3b; border: 2px solid #ffeb3b; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); box-shadow: 0 4px 15px rgba(255, 235, 59, 0.2);">▶️ RESUME</button>
-                    <button id="restartGame" style="padding: 15px; background: linear-gradient(135deg, #333, #555); color: #ff9800; border: 2px solid #ff9800; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(255, 152, 0, 0.5); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.2);">🔄 RESTART</button>
-                    <button id="replayFromCheckpoint" style="padding: 15px; background: linear-gradient(135deg, #333, #555); color: #9c27b0; border: 2px solid #9c27b0; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(156, 39, 176, 0.5); box-shadow: 0 4px 15px rgba(156, 39, 176, 0.2);">📍 CHECKPOINT</button>
-                    <button id="quitToMenu" style="padding: 15px; background: linear-gradient(135deg, #333, #555); color: #f44336; border: 2px solid #f44336; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(244, 67, 54, 0.5); box-shadow: 0 4px 15px rgba(244, 67, 54, 0.2);">🏠 MENU</button>
+                    <button id="resumeGame" style="padding: 15px; background: linear-gradient(135deg, #8B4513, #654321); color: #FFD700; border: 2px solid #DAA520; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.5); box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);">♦ RESUME</button>
+                    <button id="restartGame" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #CD853F; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.3); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♠ RESTART</button>
+                    <button id="replayFromCheckpoint" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #9370DB; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.3); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♣ CHECKPOINT</button>
+                    <button id="quitToMenu" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #DC143C; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.5); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♥ MENU</button>
                 </div>
                 ` : ''}
                 
@@ -1040,14 +1040,14 @@ const Game = {
                 // Remove active class from all tabs and panels
                 tabs.forEach(t => {
                     t.classList.remove('active');
-                    t.style.background = '#333';
-                    t.style.color = '#aaa';
+                    t.style.background = '#654321';
+                    t.style.color = '#8B4513';
                 });
                 panels.forEach(p => p.style.display = 'none');
                 
                 // Add active class to clicked tab
                 tab.classList.add('active');
-                tab.style.background = 'linear-gradient(135deg, #ffeb3b, #ff9800)';
+                tab.style.background = 'linear-gradient(135deg, #DAA520, #8B4513)';
                 tab.style.color = '#000';
                 tab.style.textShadow = '0 0 5px rgba(0,0,0,0.5)';
                 
@@ -1528,7 +1528,8 @@ document.addEventListener('DOMContentLoaded', () => {
         'gameCanvas',
         'minimap',
         'ui',
-        'inventory'
+        'inventory',
+        'story'
     ];
     
     let missingElements = [];

@@ -420,7 +420,7 @@ const EntityManager = {
             left: 0;
             width: 100%;
             height: 100%;
-            background: linear-gradient(45deg, rgba(0,0,0,0.9), rgba(26,26,26,0.95));
+            background: linear-gradient(45deg, rgba(10,5,5,0.95), rgba(42,24,16,0.98));
             display: flex;
             flex-direction: column;
             justify-content: center;
@@ -434,59 +434,63 @@ const EntityManager = {
         const victoryContent = `
             <div style="max-width: 600px; padding: 40px;">
                 <h1 style="
-                    color: #ffeb3b; 
-                    font-size: 3em; 
+                    color: #FFD700; 
+                    font-size: 3.5em; 
                     margin-bottom: 20px; 
-                    text-shadow: 0 0 20px rgba(255,235,59,0.8);
+                    text-shadow: 0 0 25px rgba(139,0,0,0.8);
                     animation: glow 2s ease-in-out infinite alternate;
-                ">VICTORY!</h1>
+                    font-family: serif;
+                ">⚜ TRIUMPH ⚜</h1>
                 
                 <h2 style="
-                    color: #ffffff; 
-                    font-size: 1.8em; 
+                    color: #CD853F; 
+                    font-size: 2em; 
                     margin-bottom: 30px;
-                    text-shadow: 0 0 10px rgba(255,255,255,0.5);
-                ">The Ancient Pearl is Found!</h2>
+                    text-shadow: 0 0 15px rgba(139,0,0,0.5);
+                    font-family: serif;
+                ">The Sacred Pearl is Reclaimed!</h2>
                 
                 <div style="
-                    background: rgba(255,235,59,0.1); 
-                    border: 2px solid #ffeb3b; 
-                    border-radius: 10px; 
-                    padding: 30px; 
+                    background: rgba(139,69,19,0.2); 
+                    border: 3px solid #8B4513; 
+                    border-radius: 15px; 
+                    padding: 35px; 
                     margin: 30px 0;
-                    box-shadow: 0 0 30px rgba(255,235,59,0.3);
+                    box-shadow: 0 0 35px rgba(139,69,19,0.4);
                 ">
-                    <p style="font-size: 1.3em; line-height: 1.6; color: #fff;">
-                        You have successfully retrieved the <strong style="color: #ffeb3b;">Ancient Pearl</strong> 
-                        from the depths of Burj Mubarak! Its radiant light will protect your community 
-                        from the ghouls that prowl the night.
+                    <p style="font-size: 1.4em; line-height: 1.7; color: #DAA520; font-family: serif;">
+                        Through courage and determination, you have retrieved the <strong style="color: #FFD700;">Sacred Pearl</strong> 
+                        from the cursed depths of the Buried Spire! Its divine radiance shall protect your realm 
+                        from the shadow beasts that haunt the darkness.
                     </p>
                     <br>
-                    <p style="font-size: 1.1em; color: #ccc;">
-                        The curse that plagued the buried spire is broken. The ghouls flee in terror 
-                        before the Pearl's divine light, and your people are safe once more.
+                    <p style="font-size: 1.2em; color: #8B4513; font-family: serif;">
+                        The ancient curse is shattered. The creatures of the void retreat in terror 
+                        before the Pearl's holy light, and your people shall know peace once more.
                     </p>
                 </div>
                 
-                <div style="margin: 30px 0; color: #aaa;">
-                    <p><strong>Explorer</strong> - You conquered all ${Math.abs(game.floor)} floors!</p>
-                    <p><strong>Light Bearer</strong> - You collected ${game.player.orbsCollected || 0} orbs!</p>
-                    <p><strong>Legend</strong> - Your courage saved an entire civilization!</p>
+                <div style="margin: 35px 0; color: #8B4513; font-family: serif;">
+                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">⚔ Conqueror</strong> - You descended all ${Math.abs(game.floor)} treacherous floors!</p>
+                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">💎 Seeker</strong> - You gathered ${game.player.orbsCollected || 0} mystical orbs!</p>
+                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">⚜ Champion</strong> - Your valor has saved an entire realm!</p>
                 </div>
                 
                 <button id="victory-menu-btn" style="
-                    background: linear-gradient(45deg, #4caf50, #45a049);
-                    color: white;
-                    border: none;
-                    padding: 15px 30px;
-                    font-size: 1.2em;
-                    border-radius: 5px;
+                    background: linear-gradient(45deg, #8B4513, #654321);
+                    color: #FFD700;
+                    border: 3px solid #DAA520;
+                    padding: 18px 36px;
+                    font-size: 1.3em;
+                    border-radius: 10px;
                     cursor: pointer;
-                    margin: 10px;
-                    box-shadow: 0 4px 15px rgba(76,175,80,0.4);
+                    margin: 15px;
+                    box-shadow: 0 6px 20px rgba(139,69,19,0.5);
                     transition: all 0.3s ease;
+                    font-family: serif;
+                    font-weight: bold;
                 " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                    Return to Menu
+                    ♦ Return to Sanctum
                 </button>
             </div>
             
@@ -496,8 +500,8 @@ const EntityManager = {
                     to { opacity: 1; }
                 }
                 @keyframes glow {
-                    from { text-shadow: 0 0 20px rgba(255,235,59,0.8); }
-                    to { text-shadow: 0 0 30px rgba(255,235,59,1), 0 0 40px rgba(255,235,59,0.8); }
+                    from { text-shadow: 0 0 25px rgba(139,0,0,0.8); }
+                    to { text-shadow: 0 0 35px rgba(139,0,0,1), 0 0 45px rgba(255,215,0,0.8); }
                 }
             </style>
         `;

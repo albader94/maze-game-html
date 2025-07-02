@@ -5,9 +5,9 @@ const TutorialSystem = {
         console.log('🎓 Tutorial system initialized');
     },
 
-    // Check if player is in tutorial levels (floors 1-5)
+    // Check if player is in tutorial levels (floors -1 to -5)
     isInTutorial(floor) {
-        return floor >= 1 && floor <= 5;
+        return floor >= -5 && floor <= -1;
     },
 
     // Start tutorial for new players
@@ -71,13 +71,13 @@ const TutorialSystem = {
         if (!game) return;
 
         // Pause the game
-        game.tutorial.showingOrbTutorial = true;
+        game.tutorial.showingOrbTutorial = isOrbTutorial;
         
         // Remove existing popup
         this.hideTutorialPopup();
 
         // Use the explicit parameter to determine popup type
-        const isTutorialStep = !isOrbTutorial && game.tutorial.active && this.isInTutorial(game.floor);
+        const isTutorialStep = !isOrbTutorial && game.tutorial.active;
         const currentStep = game.tutorial.currentStep;
         const totalSteps = 5;
 
@@ -96,6 +96,7 @@ const TutorialSystem = {
             align-items: center;
             z-index: 15000;
             font-family: monospace;
+            pointer-events: auto;
         `;
 
         popup.innerHTML = `
@@ -110,6 +111,7 @@ const TutorialSystem = {
                 position: relative;
                 text-align: center;
                 font-family: serif;
+                pointer-events: auto;
             ">
                 <!-- Golden inner border -->
                 <div style="position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 1px solid #DAA520; border-radius: 10px;"></div>
@@ -158,6 +160,8 @@ const TutorialSystem = {
                         text-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
                         box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
                         transition: all 0.3s ease;
+                        pointer-events: auto;
+                        z-index: 16000;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                         ♦ Continue
                     </button>
@@ -176,6 +180,8 @@ const TutorialSystem = {
                         text-shadow: 0 0 10px rgba(139, 0, 0, 0.3);
                         box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);
                         transition: all 0.3s ease;
+                        pointer-events: auto;
+                        z-index: 16000;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
                         ♠ Skip Lessons
                     </button>
@@ -191,17 +197,51 @@ const TutorialSystem = {
         document.body.appendChild(popup);
         game.tutorial.tutorialPopup = popup;
 
-        // Add event listeners
-        document.getElementById('tutorialContinue').addEventListener('click', () => {
-            this.handleTutorialContinue();
-        });
+        // Debug: Log the actual HTML to see if buttons are created
+        console.log('🔍 Generated HTML contains Continue button:', popup.innerHTML.includes('tutorialContinue'));
+        console.log('🔍 Generated HTML contains Skip button:', popup.innerHTML.includes('tutorialSkip'));
 
-        // Only add skip button event listener for tutorial steps
-        if (isTutorialStep) {
-            document.getElementById('tutorialSkip').addEventListener('click', () => {
-                this.skipTutorial();
-            });
-        }
+        // Debug: Log that popup was created with inline onclick handlers
+        console.log('🔍 Tutorial popup created with inline onclick handlers');
+        
+        // Test if TutorialSystem is accessible globally
+        console.log('🔍 TutorialSystem accessible globally?', typeof window.TutorialSystem !== 'undefined');
+        console.log('🔍 TutorialSystem object:', TutorialSystem);
+        
+        // Make TutorialSystem globally accessible for onclick handlers
+        window.TutorialSystem = TutorialSystem;
+        
+        // Add event handlers to the tutorial buttons after they're in the DOM
+        setTimeout(() => {
+            const continueBtn = document.getElementById('tutorialContinue');
+            const skipBtn = document.getElementById('tutorialSkip');
+            
+            console.log('🔍 Looking for buttons after DOM insert:');
+            console.log('  Continue button found:', !!continueBtn);
+            console.log('  Skip button found:', !!skipBtn);
+            
+            if (continueBtn) {
+                console.log('🔍 Setting up Continue button onclick');
+                console.log('🔍 Continue button computed style:', window.getComputedStyle(continueBtn).pointerEvents);
+                
+                // Attach event handlers
+                continueBtn.onclick = function() {
+                    TutorialSystem.handleTutorialContinue();
+                };
+            }
+            
+            if (skipBtn) {
+                console.log('🔍 Setting up Skip button onclick');
+                console.log('🔍 Skip button computed style:', window.getComputedStyle(skipBtn).pointerEvents);
+                
+                skipBtn.onclick = function() {
+                    TutorialSystem.skipTutorial();
+                };
+            }
+        }, 100); // Wait 100ms for DOM to settle
+        
+        // Tutorial popup is now ready with working event handlers
+        console.log('✅ Tutorial popup created with working event handlers');
 
         // Also allow ESC to close
         const escapeHandler = (e) => {
@@ -212,7 +252,7 @@ const TutorialSystem = {
         };
         document.addEventListener('keydown', escapeHandler);
 
-        console.log(`📚 Showing ${isOrbTutorial ? 'orb' : 'tutorial'}: ${title}`);
+        console.log(`📚 Showing ${isOrbTutorial ? 'orb tutorial' : 'main tutorial step ' + currentStep}: ${title}`);
     },
 
     // Hide tutorial popup and resume game
@@ -302,8 +342,8 @@ const TutorialSystem = {
         // Check tutorial progression for first 5 floors
         if (this.isInTutorial(game.floor)) {
             this.checkTutorialProgress(game);
-        } else if (game.floor > 5) {
-            // End tutorial after floor 5
+        } else if (game.floor < -5) {
+            // End tutorial after floor -5
             this.endTutorial();
         }
     },
@@ -348,7 +388,7 @@ const TutorialSystem = {
                 
             case 4: // Stairs tutorial
                 // Check if player has used stairs
-                if (game.floor > 1) {
+                if (game.floor < -1) {
                     // Player has progressed, but tutorial is ending anyway
                     this.endTutorial();
                 }
@@ -429,13 +469,25 @@ const TutorialSystem = {
     // Handle tutorial continue button
     handleTutorialContinue() {
         const game = GameState.getGame();
-        if (!game) return;
+        if (!game) {
+            console.log('❌ No game state found in handleTutorialContinue');
+            return;
+        }
+
+        console.log('🎓 Tutorial continue clicked - Step:', game.tutorial.currentStep);
 
         // Hide current popup
         this.hideTutorialPopup();
 
-        // If this is a tutorial step, advance to next step
-        if (game.tutorial.active && this.isInTutorial(game.floor)) {
+        // Check if this is an orb tutorial or main tutorial
+        if (game.tutorial.showingOrbTutorial) {
+            // For orb tutorials, just hide the popup and resume game
+            console.log('🎓 Orb tutorial completed');
+            return;
+        }
+
+        // If this is a main tutorial step, advance to next step
+        if (game.tutorial.active) {
             const currentStep = game.tutorial.currentStep;
             
             // Mark current step as completed
@@ -444,13 +496,18 @@ const TutorialSystem = {
             // Check if there's a next step
             if (currentStep < 4) { // Steps 0-4 (5 total steps)
                 // Advance to next step
+                game.tutorial.currentStep = currentStep + 1;
+                console.log(`🎓 Advancing to tutorial step ${game.tutorial.currentStep}`);
                 setTimeout(() => {
-                    this.showTutorialStep(currentStep + 1);
+                    this.showTutorialStep(game.tutorial.currentStep);
                 }, 500); // Small delay for better UX
             } else {
-                // Tutorial completed for this floor
-                console.log('🎓 Tutorial step completed');
+                // Tutorial completed
+                console.log('🎓 All tutorial steps completed');
+                this.endTutorial();
             }
+        } else {
+            console.log('🎓 Not advancing tutorial - tutorial not active');
         }
     },
 

@@ -18,7 +18,7 @@ const MESSAGES = {
         PROGRESS: (floor) => `Floor ${-floor}: The darkness grows thicker as you descend...`,
         CHECKPOINT: (floor) => `CHECKPOINT Floor ${-floor}: Your progress is saved in the ancient stones.`,
         DEEP: (floor) => `Floor ${-floor}: The very air seems to whisper ancient secrets...`,
-        FINAL: `Floor -${CONFIG.GAME.MAX_FLOORS}: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!`
+        FINAL: `Floor -50: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!`
     },
     
     TUTORIAL: {
@@ -80,8 +80,8 @@ const MessageGenerator = {
     // Generate floor-specific messages
     getFloorMessage(floor) {
         if (floor === 1) return MESSAGES.STORY.INTRO;
-        if (floor === CONFIG.GAME.MAX_FLOORS) return MESSAGES.FLOOR.FINAL;
-        if (floor % CONFIG.GAME.CHECKPOINT_INTERVAL === 0) return MESSAGES.FLOOR.CHECKPOINT(floor);
+        if (floor === 50) return MESSAGES.FLOOR.FINAL;
+        if (floor % 5 === 0) return MESSAGES.FLOOR.CHECKPOINT(floor);
         if (floor > 30) return MESSAGES.FLOOR.DEEP(floor);
         return MESSAGES.FLOOR.PROGRESS(floor);
     },

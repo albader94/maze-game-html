@@ -737,42 +737,56 @@ const Renderer = {
     renderDeathScreen(game) {
         if (!game.deathScreen) return;
         
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.95)';
+        // Dark mystical background
+        this.ctx.fillStyle = 'rgba(10, 5, 5, 0.98)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Title
-        this.ctx.fillStyle = '#f44336';
-        this.ctx.font = 'bold 36px monospace';
+        // Gothic decorative border
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(30, 30, this.canvas.width - 60, this.canvas.height - 60);
+        
+        // Inner golden border
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(35, 35, this.canvas.width - 70, this.canvas.height - 70);
+        
+        // Title with gothic styling
+        this.ctx.shadowBlur = 12;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#DC143C';
+        this.ctx.font = 'bold 40px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('CONSUMED BY DARKNESS', this.canvas.width / 2, 100);
+        this.ctx.fillText('⚜ CLAIMED BY THE VOID ⚜', this.canvas.width / 2, 100);
+        this.ctx.shadowBlur = 0;
         
-        // Stats
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '18px monospace';
-        this.ctx.fillText('SESSION STATISTICS', this.canvas.width / 2, 160);
+        // Stats with gothic styling
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = 'bold 20px serif';
+        this.ctx.fillText('⚰ MORTAL CHRONICLE ⚰', this.canvas.width / 2, 160);
         
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = '14px monospace';
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '16px serif';
         this.ctx.textAlign = 'left';
-        const statsX = this.canvas.width / 2 - 150;
-        this.ctx.fillText(`Current Floor: ${-game.floor}`, statsX, 200);
-        this.ctx.fillText(`Checkpoint: Floor ${-game.checkpoint}`, statsX, 220);
-        this.ctx.fillText(`Orbs Collected: ${game.player.orbsCollected}`, statsX, 240);
-        this.ctx.fillText(`Deaths This Run: ${GameState.stats.totalDeaths}`, statsX, 260);
-        this.ctx.fillText(`Best Floor Reached: ${-GameState.stats.deepestFloor}`, statsX, 280);
+        const statsX = this.canvas.width / 2 - 160;
+        this.ctx.fillText(`⚔ Final Depth: Floor ${-game.floor}`, statsX, 200);
+        this.ctx.fillText(`⚜ Last Sanctuary: Floor ${-game.checkpoint}`, statsX, 220);
+        this.ctx.fillText(`💎 Orbs Gathered: ${game.player.orbsCollected}`, statsX, 240);
+        this.ctx.fillText(`💀 Deaths This Quest: ${GameState.stats.totalDeaths}`, statsX, 260);
+        this.ctx.fillText(`🏆 Deepest Descent: Floor ${-GameState.stats.deepestFloor}`, statsX, 280);
         
-        // Leaderboard preview
+        // Leaderboard with gothic theme
         this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.font = '16px monospace';
-        this.ctx.fillText('EXPLORER MODE RANKINGS', this.canvas.width / 2, 330);
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.font = 'bold 18px serif';
+        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', this.canvas.width / 2, 330);
         
-        this.ctx.fillStyle = '#888';
-        this.ctx.font = '12px monospace';
-        this.ctx.fillText('1. Shadow_Walker - Floor 47', this.canvas.width / 2, 355);
-        this.ctx.fillText('2. LightKeeper - Floor 42', this.canvas.width / 2, 375);
-        this.ctx.fillText('3. DuneRunner - Floor 38', this.canvas.width / 2, 395);
-        this.ctx.fillText(`... You - Floor ${-GameState.stats.deepestFloor}`, this.canvas.width / 2, 415);
+        this.ctx.fillStyle = '#654321';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('♦ Shadow_Walker - Floor 47', this.canvas.width / 2, 355);
+        this.ctx.fillText('♠ LightKeeper - Floor 42', this.canvas.width / 2, 375);
+        this.ctx.fillText('♣ DuneRunner - Floor 38', this.canvas.width / 2, 395);
+        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, this.canvas.width / 2, 415);
         
         // Buttons
         this.renderDeathScreenButtons();
@@ -786,41 +800,53 @@ const Renderer = {
         const btnHeight = 50;
         const btnGap = 20;
         
-        // Respawn button
-        this.ctx.fillStyle = '#4caf50';
+        // Respawn button with gothic styling
+        const gradient1 = this.ctx.createLinearGradient(this.canvas.width / 2 - 200 - btnGap, btnY, this.canvas.width / 2 - 20 - btnGap, btnY + btnHeight);
+        gradient1.addColorStop(0, '#8B4513');
+        gradient1.addColorStop(1, '#654321');
+        this.ctx.fillStyle = gradient1;
         this.ctx.fillRect(this.canvas.width / 2 - 200 - btnGap, btnY, 180, btnHeight);
-        this.ctx.strokeStyle = '#66bb6a';
+        this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 2;
         this.ctx.strokeRect(this.canvas.width / 2 - 200 - btnGap, btnY, 180, btnHeight);
         
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = 'bold 16px monospace';
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 18px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('RESPAWN', this.canvas.width / 2 - 110 - btnGap, btnY + 30);
+        this.ctx.fillText('♦ RISE AGAIN', this.canvas.width / 2 - 110 - btnGap, btnY + 32);
         
-        // Quit button
-        this.ctx.fillStyle = '#f44336';
+        // Quit button with gothic styling
+        const gradient2 = this.ctx.createLinearGradient(this.canvas.width / 2 + btnGap, btnY, this.canvas.width / 2 + 200 + btnGap, btnY + btnHeight);
+        gradient2.addColorStop(0, '#654321');
+        gradient2.addColorStop(1, '#3d2817');
+        this.ctx.fillStyle = gradient2;
         this.ctx.fillRect(this.canvas.width / 2 + btnGap, btnY, 180, btnHeight);
-        this.ctx.strokeStyle = '#ef5350';
+        this.ctx.strokeStyle = '#8B4513';
         this.ctx.strokeRect(this.canvas.width / 2 + btnGap, btnY, 180, btnHeight);
         
-        this.ctx.fillStyle = '#fff';
-        this.ctx.fillText('QUIT TO MENU', this.canvas.width / 2 + 110 + btnGap, btnY + 30);
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.fillText('♠ RETREAT', this.canvas.width / 2 + 110 + btnGap, btnY + 32);
     },
 
     // Render game over screen (victory has its own overlay)
     renderGameOverScreen(game) {
         if (!game.gameOver || game.victory) return; // Skip if victory (has its own overlay)
         
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 1)';
+        this.ctx.fillStyle = 'rgba(10, 5, 5, 1)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = '#f44336';
-        this.ctx.font = '48px monospace';
+        
+        // Gothic game over styling
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#DC143C';
+        this.ctx.font = 'bold 52px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
-        this.ctx.font = '16px monospace';
-        this.ctx.fillStyle = '#fff';
-        this.ctx.fillText('Press R to return to menu', this.canvas.width / 2, this.canvas.height / 2 + 40);
+        this.ctx.fillText('⚜ QUEST FAILED ⚜', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.shadowBlur = 0;
+        
+        this.ctx.font = '18px serif';
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillText('Press R to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
         this.ctx.textAlign = 'left';
     }
 }; 

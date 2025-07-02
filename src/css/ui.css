@@ -1,114 +1,127 @@
-/* Game UI */
+/* Game UI with Gothic Theme */
 #ui {
     position: absolute;
     top: 10px;
     left: 10px;
-    color: #fff;
-    font-size: 12px;
-    text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
-    background: rgba(0,0,0,0.85);
-    padding: 8px 12px;
-    border-radius: 8px;
-    min-width: 180px;
-    max-width: 200px;
-    border: 1px solid #444;
-    backdrop-filter: blur(3px);
+    color: #DAA520;
+    font-size: 13px;
+    font-family: serif;
+    text-shadow: 2px 2px 6px rgba(139,0,0,0.8);
+    background: linear-gradient(135deg, rgba(42,24,16,0.9), rgba(26,15,8,0.95));
+    padding: 10px 14px;
+    border-radius: 10px;
+    min-width: 190px;
+    max-width: 210px;
+    border: 2px solid #8B4513;
+    box-shadow: 0 0 15px rgba(139,69,19,0.4);
+    backdrop-filter: blur(4px);
 }
 
-/* Minimap */
+/* Minimap with Gothic Theme */
 #minimap {
     position: absolute;
     top: 10px;
     right: 10px;
-    width: 120px;
-    height: 120px;
-    border: 2px solid #444;
-    background: rgba(0,0,0,0.9);
-    border-radius: 8px;
-    backdrop-filter: blur(3px);
+    width: 130px;
+    height: 130px;
+    border: 3px solid #8B4513;
+    background: linear-gradient(135deg, rgba(42,24,16,0.95), rgba(15,8,5,0.98));
+    border-radius: 12px;
+    box-shadow: 0 0 20px rgba(139,69,19,0.5);
+    backdrop-filter: blur(4px);
 }
 
-/* Inventory */
+/* Inventory with Gothic Theme */
 #inventory {
     position: absolute;
     bottom: 25px;
     left: 50%;
     transform: translateX(-50%);
     display: flex;
-    gap: 12px;
-    background: rgba(0,0,0,0.9);
-    padding: 12px 16px;
-    border-radius: 12px;
-    border: 2px solid #444;
-    backdrop-filter: blur(5px);
+    gap: 14px;
+    background: linear-gradient(135deg, rgba(42,24,16,0.95), rgba(26,15,8,0.98));
+    padding: 14px 18px;
+    border-radius: 15px;
+    border: 3px solid #8B4513;
+    box-shadow: 0 0 25px rgba(139,69,19,0.5);
+    backdrop-filter: blur(6px);
 }
 
 .inventory-slot {
-    width: 45px;
-    height: 45px;
-    border: 2px solid #555;
-    border-radius: 8px;
+    width: 48px;
+    height: 48px;
+    border: 2px solid #654321;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 20px;
-    background: rgba(0,0,0,0.7);
+    font-size: 22px;
+    background: linear-gradient(135deg, rgba(26,15,8,0.8), rgba(15,8,5,0.9));
     position: relative;
     transition: all 0.3s ease;
+    box-shadow: inset 0 2px 4px rgba(139,69,19,0.3);
 }
 
 .inventory-slot::before {
     content: attr(data-key);
     position: absolute;
-    top: -10px;
+    top: -12px;
     left: 50%;
     transform: translateX(-50%);
-    font-size: 9px;
-    color: #888;
-    background: rgba(0,0,0,0.9);
-    padding: 1px 4px;
-    border-radius: 3px;
-    border: 1px solid #333;
+    font-size: 10px;
+    font-family: serif;
+    color: #8B4513;
+    background: rgba(42,24,16,0.9);
+    padding: 2px 5px;
+    border-radius: 4px;
+    border: 1px solid #654321;
 }
 
 .inventory-slot.active {
-    border-color: #ffeb3b;
-    box-shadow: 0 0 15px rgba(255, 235, 59, 0.6);
-    background: rgba(255, 235, 59, 0.1);
+    border-color: #DAA520;
+    box-shadow: 0 0 18px rgba(218, 165, 32, 0.7);
+    background: linear-gradient(135deg, rgba(218,165,32,0.15), rgba(139,69,19,0.2));
 }
 
-/* Light Bar */
+/* Light Bar with Gothic Theme */
 .light-bar {
-    width: 160px;
-    height: 16px;
-    background: #222;
-    border: 1px solid #555;
-    margin-top: 4px;
-    border-radius: 8px;
+    width: 170px;
+    height: 18px;
+    background: #1a0f08;
+    border: 2px solid #654321;
+    margin-top: 5px;
+    border-radius: 10px;
     overflow: hidden;
+    box-shadow: inset 0 2px 4px rgba(0,0,0,0.6);
 }
 
 .light-fill {
     height: 100%;
-    background: linear-gradient(to right, #ffeb3b, #ff9800);
+    background: linear-gradient(to right, #DAA520, #8B4513);
     transition: width 0.3s;
     border-radius: 8px;
+    box-shadow: 0 0 8px rgba(218,165,32,0.5);
 }
 
-/* Power Indicator */
+/* Power Indicator with Gothic Theme */
 .power-indicator {
-    margin-top: 6px;
-    font-size: 11px;
-    color: #bbb;
+    margin-top: 7px;
+    font-size: 12px;
+    font-family: serif;
+    color: #8B4513;
+    text-shadow: 1px 1px 2px rgba(139,0,0,0.5);
 }
 
-/* Mode Badge */
+/* Mode Badge with Gothic Theme */
 .mode-badge {
-    background: #2e7d32;
-    color: white;
-    padding: 2px 6px;
-    border-radius: 4px;
-    font-size: 10px;
-    margin-top: 4px;
+    background: linear-gradient(135deg, #8B4513, #654321);
+    color: #DAA520;
+    padding: 3px 8px;
+    border-radius: 6px;
+    border: 1px solid #654321;
+    font-size: 11px;
+    font-family: serif;
+    margin-top: 5px;
     display: inline-block;
+    box-shadow: 0 2px 4px rgba(139,69,19,0.4);
 } 

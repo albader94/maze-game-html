@@ -131,15 +131,7 @@ const Utils = {
             }
         }
         
-        const stalkingIndicator = document.getElementById('stalkingIndicator');
-        if (stalkingIndicator) {
-            if (stalkingGhouls > 0) {
-                stalkingIndicator.style.display = 'block';
-                stalkingIndicator.textContent = stalkingGhouls === 1 ? '👁️ STALKED' : `👁️ STALKED (${stalkingGhouls})`;
-            } else {
-                stalkingIndicator.style.display = 'none';
-            }
-        }
+        // Stalking indicator removed - no longer displayed
     },
 
     // Mark areas as explored

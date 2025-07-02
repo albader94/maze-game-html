@@ -18,6 +18,32 @@ const Renderer = {
         this.minimapCanvas.height = CONFIG.MINIMAP.HEIGHT;
     },
 
+    // Helper function to draw rounded rectangles
+    drawRoundedRect(x, y, width, height, radius, fillColor = null, strokeColor = null, lineWidth = 1) {
+        this.ctx.beginPath();
+        this.ctx.moveTo(x + radius, y);
+        this.ctx.lineTo(x + width - radius, y);
+        this.ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+        this.ctx.lineTo(x + width, y + height - radius);
+        this.ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+        this.ctx.lineTo(x + radius, y + height);
+        this.ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+        this.ctx.lineTo(x, y + radius);
+        this.ctx.quadraticCurveTo(x, y, x + radius, y);
+        this.ctx.closePath();
+        
+        if (fillColor) {
+            this.ctx.fillStyle = fillColor;
+            this.ctx.fill();
+        }
+        
+        if (strokeColor) {
+            this.ctx.strokeStyle = strokeColor;
+            this.ctx.lineWidth = lineWidth;
+            this.ctx.stroke();
+        }
+    },
+
     // Main render function
     render(game) {
         // Safety check for game object
@@ -54,10 +80,14 @@ const Renderer = {
             EntityManager.renderVictoryAnimation(game, this.ctx, this.canvas);
         }
 
-        // Render UI overlays
+        // Render UI overlays (behind help/death screens)
         this.renderVignette();
         this.renderDarknessFade(game);
+        this.renderGameUI(game);
         this.renderMinimap(game);
+        this.renderInventory(game);
+        
+        // Render modal overlays (on top of everything)
         this.renderHelpScreen(game);
         this.renderDeathScreen(game);
         this.renderGameOverScreen(game);
@@ -418,34 +448,236 @@ const Renderer = {
         }
     },
 
-    // Render minimap
-    renderMinimap(game) {
-        this.minimapCtx.fillStyle = '#111';
-        this.minimapCtx.fillRect(0, 0, CONFIG.MINIMAP.WIDTH, CONFIG.MINIMAP.HEIGHT);
+    // Render game UI elements on canvas
+    renderGameUI(game) {
+        if (game.state !== 'playing') return;
         
-        const scale = CONFIG.MINIMAP.WIDTH / Math.max(game.mapWidth * CONFIG.MAP.CELL_SIZE, game.mapHeight * CONFIG.MAP.CELL_SIZE);
+        // UI background panel with proper spacing
+        const uiX = 10;
+        const uiY = 10;
+        const uiWidth = 200;
+        const uiHeight = 115; // Adjusted for better spacing
+        
+        // Gothic UI background with rounded corners
+        this.drawRoundedRect(uiX, uiY, uiWidth, uiHeight, 10, 'rgba(42, 24, 16, 0.9)', '#8B4513', 2);
+        
+        // Inner golden border with rounded corners
+        this.drawRoundedRect(uiX + 2, uiY + 2, uiWidth - 4, uiHeight - 4, 8, null, '#DAA520', 1);
+        
+        // Text styling
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.font = '13px serif';
+        this.ctx.textAlign = 'left';
+        
+        let textY = uiY + 20;
+        const lineHeight = 16;
+        
+        // Floor info
+        this.ctx.fillText(`Floor: ${game.floor} / -50`, uiX + 10, textY);
+        textY += lineHeight;
+        
+        // Light percentage
+        const lightPercent = Math.round(game.player.light);
+        this.ctx.fillText(`Light: ${lightPercent}%`, uiX + 10, textY);
+        textY += lineHeight;
+        
+        // Light bar
+        const barX = uiX + 10;
+        const barY = textY;
+        const barWidth = 170;
+        const barHeight = 12;
+        
+        // Light bar background
+        this.ctx.fillStyle = '#1a0f08';
+        this.ctx.fillRect(barX, barY, barWidth, barHeight);
+        
+        // Light bar border
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(barX, barY, barWidth, barHeight);
+        
+        // Light bar fill
+        const fillWidth = (game.player.light / 100) * (barWidth - 2);
+        if (fillWidth > 0) {
+            const gradient = this.ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
+            gradient.addColorStop(0, '#DAA520');
+            gradient.addColorStop(1, '#8B4513');
+            this.ctx.fillStyle = gradient;
+            this.ctx.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
+        }
+        
+        textY += lineHeight + 12; // Extra space after light bar
+        
+        // Checkpoint
+        const checkpointNum = Math.ceil(Math.abs(game.checkpoint || game.floor) / 5);
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.fillText(`Checkpoint: ${checkpointNum}`, uiX + 10, textY);
+        textY += lineHeight;
+        
+        // Power status
+        if (game.player.powers.phase > 0) {
+            this.ctx.fillStyle = '#9c27b0';
+            this.ctx.fillText('♦ PHASE ACTIVE', uiX + 10, textY);
+        } else if (game.player.powers.regeneration > 0) {
+            this.ctx.fillStyle = '#4caf50';
+            this.ctx.fillText('♦ REGENERATING', uiX + 10, textY);
+        } else if (game.player.powers.reveal > 0) {
+            this.ctx.fillStyle = '#ffffff';
+            this.ctx.fillText('♦ MAP REVEALED', uiX + 10, textY);
+        }
+        
+        // Ensure consistent bottom padding (match top padding)
+        // The UI height should accommodate the content with equal top/bottom spacing
+    },
+    
+    // Render inventory on canvas (matching reference image)
+    renderInventory(game) {
+        if (game.state !== 'playing') return;
+        
+        const slotSize = 48;
+        const slotGap = 8;
+        const totalSlotsWidth = (slotSize * 3) + (slotGap * 2);
+        
+        // Position inventory at bottom center, moved down
+        const invX = (this.canvas.width - totalSlotsWidth) / 2;
+        const invY = this.canvas.height - 70;
+        
+        // Render each inventory slot individually (like in reference image)
+        for (let i = 0; i < 3; i++) {
+            const slotX = invX + (i * (slotSize + slotGap));
+            const slotY = invY;
+            
+            // Slot background - dark with rounded corners
+            this.drawRoundedRect(
+                slotX, slotY, slotSize, slotSize, 
+                10, 
+                'rgba(26, 15, 8, 0.9)', 
+                '#654321', 
+                2
+            );
+            
+            // Inner slot border for depth
+            this.drawRoundedRect(
+                slotX + 2, slotY + 2, slotSize - 4, slotSize - 4, 
+                8, 
+                null, 
+                '#3d2817', 
+                1
+            );
+            
+            // Active slot highlighting (only when explicitly selected and has an item)
+            if (game.player.selectedSlot === i && game.player.inventory[i]) {
+                this.drawRoundedRect(
+                    slotX, slotY, slotSize, slotSize, 
+                    10, 
+                    null, 
+                    '#DAA520', 
+                    2
+                );
+                
+                // Subtle inner glow for active slot
+                this.ctx.shadowBlur = 8;
+                this.ctx.shadowColor = '#DAA520';
+                this.drawRoundedRect(
+                    slotX + 1, slotY + 1, slotSize - 2, slotSize - 2, 
+                    9, 
+                    null, 
+                    '#DAA520', 
+                    1
+                );
+                this.ctx.shadowBlur = 0;
+            }
+            
+            // Key indicator above slot
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.font = 'bold 11px serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(String(i + 1), slotX + slotSize / 2, slotY - 6);
+            
+            // Orb in slot
+            const orbType = game.player.inventory[i];
+            if (orbType && ORB_TYPES[orbType]) {
+                const orb = ORB_TYPES[orbType];
+                this.ctx.fillStyle = orb.color;
+                this.ctx.font = 'bold 22px serif';
+                this.ctx.textAlign = 'center';
+                
+                // Add subtle glow to orb
+                this.ctx.shadowBlur = 8;
+                this.ctx.shadowColor = orb.color;
+                this.ctx.fillText(orb.symbol, slotX + slotSize / 2, slotY + slotSize / 2 + 8);
+                this.ctx.shadowBlur = 0;
+            }
+        }
+    },
+
+    // Render minimap on main canvas
+    renderMinimap(game) {
+        if (game.state !== 'playing') return;
+        
+        // Calculate actual map dimensions
+        const mapWorldWidth = game.mapWidth * CONFIG.MAP.CELL_SIZE;
+        const mapWorldHeight = game.mapHeight * CONFIG.MAP.CELL_SIZE;
+        const mapAspectRatio = mapWorldWidth / mapWorldHeight;
+        
+        // Set minimap size based on content
+        const maxMapSize = 130;
+        let mapWidth, mapHeight;
+        
+        if (mapAspectRatio > 1) {
+            // Wider than tall
+            mapWidth = maxMapSize;
+            mapHeight = maxMapSize / mapAspectRatio;
+        } else {
+            // Taller than wide or square
+            mapHeight = maxMapSize;
+            mapWidth = maxMapSize * mapAspectRatio;
+        }
+        
+        const mapX = this.canvas.width - mapWidth - 10;
+        const mapY = 10;
+        
+        // Minimap background with rounded corners and extra padding
+        this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.95)', '#8B4513', 3);
+        
+        // Inner content area with more padding
+        const contentPadding = 8;
+        const contentWidth = mapWidth - (contentPadding * 2);
+        const contentHeight = mapHeight - (contentPadding * 2);
+        const contentX = mapX + contentPadding;
+        const contentY = mapY + contentPadding;
+        
+        this.ctx.fillStyle = '#111';
+        this.ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
+        
+        const scaleX = contentWidth / mapWorldWidth;
+        const scaleY = contentHeight / mapWorldHeight;
         
         // Draw explored areas
-        this.minimapCtx.fillStyle = '#222';
+        this.ctx.fillStyle = '#222';
         for (const coord of game.explored) {
             const [x, y] = coord.split(',').map(Number);
             if (!isNaN(x) && !isNaN(y)) {
-                this.minimapCtx.fillRect(x * CONFIG.MAP.CELL_SIZE * scale, y * CONFIG.MAP.CELL_SIZE * scale, 
-                                        CONFIG.MAP.CELL_SIZE * scale, CONFIG.MAP.CELL_SIZE * scale);
+                this.ctx.fillRect(
+                    contentX + (x * CONFIG.MAP.CELL_SIZE * scaleX), 
+                    contentY + (y * CONFIG.MAP.CELL_SIZE * scaleY), 
+                    CONFIG.MAP.CELL_SIZE * scaleX, 
+                    CONFIG.MAP.CELL_SIZE * scaleY
+                );
             }
         }
         
         // Draw walls
-        this.minimapCtx.fillStyle = '#444';
+        this.ctx.fillStyle = '#444';
         for (const wall of game.walls) {
             const tileX = Math.floor(wall.x / CONFIG.MAP.CELL_SIZE);
             const tileY = Math.floor(wall.y / CONFIG.MAP.CELL_SIZE);
             if (game.explored.has(`${tileX},${tileY}`) || game.player.powers.reveal > 0) {
-                this.minimapCtx.fillRect(
-                    (wall.x - 15) * scale, 
-                    (wall.y - 15) * scale, 
-                    30 * scale, 
-                    30 * scale
+                this.ctx.fillRect(
+                    contentX + ((wall.x - 15) * scaleX), 
+                    contentY + ((wall.y - 15) * scaleY), 
+                    30 * scaleX, 
+                    30 * scaleY
                 );
             }
         }
@@ -455,44 +687,45 @@ const Renderer = {
             const stairTileX = Math.floor(game.stairs.x / CONFIG.MAP.CELL_SIZE);
             const stairTileY = Math.floor(game.stairs.y / CONFIG.MAP.CELL_SIZE);
             if (game.explored.has(`${stairTileX},${stairTileY}`) || game.player.powers.reveal > 0) {
-                this.minimapCtx.fillStyle = '#ff0';
-                this.minimapCtx.fillRect(
-                    (game.stairs.x - 15) * scale,
-                    (game.stairs.y - 15) * scale,
-                    30 * scale,
-                    30 * scale
+                this.ctx.fillStyle = '#ff0';
+                this.ctx.fillRect(
+                    contentX + ((game.stairs.x - 15) * scaleX),
+                    contentY + ((game.stairs.y - 15) * scaleY),
+                    30 * scaleX,
+                    30 * scaleY
                 );
                 
                 // Blinking effect
                 if (game.time % 60 < 30) {
-                    this.minimapCtx.strokeStyle = '#fff';
-                    this.minimapCtx.lineWidth = 2;
-                    this.minimapCtx.strokeRect(
-                        (game.stairs.x - 15) * scale,
-                        (game.stairs.y - 15) * scale,
-                        30 * scale,
-                        30 * scale
+                    this.ctx.strokeStyle = '#fff';
+                    this.ctx.lineWidth = 2;
+                    this.ctx.strokeRect(
+                        contentX + ((game.stairs.x - 15) * scaleX),
+                        contentY + ((game.stairs.y - 15) * scaleY),
+                        30 * scaleX,
+                        30 * scaleY
                     );
                 }
             }
         }
         
         // Draw player
-        this.minimapCtx.fillStyle = '#fff';
-        this.minimapCtx.fillRect(
-            (game.player.x - 5) * scale,
-            (game.player.y - 5) * scale,
-            10 * scale,
-            10 * scale
+        this.ctx.fillStyle = '#fff';
+        this.ctx.fillRect(
+            contentX + ((game.player.x - 5) * scaleX),
+            contentY + ((game.player.y - 5) * scaleY),
+            10 * scaleX,
+            10 * scaleY
         );
         
         // Draw camera bounds
-        this.minimapCtx.strokeStyle = '#666';
-        this.minimapCtx.strokeRect(
-            game.camera.x * scale,
-            game.camera.y * scale,
-            this.canvas.width * scale,
-            this.canvas.height * scale
+        this.ctx.strokeStyle = '#666';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(
+            contentX + (game.camera.x * scaleX),
+            contentY + (game.camera.y * scaleY),
+            this.canvas.width * scaleX,
+            this.canvas.height * scaleY
         );
     },
 

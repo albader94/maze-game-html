@@ -1,50 +1,16 @@
-/* Game UI with Gothic Theme */
+/* Game UI with Gothic Theme - Hidden (now rendered on canvas) */
 #ui {
-    position: absolute;
-    top: 10px;
-    left: 10px;
-    color: #DAA520;
-    font-size: 13px;
-    font-family: serif;
-    text-shadow: 2px 2px 6px rgba(139,0,0,0.8);
-    background: linear-gradient(135deg, rgba(42,24,16,0.9), rgba(26,15,8,0.95));
-    padding: 10px 14px;
-    border-radius: 10px;
-    min-width: 190px;
-    max-width: 210px;
-    border: 2px solid #8B4513;
-    box-shadow: 0 0 15px rgba(139,69,19,0.4);
-    backdrop-filter: blur(4px);
+    display: none !important;
 }
 
-/* Minimap with Gothic Theme */
+/* Minimap with Gothic Theme - Hidden (now rendered on canvas) */
 #minimap {
-    position: absolute;
-    top: 10px;
-    right: 10px;
-    width: 130px;
-    height: 130px;
-    border: 3px solid #8B4513;
-    background: linear-gradient(135deg, rgba(42,24,16,0.95), rgba(15,8,5,0.98));
-    border-radius: 12px;
-    box-shadow: 0 0 20px rgba(139,69,19,0.5);
-    backdrop-filter: blur(4px);
+    display: none !important;
 }
 
-/* Inventory with Gothic Theme */
+/* Inventory with Gothic Theme - Hidden (now rendered on canvas) */
 #inventory {
-    position: absolute;
-    bottom: 25px;
-    left: 50%;
-    transform: translateX(-50%);
-    display: flex;
-    gap: 14px;
-    background: linear-gradient(135deg, rgba(42,24,16,0.95), rgba(26,15,8,0.98));
-    padding: 14px 18px;
-    border-radius: 15px;
-    border: 3px solid #8B4513;
-    box-shadow: 0 0 25px rgba(139,69,19,0.5);
-    backdrop-filter: blur(6px);
+    display: none !important;
 }
 
 .inventory-slot {

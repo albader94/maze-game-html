@@ -839,7 +839,14 @@ const GameLogic = {
         console.log('🌊 Starting swarm sequence...');
         
         game.swarming = true;
-        game.swarmTimer = 300; // 5 seconds at 60fps
+        // Shorter timer if few ghouls, immediate if no ghouls
+        if (game.ghouls.length === 0) {
+            game.swarmTimer = 60; // 1 second if no ghouls
+        } else if (game.ghouls.length < 3) {
+            game.swarmTimer = 120; // 2 seconds if few ghouls
+        } else {
+            game.swarmTimer = 300; // 5 seconds for normal swarm
+        }
         
         // Show swarm message
         const storyElement = document.getElementById('story');

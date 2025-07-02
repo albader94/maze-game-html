@@ -386,12 +386,42 @@ const InputManager = {
     // Handle menu clicks
     handleMenuClick(x, y) {
         const canvas = document.getElementById('gameCanvas');
-        const startY = 350;
+        const centerX = canvas.width / 2;
+        const buttonWidth = 300;
+        const buttonHeight = 45;
+        const buttonSpacing = 55;
+        const startY = 200;
         
-        // Start button
-        if (x >= canvas.width / 2 - 100 && x <= canvas.width / 2 + 100 && 
-            y >= startY && y <= startY + 60) {
-            GameState.startGame();
+        const buttons = [
+            { text: 'NEW GAME', y: startY, action: 'newGame' },
+            { text: 'LEADERBOARDS', y: startY + buttonSpacing, action: 'leaderboards' },
+            { text: 'SETTINGS', y: startY + buttonSpacing * 2, action: 'settings' }
+        ];
+        
+        // Check which button was clicked
+        for (const button of buttons) {
+            if (x >= centerX - buttonWidth/2 && x <= centerX + buttonWidth/2 && 
+                y >= button.y && y <= button.y + buttonHeight) {
+                this.handleMenuAction(button.action);
+                break;
+            }
+        }
+    },
+    
+    // Handle menu button actions
+    handleMenuAction(action) {
+        switch (action) {
+            case 'newGame':
+                GameState.startGame();
+                break;
+            case 'leaderboards':
+                // TODO: Implement leaderboards screen
+                console.log('Leaderboards clicked - not yet implemented');
+                break;
+            case 'settings':
+                // TODO: Implement settings screen
+                console.log('Settings clicked - not yet implemented');
+                break;
         }
     },
 

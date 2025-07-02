@@ -18,7 +18,7 @@ const MESSAGES = {
         PROGRESS: (floor) => `Floor ${-floor}: The darkness grows thicker as you descend...`,
         CHECKPOINT: (floor) => `CHECKPOINT Floor ${-floor}: Your progress is saved in the ancient stones.`,
         DEEP: (floor) => `Floor ${-floor}: The very air seems to whisper ancient secrets...`,
-        FINAL: "Floor -50: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!"
+        FINAL: `Floor -${CONFIG.GAME.MAX_FLOORS}: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!`
     },
     
     TUTORIAL: {

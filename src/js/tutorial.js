@@ -31,7 +31,7 @@ const TutorialSystem = {
         const tutorialSteps = [
             {
                 title: "Welcome to the Buried Spire",
-                message: "Welcome, explorer! You stand at the entrance to the ancient Burj Mubarak, now buried beneath the shifting sands of time. Your mission is to descend 50 floors to find the legendary Ancient Pearl.",
+                message: `Welcome, explorer! You stand at the entrance to the ancient Burj Mubarak, now buried beneath the shifting sands of time. Your mission is to descend ${CONFIG.GAME.MAX_FLOORS} floors to find the legendary Ancient Pearl.`,
                 instruction: "Use WASD or Arrow Keys to move around."
             },
             {
@@ -100,42 +100,46 @@ const TutorialSystem = {
 
         popup.innerHTML = `
             <div style="
-                background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #1a1a2e 100%);
-                border: 3px solid #ffeb3b;
+                background: linear-gradient(135deg, #2a1810 0%, #1a0f08 50%, #0f0705 100%);
+                border: 3px solid #8B4513;
                 border-radius: 15px;
                 padding: 30px;
                 max-width: 600px;
                 width: 90%;
-                box-shadow: 0 0 30px rgba(255, 235, 59, 0.5), inset 0 0 20px rgba(255, 235, 59, 0.1);
+                box-shadow: 0 0 30px rgba(139, 69, 19, 0.5), inset 0 0 20px rgba(218, 165, 32, 0.1);
                 position: relative;
                 text-align: center;
+                font-family: serif;
             ">
-                <!-- Golden corner decorations -->
-                <div style="position: absolute; top: -3px; left: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; top: -3px; right: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; bottom: -3px; left: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; bottom: -3px; right: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
+                <!-- Golden inner border -->
+                <div style="position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 1px solid #DAA520; border-radius: 10px;"></div>
+                
+                <!-- Gothic corner decorations -->
+                <div style="position: absolute; top: 10px; left: 10px; color: #DAA520; font-size: 16px;">╔</div>
+                <div style="position: absolute; top: 10px; right: 15px; color: #DAA520; font-size: 16px;">╗</div>
+                <div style="position: absolute; bottom: 10px; left: 10px; color: #DAA520; font-size: 16px;">╚</div>
+                <div style="position: absolute; bottom: 10px; right: 15px; color: #DAA520; font-size: 16px;">╝</div>
                 
                 ${isTutorialStep ? `
-                <div style="position: absolute; top: 15px; right: 15px; color: #ffeb3b; font-size: 12px; font-weight: bold;">
-                    Step ${currentStep + 1} of ${totalSteps}
+                <div style="position: absolute; top: 15px; right: 15px; color: #CD853F; font-size: 12px; font-weight: bold;">
+                    Lesson ${currentStep + 1} of ${totalSteps}
                 </div>
                 ` : ''}
                 
-                <h2 style="margin: 0 0 20px 0; color: #ffeb3b; text-shadow: 0 0 15px rgba(255, 235, 59, 0.7); font-size: 24px; font-weight: bold;">
-                    🎓 ${title}
+                <h2 style="margin: 0 0 20px 0; color: #FFD700; text-shadow: 0 0 15px rgba(139, 0, 0, 0.7); font-size: 24px; font-weight: bold;">
+                    ⚜ ${title}
                 </h2>
                 
-                <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; line-height: 1.6;">
-                    <p style="margin: 0; color: #fff; font-size: 16px;">
+                <div style="margin-bottom: 25px; padding: 20px; background: rgba(139, 69, 19, 0.2); border-radius: 10px; border: 2px solid #654321; line-height: 1.6;">
+                    <p style="margin: 0; color: #CD853F; font-size: 16px;">
                         ${message}
                     </p>
                 </div>
                 
                 ${instruction ? `
-                <div style="margin-bottom: 25px; padding: 15px; background: rgba(76, 175, 80, 0.2); border-radius: 8px; border: 2px solid #4caf50;">
-                    <p style="margin: 0; color: #4caf50; font-size: 14px; font-weight: bold;">
-                        📋 ${instruction}
+                <div style="margin-bottom: 25px; padding: 15px; background: rgba(139, 69, 19, 0.3); border-radius: 8px; border: 2px solid #8B4513;">
+                    <p style="margin: 0; color: #DAA520; font-size: 14px; font-weight: bold;">
+                        ♦ ${instruction}
                     </p>
                 </div>
                 ` : ''}
@@ -143,43 +147,43 @@ const TutorialSystem = {
                 <div style="display: flex; gap: 15px; justify-content: center; align-items: center;">
                     <button id="tutorialContinue" style="
                         padding: 12px 24px;
-                        background: linear-gradient(135deg, #4caf50, #45a049);
-                        color: white;
-                        border: 2px solid #4caf50;
+                        background: linear-gradient(135deg, #8B4513, #654321);
+                        color: #FFD700;
+                        border: 2px solid #DAA520;
                         border-radius: 8px;
                         cursor: pointer;
                         font-weight: bold;
-                        font-family: monospace;
+                        font-family: serif;
                         font-size: 16px;
-                        text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);
-                        box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+                        text-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
+                        box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
                         transition: all 0.3s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        ✓ Continue
+                        ♦ Continue
                     </button>
                     
                     ${isTutorialStep ? `
                     <button id="tutorialSkip" style="
                         padding: 12px 24px;
-                        background: linear-gradient(135deg, #ff9800, #f57c00);
-                        color: white;
-                        border: 2px solid #ff9800;
+                        background: linear-gradient(135deg, #654321, #3d2817);
+                        color: #CD853F;
+                        border: 2px solid #8B4513;
                         border-radius: 8px;
                         cursor: pointer;
                         font-weight: bold;
-                        font-family: monospace;
+                        font-family: serif;
                         font-size: 16px;
-                        text-shadow: 0 0 10px rgba(255, 152, 0, 0.5);
-                        box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+                        text-shadow: 0 0 10px rgba(139, 0, 0, 0.3);
+                        box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);
                         transition: all 0.3s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        ⏭️ Skip Tutorial
+                        ♠ Skip Lessons
                     </button>
                     ` : ''}
                 </div>
                 
-                <div style="margin-top: 15px; color: #888; font-size: 12px;">
-                    Press ESC to close
+                <div style="margin-top: 15px; color: #654321; font-size: 12px;">
+                    Press ESC to dismiss
                 </div>
             </div>
         `;

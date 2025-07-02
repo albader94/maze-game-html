@@ -29,7 +29,7 @@ const CONFIG = {
         DEPLETION_RATE: 0.02 // Light depletion rate per frame
     },
     GAME: {
-        MAX_FLOORS: 50,
+        MAX_FLOORS: 2, // Restored to full game length
         CHECKPOINT_INTERVAL: 5,
         SWARM_DURATION: 180, // 3 seconds at 60fps
         PHASE_DURATION: 300, // 5 seconds

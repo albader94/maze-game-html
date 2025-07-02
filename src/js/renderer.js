@@ -49,6 +49,11 @@ const Renderer = {
 
         this.ctx.restore();
 
+        // Render victory light animation (before UI overlays for dramatic effect)
+        if (game.victoryAnimation && game.victoryAnimation.active) {
+            EntityManager.renderVictoryAnimation(game, this.ctx, this.canvas);
+        }
+
         // Render UI overlays
         this.renderVignette();
         this.renderDarknessFade(game);
@@ -493,148 +498,239 @@ const Renderer = {
 
     // Render menu
     renderMenu() {
-        // Title
-        this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.font = 'bold 48px monospace';
+        // Dark mystical background
+        this.ctx.fillStyle = '#0a0505';
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Dark red vignette effect for mystical atmosphere
+        const gradient = this.ctx.createRadialGradient(
+            this.canvas.width / 2, this.canvas.height / 2, 0,
+            this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
+        );
+        gradient.addColorStop(0, 'rgba(20, 5, 0, 0)');
+        gradient.addColorStop(0.6, 'rgba(30, 10, 5, 0.3)');
+        gradient.addColorStop(1, 'rgba(15, 0, 0, 0.7)');
+        this.ctx.fillStyle = gradient;
+        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        
+        // Subtle flame-like texture overlay
+        this.ctx.globalAlpha = 0.02;
+        this.ctx.fillStyle = '#4a1a0a';
+        for (let y = 0; y < this.canvas.height; y += 4) {
+            if (Math.random() > 0.7) {
+                this.ctx.fillRect(0, y, this.canvas.width, 1);
+            }
+        }
+        this.ctx.globalAlpha = 1;
+        
+        // Main title with gothic styling
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('BURIED SPIRE', this.canvas.width / 2, 150);
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = '24px monospace';
-        this.ctx.fillText('of Kuwait', this.canvas.width / 2, 190);
+        this.ctx.shadowBlur = 12;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 52px serif';
+        this.ctx.fillText('BURIED SPIRE', this.canvas.width / 2, 90);
         
-        // Mode info
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '20px monospace';
-        this.ctx.fillText('EXPLORER MODE', this.canvas.width / 2, 250);
-        
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = '14px monospace';
-        this.ctx.fillText('Checkpoints every 5 floors • Respawn on death', this.canvas.width / 2, 280);
-        this.ctx.fillText('Keep collected orbs • Power-up inventory system', this.canvas.width / 2, 300);
-        
-        // Start button
-        const startY = 350;
-        this.ctx.shadowBlur = 20;
-        this.ctx.shadowColor = '#ffeb3b';
-        this.ctx.fillStyle = '#333';
-        this.ctx.fillRect(this.canvas.width / 2 - 100, startY, 200, 60);
+        // Enhanced subtitle with red glow
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = 'italic 22px serif';
+        this.ctx.fillText('Quest for the Ancient Pearl', this.canvas.width / 2, 120);
         this.ctx.shadowBlur = 0;
         
-        this.ctx.strokeStyle = '#ffeb3b';
-        this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.canvas.width / 2 - 100, startY, 200, 60);
+        // Atmospheric flavor text
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('Deep beneath the sands, darkness awaits...', this.canvas.width / 2, 150);
         
-        this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.font = 'bold 24px monospace';
-        this.ctx.fillText('PLAY', this.canvas.width / 2, startY + 38);
+        // Gothic decorative elements
+        this.ctx.fillStyle = '#4a1a0a';
+        this.ctx.font = '16px serif';
+        this.ctx.fillText('⚜ ═══════════════════════════════════ ⚜', this.canvas.width / 2, 175);
         
-        // Instructions
-        this.ctx.fillStyle = '#666';
-        this.ctx.font = '12px monospace';
-        this.ctx.fillText('WASD/Arrows: Move • 1/2/3: Use Orb (instant)', this.canvas.width / 2, 450);
-        this.ctx.fillText('Click PLAY or press SPACE to begin', this.canvas.width / 2, 470);
+        // Menu buttons
+        this.renderMenuButtons();
         
-        // Power-up guide
-        this.renderOrbGuide();
+        // Gothic footer with mystical symbols
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '11px serif';
+        this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', this.canvas.width / 2, 520);
+        
+        // Build info with gothic styling
+        this.ctx.fillStyle = '#654321';
+        this.ctx.font = '9px serif';
+        this.ctx.fillText('Ancient Codex v1.0 • Forged in Darkness', this.canvas.width / 2, 545);
+        
+        this.ctx.textAlign = 'left';
+    },
+    
+    // Render main menu buttons
+    renderMenuButtons() {
+        const centerX = this.canvas.width / 2;
+        const buttonWidth = 300;
+        const buttonHeight = 45;
+        const buttonSpacing = 55;
+        const startY = 200;
+        
+        const buttons = [
+            { text: 'NEW GAME', y: startY, icon: '♦' },
+            { text: 'LEADERBOARDS', y: startY + buttonSpacing, icon: '♠' },
+            { text: 'SETTINGS', y: startY + buttonSpacing * 2, icon: '♣' }
+        ];
+        
+        for (let i = 0; i < buttons.length; i++) {
+            const button = buttons[i];
+            const isHovered = false; // Could add hover logic later
+            
+            // Gothic button background with stone-like texture
+            const buttonGradient = this.ctx.createLinearGradient(
+                centerX - buttonWidth/2, button.y,
+                centerX + buttonWidth/2, button.y + buttonHeight
+            );
+            buttonGradient.addColorStop(0, '#2a1810');
+            buttonGradient.addColorStop(0.5, '#1a0f08');
+            buttonGradient.addColorStop(1, '#0f0705');
+            this.ctx.fillStyle = buttonGradient;
+            this.ctx.fillRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
+            
+            // Ornate border with gold/bronze styling
+            this.ctx.strokeStyle = '#8B4513';
+            this.ctx.lineWidth = 2;
+            this.ctx.strokeRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
+            
+            // Inner golden highlight
+            this.ctx.strokeStyle = '#DAA520';
+            this.ctx.lineWidth = 1;
+            this.ctx.strokeRect(centerX - buttonWidth/2 + 3, button.y + 3, buttonWidth - 6, buttonHeight - 6);
+            
+            // Button icon with golden glow
+            this.ctx.shadowBlur = 6;
+            this.ctx.shadowColor = '#FFD700';
+            this.ctx.fillStyle = '#FFD700';
+            this.ctx.font = '20px serif';
+            this.ctx.textAlign = 'center';
+            this.ctx.fillText(button.icon, centerX - 80, button.y + 28);
+            this.ctx.shadowBlur = 0;
+            
+            // Button text with bronze styling
+            this.ctx.fillStyle = '#CD853F';
+            this.ctx.font = 'bold 18px serif';
+            this.ctx.fillText(button.text, centerX + 10, button.y + 28);
+            
+            // Add mystical corner decorations
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.font = '12px serif';
+            this.ctx.fillText('╔', centerX - buttonWidth/2 + 5, button.y + 12);
+            this.ctx.fillText('╗', centerX + buttonWidth/2 - 12, button.y + 12);
+            this.ctx.fillText('╚', centerX - buttonWidth/2 + 5, button.y + buttonHeight - 5);
+            this.ctx.fillText('╝', centerX + buttonWidth/2 - 12, button.y + buttonHeight - 5);
+        }
+        
+        // Add mystical glow effect around buttons
+        this.ctx.shadowBlur = 3;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.strokeStyle = '#4a1a0a';
+        this.ctx.lineWidth = 1;
+        for (let i = 0; i < buttons.length; i++) {
+            const button = buttons[i];
+            this.ctx.strokeRect(centerX - buttonWidth/2 - 2, button.y - 2, buttonWidth + 4, buttonHeight + 4);
+        }
+        this.ctx.shadowBlur = 0;
         
         this.ctx.textAlign = 'left';
     },
 
-    // Render orb guide on menu
-    renderOrbGuide() {
-        this.ctx.fillStyle = '#888';
-        this.ctx.font = '11px monospace';
-        this.ctx.textAlign = 'left';
-        const guideX = 150;
-        const guideY = 520;
-        
-        this.ctx.fillText('ORBS:', guideX, guideY);
-        this.ctx.fillStyle = '#64b5f6';
-        this.ctx.fillText('O Blue: +20% Light', guideX + 50, guideY);
-        this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.fillText('@ Gold: +40% Light', guideX + 200, guideY);
-        this.ctx.fillStyle = '#9c27b0';
-        this.ctx.fillText('P Purple: Phase through walls', guideX + 350, guideY);
-        
-        this.ctx.fillStyle = '#4caf50';
-        this.ctx.fillText('G Green: Light regeneration', guideX + 50, guideY + 15);
-        this.ctx.fillStyle = '#ffffff';
-        this.ctx.fillText('W White: Reveal map', guideX + 200, guideY + 15);
-        this.ctx.fillStyle = '#f44336';
-        this.ctx.fillText('♥ Red: Auto-revive at 0%', guideX + 350, guideY + 15);
-        
-        this.ctx.textAlign = 'center';
-    },
 
     // Render help screen
     renderHelpScreen(game) {
         if (!game.showHelp) return;
         
-        this.ctx.fillStyle = 'rgba(0, 0, 0, 0.9)';
+        // Dark mystical background
+        this.ctx.fillStyle = 'rgba(10, 5, 5, 0.95)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.font = 'bold 24px monospace';
+        // Decorative border
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(50, 30, this.canvas.width - 100, this.canvas.height - 60);
+        
+        // Inner golden border
+        this.ctx.strokeStyle = '#DAA520';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(55, 35, this.canvas.width - 110, this.canvas.height - 70);
+        
+        // Title with gothic styling
+        this.ctx.shadowBlur = 8;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#FFD700';
+        this.ctx.font = 'bold 28px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('GAME HELP', this.canvas.width / 2, 50);
+        this.ctx.fillText('⚜ ADVENTURER\'S GUIDE ⚜', this.canvas.width / 2, 70);
+        this.ctx.shadowBlur = 0;
         
-        // Help content
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '16px monospace';
-        this.ctx.fillText('OBJECTIVE', this.canvas.width / 2, 90);
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = '12px monospace';
-        this.ctx.fillText('Descend to floor -50 and find the Pearl of Kuwait', this.canvas.width / 2, 110);
-        this.ctx.fillText('Find the stairs (▼) on each floor to go deeper', this.canvas.width / 2, 130);
+        // Section headers with bronze styling
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = 'bold 18px serif';
+        this.ctx.fillText('SACRED QUEST', this.canvas.width / 2, 110);
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('Descend the cursed tower to floor -50', this.canvas.width / 2, 130);
+        this.ctx.fillText('Seek the Ancient Pearl to break the curse', this.canvas.width / 2, 150);
         
-        // Controls
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '16px monospace';
-        this.ctx.fillText('CONTROLS', this.canvas.width / 2, 170);
-        this.ctx.fillStyle = '#aaa';
-        this.ctx.font = '12px monospace';
-        this.ctx.fillText('Arrow Keys / WASD: Move', this.canvas.width / 2, 190);
-        this.ctx.fillText('1-3: Use orb from inventory slot', this.canvas.width / 2, 210);
-        this.ctx.fillText('H: Toggle this help', this.canvas.width / 2, 230);
+        // Controls section
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = 'bold 18px serif';
+        this.ctx.fillText('MYSTIC CONTROLS', this.canvas.width / 2, 190);
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('Arrow Keys / WASD: Navigate the darkness', this.canvas.width / 2, 210);
+        this.ctx.fillText('1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
+        this.ctx.fillText('H: Summon this guide', this.canvas.width / 2, 250);
         
         // Orb guide
         this.renderHelpOrbGuide();
         
+        // Footer
         this.ctx.textAlign = 'center';
-        this.ctx.fillStyle = '#666';
-        this.ctx.font = '14px monospace';
-        this.ctx.fillText('Press H to close', this.canvas.width / 2, 520);
+        this.ctx.fillStyle = '#654321';
+        this.ctx.font = '16px serif';
+        this.ctx.fillText('Press H to dismiss this guide', this.canvas.width / 2, 520);
         this.ctx.textAlign = 'left';
     },
 
     // Render orb guide in help screen
     renderHelpOrbGuide() {
-        this.ctx.fillStyle = '#fff';
-        this.ctx.font = '16px monospace';
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = 'bold 18px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('ORB TYPES', this.canvas.width / 2, 290);
+        this.ctx.fillText('MYSTICAL ORBS', this.canvas.width / 2, 290);
         
         this.ctx.textAlign = 'left';
-        const orbX = 200;
-        this.ctx.font = '12px monospace';
+        const orbX = 180;
+        this.ctx.font = '14px serif';
         
-        // Light orbs
+        // Light orbs section
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillText('Light Restoration:', orbX, 320);
         this.ctx.fillStyle = '#64b5f6';
-        this.ctx.fillText('O  Blue Orb: Restores 20% light', orbX, 320);
+        this.ctx.fillText('O  Blue Orb: Restores 20% illumination', orbX + 20, 340);
         this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.fillText('@  Golden Orb: Restores 40% light', orbX, 340);
+        this.ctx.fillText('@  Golden Orb: Restores 40% illumination', orbX + 20, 360);
         this.ctx.fillStyle = '#ccccff';
-        this.ctx.fillText('*  Light Wisp: Death marker - Restores 50% light', orbX, 360);
+        this.ctx.fillText('*  Light Wisp: Soul marker - Restores 50% illumination', orbX + 20, 380);
         
-        // Power orbs
+        // Power orbs section
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillText('Arcane Powers:', orbX, 410);
         this.ctx.fillStyle = '#9c27b0';
-        this.ctx.fillText('P  Purple Orb: Phase through walls for 5 seconds', orbX, 390);
+        this.ctx.fillText('P  Purple Orb: Ethereal form - pass through walls', orbX + 20, 430);
         this.ctx.fillStyle = '#4caf50';
-        this.ctx.fillText('G  Green Orb: Regenerate light for 10 seconds', orbX, 410);
+        this.ctx.fillText('G  Green Orb: Regenerative aura - restore light over time', orbX + 20, 450);
         this.ctx.fillStyle = '#fff';
-        this.ctx.fillText('W  White Orb: Reveal entire map for 5 seconds', orbX, 430);
+        this.ctx.fillText('W  White Orb: Divine sight - reveal the entire floor', orbX + 20, 470);
         this.ctx.fillStyle = '#f44336';
-        this.ctx.fillText('♥  Red Orb: LIFELINE - Auto-revives you at 0% light!', orbX, 450);
+        this.ctx.fillText('♥  Crimson Orb: Soul anchor - defies death itself!', orbX + 20, 490);
     },
 
     // Render death screen
@@ -712,16 +808,16 @@ const Renderer = {
         this.ctx.fillText('QUIT TO MENU', this.canvas.width / 2 + 110 + btnGap, btnY + 30);
     },
 
-    // Render game over/victory screen
+    // Render game over screen (victory has its own overlay)
     renderGameOverScreen(game) {
-        if (!game.gameOver && !game.victory) return;
+        if (!game.gameOver || game.victory) return; // Skip if victory (has its own overlay)
         
         this.ctx.fillStyle = 'rgba(0, 0, 0, 1)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
-        this.ctx.fillStyle = game.victory ? '#ffeb3b' : '#f44336';
+        this.ctx.fillStyle = '#f44336';
         this.ctx.font = '48px monospace';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText(game.victory ? 'VICTORY!' : 'GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText('GAME OVER', this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.font = '16px monospace';
         this.ctx.fillStyle = '#fff';
         this.ctx.fillText('Press R to return to menu', this.canvas.width / 2, this.canvas.height / 2 + 40);

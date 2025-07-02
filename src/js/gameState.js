@@ -45,8 +45,8 @@ const GameState = {
             x: 0,
             y: 0
         },
-        floor: 1,
-        checkpoint: 1,
+        floor: -1,
+        checkpoint: -1,
         levelEntryInventory: [null, null, null],
         ghouls: [],
         orbs: [],
@@ -90,7 +90,7 @@ const GameState = {
         'survivor': { name: 'Survivor', description: 'Survive for 5 minutes without dying', icon: '🛡️' },
         'explorer': { name: 'Explorer', description: 'Travel 10,000 units total', icon: '🗺️' },
         'persistent': { name: 'Persistent', description: 'Play 10 games', icon: '💪' },
-        'completionist': { name: 'Completionist', description: 'Reach the final floor (-50)', icon: '🏆' }
+        'completionist': { name: 'Completionist', description: `Reach the final floor (-${CONFIG.GAME.MAX_FLOORS})`, icon: '🏆' }
     },
 
     // Initialize game state
@@ -118,7 +118,7 @@ const GameState = {
             this.game = {
                 state: 'menu',
                 player: { x: 100, y: 100, light: 100 },
-                floor: 1,
+                floor: -1,
                 ghouls: [],
                 orbs: [],
                 walls: [],
@@ -465,7 +465,7 @@ const GameState = {
         }
         
         // Completionist
-        if (this.game.floor >= 50 && !this.stats.achievements.has('completionist')) {
+        if (this.game.floor >= CONFIG.GAME.MAX_FLOORS && !this.stats.achievements.has('completionist')) {
             newAchievements.push('completionist');
         }
         
@@ -759,8 +759,8 @@ const GameState = {
                 }
             },
             camera: { x: 0, y: 0 },
-            floor: 1,
-            checkpoint: 1,
+            floor: -1,
+            checkpoint: -1,
             levelEntryInventory: [null, null, null],
             ghouls: [],
             orbs: [],

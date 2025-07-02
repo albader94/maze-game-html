@@ -181,6 +181,11 @@ const GameLogic = {
 
     // Validate configuration
     validateConfig() {
+        // Check if CONFIG is defined
+        if (typeof CONFIG === 'undefined') {
+            throw new Error('CONFIG object is not defined. Make sure config.js is loaded before gameLogic.js');
+        }
+        
         const requiredConfigs = [
             'CANVAS.WIDTH', 'CANVAS.HEIGHT',
             'PLAYER.SPEED', 'PLAYER.SIZE',
@@ -190,7 +195,7 @@ const GameLogic = {
         requiredConfigs.forEach(path => {
             const value = this.getNestedProperty(CONFIG, path);
             if (value === undefined || value === null) {
-                throw new Error(`Missing required config: ${path}`);
+                throw new Error(`Missing required config: ${path}. Available CONFIG: ${JSON.stringify(CONFIG, null, 2)}`);
             }
         });
     },
@@ -226,6 +231,11 @@ const GameLogic = {
             
             if (game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory && !isPaused) {
                 this.updateGameplay(game, deltaTime);
+            }
+            
+            // Update victory light animation if active
+            if (game.victoryAnimation && game.victoryAnimation.active) {
+                EntityManager.updateVictoryAnimation(game);
             }
             
             // Update statistics if playing (but not if paused)
@@ -731,10 +741,8 @@ const GameLogic = {
             console.log(`🚪 Player using stairs to go from floor ${game.floor} to ${game.floor + 1}`);
             
             game.floor++;
-            if (game.floor >= 50) {
-                game.victory = true;
-                GameState.recordGameCompletion();
-            } else {
+            // Generate new floor or proceed normally
+            {
                 if (game.floor % 5 === 0) {
                     game.checkpoint = game.floor;
                     GameState.saveCheckpoint();

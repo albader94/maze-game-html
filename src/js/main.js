@@ -943,7 +943,7 @@ const Game = {
                         <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
                             <h4 style="margin: 0 0 12px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">🎯 Mission</h4>
                             <p style="margin: 0; color: #fff; line-height: 1.5; font-size: 14px;">
-                                Descend through the mysterious Buried Spire to reach floor -50 and find the legendary Ancient Pearl. Navigate through dark corridors of the ancient Burj Mubarak while managing your light and avoiding the lurking ghouls.
+                                Descend through the mysterious Buried Spire to reach floor -${CONFIG.GAME.MAX_FLOORS} and find the legendary Ancient Pearl. Navigate through dark corridors of the ancient Burj Mubarak while managing your light and avoiding the lurking ghouls.
                             </p>
                         </div>
                         

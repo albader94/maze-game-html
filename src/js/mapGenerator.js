@@ -33,7 +33,15 @@ const MapGenerator = {
         this.placeDeathMarkers(game, floorNum);
         this.placeOrbs(game, emptySpaces);
         this.placeGhouls(game, emptySpaces, floorNum);
-        this.placeStairs(game, emptySpaces);
+        
+        // Only place stairs if this is NOT the final level
+        if (floorNum < CONFIG.GAME.MAX_FLOORS) {
+            this.placeStairs(game, emptySpaces);
+        } else {
+            // Final level has no stairs - only the Pearl can complete the game
+            console.log(`🔮 Final level ${floorNum}: No stairs placed - Pearl is the only exit`);
+            game.stairs = null; // Ensure no stairs object exists
+        }
         
         // Reset player position using the same empty spaces
         this.resetPlayerPosition(game, cellSize, emptySpaces);
@@ -176,8 +184,8 @@ const MapGenerator = {
         const floorNum = Math.abs(game.floor);
         const availableSpaces = [...emptySpaces];
         
-        // Special handling for final level (Floor 50) - place only the Pearl
-        if (floorNum === 50) {
+        // Special handling for final level - place only the Pearl
+        if (floorNum === CONFIG.GAME.MAX_FLOORS) {
             // Find the center of the map for Pearl placement
             const centerX = (game.mapWidth * (CONFIG.MAP.CELL_SIZE || 40)) / 2;
             const centerY = (game.mapHeight * (CONFIG.MAP.CELL_SIZE || 40)) / 2;
@@ -328,8 +336,8 @@ const MapGenerator = {
         // Floor 50: Ancient Pearl (victory orb)
         // Light Wisp: Only appears as death markers (handled separately)
         
-        // Special case: Floor 50 gets the Ancient Pearl
-        if (floorNum === 50) {
+        // Special case: Final floor gets the Ancient Pearl
+        if (floorNum === CONFIG.GAME.MAX_FLOORS) {
             return 'pearl';
         }
         

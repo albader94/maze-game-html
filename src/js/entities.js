@@ -164,9 +164,10 @@ const EntityManager = {
             }
         } else if (orb.type === 'pearl') {
             // Special handling for the Ancient Pearl - triggers victory!
-            console.log('🔮 Ancient Pearl collected! Victory achieved!');
+            console.log('Ancient Pearl collected! Victory achieved!');
             game.victory = true;
             game.pearlCollected = true;
+            game.pearlPosition = { x: orb.x, y: orb.y }; // Store Pearl position for animation
             
             // Make all ghouls flee in terror
             for (const ghoul of game.ghouls) {
@@ -175,17 +176,8 @@ const EntityManager = {
                 ghoul.fleeStartTime = Date.now();
             }
             
-            // Show victory message
-            Utils.showMessage(MESSAGES.STORY.VICTORY, 5000);
-            
-            // Create special victory particle effect
-            Utils.createParticles(game, orb.x, orb.y, '#ffffff', 30, 8);
-            Utils.createParticles(game, orb.x, orb.y, '#ffeb3b', 20, 6);
-            
-            // Trigger victory sequence after a brief delay
-            setTimeout(() => {
-                this.triggerVictorySequence(game);
-            }, 2000);
+            // Start the dramatic white light animation sequence
+            this.startVictoryLightAnimation(game, orb.x, orb.y);
             
         } else if (orbType.power) {
             // Power orbs - add to inventory only if space available
@@ -232,10 +224,8 @@ const EntityManager = {
             console.log(`🚪 Player using stairs to go from floor ${game.floor} to ${game.floor + 1}`);
             
             game.floor++;
-            if (game.floor >= CONFIG.GAME.MAX_FLOORS) {
-                game.victory = true;
-                Utils.showMessage(MESSAGES.STORY.VICTORY, 5000);
-            } else {
+            // Generate new floor or proceed normally
+            {
                 if (game.floor % CONFIG.GAME.CHECKPOINT_INTERVAL === 0) {
                     game.checkpoint = game.floor;
                     // Calculate and display the correct checkpoint number
@@ -297,6 +287,9 @@ const EntityManager = {
 
     // Check win condition
     checkWinCondition(game) {
+        // No stairs on final level - only Pearl can trigger victory
+        if (!game.stairs) return false;
+        
         const distToStairs = Utils.distance(game.player, game.stairs);
         if (distToStairs < 30) {
             if (Math.abs(game.floor) >= CONFIG.GAME.MAX_FLOORS) {
@@ -316,9 +309,98 @@ const EntityManager = {
         return false;
     },
 
+    // Start the white light animation from Pearl position
+    startVictoryLightAnimation(game, pearlX, pearlY) {
+        console.log('Starting victory light animation...');
+        
+        // Initialize animation state
+        game.victoryAnimation = {
+            active: true,
+            startTime: Date.now(),
+            pearlX: pearlX,
+            pearlY: pearlY,
+            lightRadius: 0,
+            phase: 'expanding', // 'expanding' -> 'complete'
+            duration: 3000 // 3 seconds total animation
+        };
+        
+        // Pause normal game updates during animation
+        game.animatingVictory = true;
+    },
+
+    // Update victory light animation
+    updateVictoryAnimation(game) {
+        if (!game.victoryAnimation || !game.victoryAnimation.active) return;
+        
+        const animation = game.victoryAnimation;
+        const elapsed = Date.now() - animation.startTime;
+        const progress = Math.min(elapsed / animation.duration, 1);
+        
+        if (animation.phase === 'expanding') {
+            // Exponential expansion of white light
+            const maxRadius = Math.max(window.innerWidth, window.innerHeight) * 1.5;
+            animation.lightRadius = maxRadius * (progress * progress); // Quadratic easing
+            
+            if (progress >= 1) {
+                // Animation complete - trigger victory screen
+                animation.active = false;
+                game.animatingVictory = false;
+                this.triggerVictorySequence(game);
+            }
+        }
+    },
+
+    // Render the victory light animation
+    renderVictoryAnimation(game, ctx, canvas) {
+        if (!game.victoryAnimation || !game.victoryAnimation.active) return;
+        
+        const animation = game.victoryAnimation;
+        
+        // Save context
+        ctx.save();
+        
+        // Convert world coordinates to screen coordinates
+        const camera = game.camera || { x: 0, y: 0 };
+        const screenX = animation.pearlX - camera.x;
+        const screenY = animation.pearlY - camera.y;
+        
+        // Create radial gradient for expanding light
+        const gradient = ctx.createRadialGradient(
+            screenX, screenY, 0,
+            screenX, screenY, animation.lightRadius
+        );
+        
+        // Bright white center fading to transparent
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+        gradient.addColorStop(0.3, 'rgba(255, 255, 255, 0.9)');
+        gradient.addColorStop(0.6, 'rgba(255, 255, 255, 0.5)');
+        gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+        
+        // Fill the entire canvas with the expanding light
+        ctx.globalCompositeOperation = 'screen'; // Additive blending for bright effect
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        
+        // Add intense bright flash at center
+        if (animation.lightRadius > 50) {
+            const centerGradient = ctx.createRadialGradient(
+                screenX, screenY, 0,
+                screenX, screenY, 100
+            );
+            centerGradient.addColorStop(0, 'rgba(255, 255, 255, 1)');
+            centerGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+            
+            ctx.fillStyle = centerGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        
+        // Restore context
+        ctx.restore();
+    },
+
     // Trigger victory sequence when Pearl is collected
     triggerVictorySequence(game) {
-        console.log('🎉 Triggering victory sequence...');
+        console.log('Triggering victory sequence...');
         
         // Pause the game
         game.state = 'victory';
@@ -357,7 +439,7 @@ const EntityManager = {
                     margin-bottom: 20px; 
                     text-shadow: 0 0 20px rgba(255,235,59,0.8);
                     animation: glow 2s ease-in-out infinite alternate;
-                ">🔮 VICTORY! 🔮</h1>
+                ">VICTORY!</h1>
                 
                 <h2 style="
                     color: #ffffff; 
@@ -387,9 +469,9 @@ const EntityManager = {
                 </div>
                 
                 <div style="margin: 30px 0; color: #aaa;">
-                    <p>🏆 <strong>Explorer</strong> - You conquered all ${Math.abs(game.floor)} floors!</p>
-                    <p>💎 <strong>Light Bearer</strong> - You collected ${game.player.orbsCollected || 0} orbs!</p>
-                    <p>⚡ <strong>Legend</strong> - Your courage saved an entire civilization!</p>
+                    <p><strong>Explorer</strong> - You conquered all ${Math.abs(game.floor)} floors!</p>
+                    <p><strong>Light Bearer</strong> - You collected ${game.player.orbsCollected || 0} orbs!</p>
+                    <p><strong>Legend</strong> - Your courage saved an entire civilization!</p>
                 </div>
                 
                 <button id="victory-menu-btn" style="
@@ -429,6 +511,6 @@ const EntityManager = {
             window.location.reload();
         });
 
-        console.log('🎊 Victory screen displayed!');
+        console.log('Victory screen displayed!');
     }
 }; 

@@ -52,6 +52,19 @@ const Renderer = {
             return;
         }
         
+        // Manage sounds based on game state
+        if (window.SoundManager) {
+            const isPaused = window.Game && window.Game.isPaused;
+            if (game.state === 'menu' || game.deathScreen || game.victory || game.showHelp || game.gameOver || isPaused) {
+                // Pause sounds in menus
+                SoundManager.pauseAll();
+            } else if (game.state === 'playing' && SoundManager.isPaused) {
+                // Resume sounds when playing
+                SoundManager.resumeAll();
+            }
+        }
+        
+        // Dark underground atmosphere
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
@@ -65,6 +78,7 @@ const Renderer = {
 
         // Render game world
         this.renderFloorTiles(game);
+        // this.renderSandParticles(game); // Atmospheric sand particles - temporarily disabled
         this.renderWalls(game);
         this.renderStairs(game);
         this.renderOrbs(game);
@@ -100,7 +114,8 @@ const Renderer = {
         const startY = Math.floor(game.camera.y / CONFIG.MAP.CELL_SIZE);
         const endY = Math.ceil((game.camera.y + this.canvas.height) / CONFIG.MAP.CELL_SIZE);
         
-        this.ctx.strokeStyle = '#222';
+        // Very dark underground floor grid lines
+        this.ctx.strokeStyle = '#0a0a0a';
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const tileX = x * CONFIG.MAP.CELL_SIZE;
@@ -119,60 +134,147 @@ const Renderer = {
 
     // Render walls
     renderWalls(game) {
-        this.ctx.fillStyle = '#333';
+        // Very dark underground wall color
+        this.ctx.fillStyle = '#111';
         for (const wall of game.walls) {
             const dist = Utils.distance(wall, game.player);
             if (dist < game.player.lightRadius * 1.5 || game.player.powers.reveal > 0) {
                 this.ctx.globalAlpha = Math.max(0.3, 1 - (dist / (game.player.lightRadius * 2)));
+                
+                // Sandstone wall with texture gradient
+                const wallGradient = this.ctx.createLinearGradient(wall.x - 15, wall.y - 15, wall.x + 15, wall.y + 15);
+                wallGradient.addColorStop(0, '#9b8365'); // Lighter sandstone
+                wallGradient.addColorStop(0.5, '#8b7355'); // Base sandstone
+                wallGradient.addColorStop(1, '#7b6345'); // Darker shadow
+                this.ctx.fillStyle = wallGradient;
                 this.ctx.fillRect(wall.x - 15, wall.y - 15, 30, 30);
+                
+                // Subtle weathered edge
+                this.ctx.strokeStyle = '#6b5335';
+                this.ctx.lineWidth = 1;
+                this.ctx.strokeRect(wall.x - 15, wall.y - 15, 30, 30);
             }
         }
         this.ctx.globalAlpha = 1;
     },
 
-    // Render stairs
+    // Render stairs with Gothic design
     renderStairs(game) {
         if (!game.stairs) return;
         
         const dist = Utils.distance(game.stairs, game.player);
         if (dist < game.player.lightRadius * 1.5 || game.player.powers.reveal > 0 || dist < 100) {
-            // Base platform
-            this.ctx.fillStyle = '#666';
-            this.ctx.fillRect(game.stairs.x - 30, game.stairs.y - 30, 60, 60);
+            const time = game.time || 0; // Default to 0 if time is undefined
+            const pulseSize = Math.sin(time * 0.08) * 3;
+            const glowIntensity = 0.5 + Math.sin(time * 0.06) * 0.3;
             
-            // Inner platform
-            this.ctx.fillStyle = '#555';
-            this.ctx.fillRect(game.stairs.x - 25, game.stairs.y - 25, 50, 50);
+            // Mystical glow background
+            this.ctx.globalAlpha = glowIntensity * 0.6;
+            const glowGradient = this.ctx.createRadialGradient(
+                game.stairs.x, game.stairs.y, 0,
+                game.stairs.x, game.stairs.y, 50 + pulseSize * 2
+            );
+            // Mystical Gothic glow
+            glowGradient.addColorStop(0, 'rgba(218, 165, 32, 0.8)'); // Golden glow
+            glowGradient.addColorStop(0.5, 'rgba(139, 69, 19, 0.4)'); // Gothic brown
+            glowGradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            this.ctx.fillStyle = glowGradient;
+            this.ctx.fillRect(game.stairs.x - 60, game.stairs.y - 60, 120, 120);
+            this.ctx.globalAlpha = 1;
             
-            // Stair steps
-            this.ctx.strokeStyle = '#888';
+            // Main Gothic platform with rounded corners
+            const platformSize = 35;
+            this.ctx.save();
+            this.ctx.translate(game.stairs.x, game.stairs.y);
+            
+            // Outer platform with Gothic gradient
+            const outerGradient = this.ctx.createLinearGradient(-platformSize, -platformSize, platformSize, platformSize);
+            outerGradient.addColorStop(0, '#654321'); // Gothic brown
+            outerGradient.addColorStop(0.5, '#8B4513'); // Medium brown
+            outerGradient.addColorStop(1, '#2A1810'); // Dark brown
+            
+            this.ctx.restore();
+            // Draw outer platform with rounded corners
+            this.drawRoundedRect(
+                game.stairs.x - platformSize,
+                game.stairs.y - platformSize,
+                platformSize * 2,
+                platformSize * 2,
+                8,
+                outerGradient
+            );
+            
+            // Inner platform with weathered stone
+            const innerSize = platformSize - 6;
+            const innerGradient = this.ctx.createLinearGradient(
+                game.stairs.x - innerSize, 
+                game.stairs.y - innerSize, 
+                game.stairs.x + innerSize, 
+                game.stairs.y + innerSize
+            );
+            innerGradient.addColorStop(0, '#2A1810'); // Dark Gothic
+            innerGradient.addColorStop(0.5, '#1A0F08'); // Deeper shadow
+            innerGradient.addColorStop(1, '#654321'); // Medium Gothic
+            
+            this.drawRoundedRect(
+                game.stairs.x - innerSize,
+                game.stairs.y - innerSize,
+                innerSize * 2,
+                innerSize * 2,
+                6,
+                innerGradient
+            );
+            
+            this.ctx.save();
+            this.ctx.translate(game.stairs.x, game.stairs.y);
+            
+            // Gothic stair steps with golden color
+            this.ctx.strokeStyle = '#DAA520';
             this.ctx.lineWidth = 2;
-            for (let i = 0; i < 4; i++) {
+            for (let i = 0; i < 3; i++) {
                 this.ctx.beginPath();
-                this.ctx.moveTo(game.stairs.x - 20 + i * 5, game.stairs.y - 15 + i * 5);
-                this.ctx.lineTo(game.stairs.x + 20, game.stairs.y - 15 + i * 5);
+                this.ctx.moveTo(-20 + i * 6, -10 + i * 6);
+                this.ctx.lineTo(20 - i * 2, -10 + i * 6);
                 this.ctx.stroke();
             }
             
-            // Down arrow
-            this.ctx.fillStyle = '#fff';
-            this.ctx.font = 'bold 32px monospace';
+            // Gothic down arrow
+            this.ctx.fillStyle = '#DAA520';
+            this.ctx.font = 'bold 28px serif';
             this.ctx.textAlign = 'center';
-            this.ctx.fillText('▼', game.stairs.x, game.stairs.y + 10);
-            this.ctx.font = '12px monospace';
-            this.ctx.fillText('EXIT', game.stairs.x, game.stairs.y - 20);
-            this.ctx.textAlign = 'left';
+            this.ctx.fillText('⬇', 0, 8);
             
-            // Pulsing glow effect
-            this.ctx.globalAlpha = 0.4 + Math.sin(game.time * 0.05) * 0.3;
-            this.ctx.strokeStyle = '#ffeb3b';
-            this.ctx.lineWidth = 4;
-            this.ctx.strokeRect(game.stairs.x - 32, game.stairs.y - 32, 64, 64);
+            // EXIT text with Gothic styling
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.font = 'bold 11px serif';
+            this.ctx.fillText('EXIT', 0, -22);
             
-            // Inner glow
-            this.ctx.strokeStyle = '#fff';
-            this.ctx.lineWidth = 2;
-            this.ctx.strokeRect(game.stairs.x - 28, game.stairs.y - 28, 56, 56);
+            this.ctx.restore();
+            
+            // Pulsing ancient golden border
+            this.ctx.globalAlpha = glowIntensity;
+            this.drawRoundedRect(
+                game.stairs.x - platformSize - 2, 
+                game.stairs.y - platformSize - 2, 
+                (platformSize + 2) * 2, 
+                (platformSize + 2) * 2, 
+                10,
+                null,
+                '#FFD700',
+                3
+            );
+            
+            // Inner sandy glow border
+            this.drawRoundedRect(
+                game.stairs.x - platformSize + 2, 
+                game.stairs.y - platformSize + 2, 
+                (platformSize - 2) * 2, 
+                (platformSize - 2) * 2, 
+                6,
+                null,
+                '#FFE4B5',
+                1
+            );
             this.ctx.globalAlpha = 1;
         }
     },
@@ -337,14 +439,27 @@ const Renderer = {
 
     // Render player
     renderPlayer(game) {
-        // Player body
-        this.ctx.fillStyle = game.player.powers.phase > 0 ? 'rgba(255, 255, 255, 0.5)' : '#fff';
+        // Calculate player visibility based on light level
+        const lightPercent = game.player.light / 100;
+        const minVisibility = 0.6; // Never go below 60% visibility
+        const playerAlpha = Math.max(minVisibility, 0.4 + (lightPercent * 0.6));
+        
+        // Player body with light-based dimming
+        if (game.player.powers.phase > 0) {
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${0.5 * playerAlpha})`;
+        } else {
+            this.ctx.fillStyle = `rgba(255, 255, 255, ${playerAlpha})`;
+        }
         this.ctx.beginPath();
         this.ctx.arc(game.player.x, game.player.y, 10, 0, Math.PI * 2);
         this.ctx.fill();
         
-        // Player inner detail
-        this.ctx.fillStyle = game.player.powers.phase > 0 ? 'rgba(200, 200, 200, 0.5)' : '#ccc';
+        // Player inner detail with light-based dimming
+        if (game.player.powers.phase > 0) {
+            this.ctx.fillStyle = `rgba(200, 200, 200, ${0.5 * playerAlpha})`;
+        } else {
+            this.ctx.fillStyle = `rgba(200, 200, 200, ${playerAlpha})`;
+        }
         this.ctx.beginPath();
         this.ctx.arc(game.player.x, game.player.y, 6, 0, Math.PI * 2);
         this.ctx.fill();
@@ -398,21 +513,40 @@ const Renderer = {
                 return;
             }
             
+            // Add subtle flicker effect using time and light level
+            const time = game.time || 0;
+            const lightPercent = game.player.light / 100;
+            const flickerIntensity = 0.04; // Subtle flicker
+            const flicker = 1 + Math.sin(time * 0.08) * flickerIntensity + Math.sin(time * 0.17) * flickerIntensity * 0.6;
+            
+            // Adjust flicker based on light level - more flicker when light is low
+            const lowLightFlicker = Math.max(0, (1 - lightPercent) * 0.08);
+            const totalFlicker = flicker + lowLightFlicker;
+            
+            const flickeredRadius = game.player.lightRadius * totalFlicker;
+            
             const gradient = this.ctx.createRadialGradient(
                 game.player.x, game.player.y, 0,
-                game.player.x, game.player.y, game.player.lightRadius
+                game.player.x, game.player.y, flickeredRadius
             );
-            gradient.addColorStop(0, 'rgba(255, 248, 200, 0.3)');
-            gradient.addColorStop(0.5, 'rgba(255, 200, 100, 0.1)');
+            
+            // Warm torch fire light effect with flicker intensity
+            const baseIntensity = 0.5 * totalFlicker;
+            const midIntensity = 0.3 * totalFlicker;
+            const edgeIntensity = 0.15 * totalFlicker;
+            
+            gradient.addColorStop(0, `rgba(255, 200, 100, ${baseIntensity})`); // Bright warm center
+            gradient.addColorStop(0.3, `rgba(255, 150, 50, ${midIntensity})`); // Orange glow
+            gradient.addColorStop(0.7, `rgba(255, 100, 0, ${edgeIntensity})`); // Red-orange fade
             gradient.addColorStop(1, 'rgba(0, 0, 0, 0)');
             
             this.ctx.globalCompositeOperation = 'lighter';
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(
-                game.player.x - game.player.lightRadius, 
-                game.player.y - game.player.lightRadius,
-                game.player.lightRadius * 2, 
-                game.player.lightRadius * 2
+                game.player.x - flickeredRadius, 
+                game.player.y - flickeredRadius,
+                flickeredRadius * 2, 
+                flickeredRadius * 2
             );
             this.ctx.globalCompositeOperation = 'source-over';
         } catch (error) {
@@ -422,6 +556,32 @@ const Renderer = {
         }
     },
 
+    // Render atmospheric sand particles
+    renderSandParticles(game) {
+        // Create floating sand/dust particles for atmosphere
+        this.ctx.save();
+        this.ctx.globalAlpha = 0.15;
+        this.ctx.fillStyle = '#d4a574';
+        
+        // Use game time for animation
+        const time = game.time || 0;
+        
+        // Generate particles based on camera position for consistency
+        const particleCount = 30;
+        for (let i = 0; i < particleCount; i++) {
+            const seed = i * 1000;
+            const x = ((game.camera.x + seed + time * 0.2) % (this.canvas.width + 100)) - 50;
+            const y = ((game.camera.y + seed * 0.7 + Math.sin(time * 0.001 + i) * 100) % (this.canvas.height + 100)) - 50;
+            const size = 1 + Math.sin(seed) * 2;
+            
+            this.ctx.beginPath();
+            this.ctx.arc(game.camera.x + x, game.camera.y + y, size, 0, Math.PI * 2);
+            this.ctx.fill();
+        }
+        
+        this.ctx.restore();
+    },
+
     // Render darkness vignette
     renderVignette() {
         try {
@@ -429,9 +589,11 @@ const Renderer = {
                 this.canvas.width / 2, this.canvas.height / 2, 0,
                 this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
             );
+            // Dark underground vignette effect
             vignette.addColorStop(0, 'rgba(0,0,0,0)');
-            vignette.addColorStop(0.7, 'rgba(0,0,0,0.3)');
-            vignette.addColorStop(1, 'rgba(0,0,0,0.8)');
+            vignette.addColorStop(0.6, 'rgba(0,0,0,0.2)');
+            vignette.addColorStop(0.8, 'rgba(0,0,0,0.4)');
+            vignette.addColorStop(1, 'rgba(0,0,0,0.7)');
             this.ctx.fillStyle = vignette;
             this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         } catch (error) {
@@ -547,11 +709,11 @@ const Renderer = {
             const slotX = invX + (i * (slotSize + slotGap));
             const slotY = invY;
             
-            // Slot background - dark with rounded corners
+            // Slot background with Gothic styling
             this.drawRoundedRect(
                 slotX, slotY, slotSize, slotSize, 
                 10, 
-                'rgba(26, 15, 8, 0.9)', 
+                'rgba(26, 15, 8, 0.8)', 
                 '#654321', 
                 2
             );
@@ -561,7 +723,7 @@ const Renderer = {
                 slotX + 2, slotY + 2, slotSize - 4, slotSize - 4, 
                 8, 
                 null, 
-                '#3d2817', 
+                '#8B4513', 
                 1
             );
             
@@ -588,8 +750,8 @@ const Renderer = {
                 this.ctx.shadowBlur = 0;
             }
             
-            // Key indicator above slot
-            this.ctx.fillStyle = '#8B4513';
+            // Key indicator above slot - sand colored
+            this.ctx.fillStyle = '#d4a574';
             this.ctx.font = 'bold 11px serif';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(String(i + 1), slotX + slotSize / 2, slotY - 6);
@@ -620,25 +782,15 @@ const Renderer = {
         const mapWorldHeight = game.mapHeight * CONFIG.MAP.CELL_SIZE;
         const mapAspectRatio = mapWorldWidth / mapWorldHeight;
         
-        // Set minimap size based on content
-        const maxMapSize = 130;
-        let mapWidth, mapHeight;
-        
-        if (mapAspectRatio > 1) {
-            // Wider than tall
-            mapWidth = maxMapSize;
-            mapHeight = maxMapSize / mapAspectRatio;
-        } else {
-            // Taller than wide or square
-            mapHeight = maxMapSize;
-            mapWidth = maxMapSize * mapAspectRatio;
-        }
+        // Set minimap size to match stats menu height (115px) for consistency
+        const mapHeight = 115; // Match stats menu height
+        const mapWidth = mapHeight * mapAspectRatio;
         
         const mapX = this.canvas.width - mapWidth - 10;
         const mapY = 10;
         
         // Minimap background with rounded corners and extra padding
-        this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.95)', '#8B4513', 3);
+        this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.9)', '#8B4513', 3);
         
         // Inner content area with more padding
         const contentPadding = 8;
@@ -647,14 +799,15 @@ const Renderer = {
         const contentX = mapX + contentPadding;
         const contentY = mapY + contentPadding;
         
-        this.ctx.fillStyle = '#111';
+        // Very dark underground background for minimap
+        this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
         
         const scaleX = contentWidth / mapWorldWidth;
         const scaleY = contentHeight / mapWorldHeight;
         
         // Draw explored areas
-        this.ctx.fillStyle = '#222';
+        this.ctx.fillStyle = '#0f0f0f';
         for (const coord of game.explored) {
             const [x, y] = coord.split(',').map(Number);
             if (!isNaN(x) && !isNaN(y)) {
@@ -668,7 +821,7 @@ const Renderer = {
         }
         
         // Draw walls
-        this.ctx.fillStyle = '#444';
+        this.ctx.fillStyle = '#222';
         for (const wall of game.walls) {
             const tileX = Math.floor(wall.x / CONFIG.MAP.CELL_SIZE);
             const tileY = Math.floor(wall.y / CONFIG.MAP.CELL_SIZE);
@@ -682,29 +835,24 @@ const Renderer = {
             }
         }
         
-        // Draw stairs
+        // Draw stairs with Gothic styling
         if (game.stairs) {
             const stairTileX = Math.floor(game.stairs.x / CONFIG.MAP.CELL_SIZE);
             const stairTileY = Math.floor(game.stairs.y / CONFIG.MAP.CELL_SIZE);
             if (game.explored.has(`${stairTileX},${stairTileY}`) || game.player.powers.reveal > 0) {
-                this.ctx.fillStyle = '#ff0';
-                this.ctx.fillRect(
-                    contentX + ((game.stairs.x - 15) * scaleX),
-                    contentY + ((game.stairs.y - 15) * scaleY),
-                    30 * scaleX,
-                    30 * scaleY
-                );
+                const stairX = contentX + ((game.stairs.x - 15) * scaleX);
+                const stairY = contentY + ((game.stairs.y - 15) * scaleY);
+                const stairSize = 30;
                 
-                // Blinking effect
-                if (game.time % 60 < 30) {
+                // Golden stairs
+                this.ctx.fillStyle = '#ff0';
+                this.ctx.fillRect(stairX, stairY, stairSize * scaleX, stairSize * scaleY);
+                
+                // Pulsing Gothic border
+                if ((game.time || 0) % 60 < 30) {
                     this.ctx.strokeStyle = '#fff';
-                    this.ctx.lineWidth = 2;
-                    this.ctx.strokeRect(
-                        contentX + ((game.stairs.x - 15) * scaleX),
-                        contentY + ((game.stairs.y - 15) * scaleY),
-                        30 * scaleX,
-                        30 * scaleY
-                    );
+                    this.ctx.lineWidth = Math.max(1, 2 * scaleX);
+                    this.ctx.strokeRect(stairX, stairY, stairSize * scaleX, stairSize * scaleY);
                 }
             }
         }
@@ -746,41 +894,31 @@ const Renderer = {
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Subtle flame-like texture overlay
-        this.ctx.globalAlpha = 0.02;
-        this.ctx.fillStyle = '#4a1a0a';
-        for (let y = 0; y < this.canvas.height; y += 4) {
-            if (Math.random() > 0.7) {
-                this.ctx.fillRect(0, y, this.canvas.width, 1);
-            }
-        }
-        this.ctx.globalAlpha = 1;
-        
-        // Main title with gothic styling
+        // Main title with Gothic styling
         this.ctx.textAlign = 'center';
-        this.ctx.shadowBlur = 12;
-        this.ctx.shadowColor = '#8B0000';
-        this.ctx.fillStyle = '#FFD700';
+        this.ctx.shadowBlur = 15;
+        this.ctx.shadowColor = '#8B0000'; // Dark red shadow
+        this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 52px serif';
         this.ctx.fillText('BURIED SPIRE', this.canvas.width / 2, 90);
         
-        // Enhanced subtitle with red glow
-        this.ctx.shadowBlur = 8;
-        this.ctx.shadowColor = '#8B0000';
-        this.ctx.fillStyle = '#CD853F';
+        // Subtitle with mystical glow
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowColor = '#654321'; // Gothic brown shadow
+        this.ctx.fillStyle = '#8B4513'; // Gothic brown
         this.ctx.font = 'italic 22px serif';
-        this.ctx.fillText('Quest for the Ancient Pearl', this.canvas.width / 2, 120);
+        this.ctx.fillText('Quest Into the Depths', this.canvas.width / 2, 120);
         this.ctx.shadowBlur = 0;
         
         // Atmospheric flavor text
-        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillStyle = '#654321'; // Gothic brown
         this.ctx.font = '14px serif';
-        this.ctx.fillText('Deep beneath the sands, darkness awaits...', this.canvas.width / 2, 150);
+        this.ctx.fillText('Ancient depths await the brave...', this.canvas.width / 2, 150);
         
-        // Gothic decorative elements
-        this.ctx.fillStyle = '#4a1a0a';
+        // Desert decorative elements
+        this.ctx.fillStyle = '#a68654';
         this.ctx.font = '16px serif';
-        this.ctx.fillText('⚜ ═══════════════════════════════════ ⚜', this.canvas.width / 2, 175);
+        this.ctx.fillText('☥ ═══════════════════════════════════ ☥', this.canvas.width / 2, 175);
         
         // Menu buttons
         this.renderMenuButtons();
@@ -816,38 +954,38 @@ const Renderer = {
             const button = buttons[i];
             const isHovered = false; // Could add hover logic later
             
-            // Gothic button background with stone-like texture
+            // Dark Gothic button background
             const buttonGradient = this.ctx.createLinearGradient(
                 centerX - buttonWidth/2, button.y,
                 centerX + buttonWidth/2, button.y + buttonHeight
             );
-            buttonGradient.addColorStop(0, '#2a1810');
-            buttonGradient.addColorStop(0.5, '#1a0f08');
-            buttonGradient.addColorStop(1, '#0f0705');
+            buttonGradient.addColorStop(0, '#654321'); // Gothic brown
+            buttonGradient.addColorStop(0.5, '#2A1810'); // Dark brown
+            buttonGradient.addColorStop(1, '#1A0F08'); // Darkest brown
             this.ctx.fillStyle = buttonGradient;
             this.ctx.fillRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
             
-            // Ornate border with gold/bronze styling
-            this.ctx.strokeStyle = '#8B4513';
+            // Dark Gothic border styling
+            this.ctx.strokeStyle = '#8B4513'; // Gothic brown
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
             
             // Inner golden highlight
-            this.ctx.strokeStyle = '#DAA520';
+            this.ctx.strokeStyle = '#DAA520'; // Golden
             this.ctx.lineWidth = 1;
             this.ctx.strokeRect(centerX - buttonWidth/2 + 3, button.y + 3, buttonWidth - 6, buttonHeight - 6);
             
             // Button icon with golden glow
             this.ctx.shadowBlur = 6;
-            this.ctx.shadowColor = '#FFD700';
-            this.ctx.fillStyle = '#FFD700';
+            this.ctx.shadowColor = '#DAA520';
+            this.ctx.fillStyle = '#DAA520';
             this.ctx.font = '20px serif';
             this.ctx.textAlign = 'center';
             this.ctx.fillText(button.icon, centerX - 80, button.y + 28);
             this.ctx.shadowBlur = 0;
             
-            // Button text with bronze styling
-            this.ctx.fillStyle = '#CD853F';
+            // Button text with Gothic styling
+            this.ctx.fillStyle = '#DAA520'; // Golden for readability
             this.ctx.font = 'bold 18px serif';
             this.ctx.fillText(button.text, centerX + 10, button.y + 28);
             
@@ -879,11 +1017,11 @@ const Renderer = {
     renderHelpScreen(game) {
         if (!game.showHelp) return;
         
-        // Dark mystical background
-        this.ctx.fillStyle = 'rgba(10, 5, 5, 0.95)';
+        // Dark background overlay
+        this.ctx.fillStyle = 'rgba(42, 24, 16, 0.95)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Decorative border
+        // Decorative Gothic border
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(50, 30, this.canvas.width - 100, this.canvas.height - 60);
@@ -896,7 +1034,7 @@ const Renderer = {
         // Title with gothic styling
         this.ctx.shadowBlur = 8;
         this.ctx.shadowColor = '#8B0000';
-        this.ctx.fillStyle = '#FFD700';
+        this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 28px serif';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('⚜ ADVENTURER\'S GUIDE ⚜', this.canvas.width / 2, 70);
@@ -970,8 +1108,8 @@ const Renderer = {
     renderDeathScreen(game) {
         if (!game.deathScreen) return;
         
-        // Dark mystical background
-        this.ctx.fillStyle = 'rgba(10, 5, 5, 0.98)';
+        // Dark death screen background
+        this.ctx.fillStyle = 'rgba(42, 24, 16, 0.98)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
         // Gothic decorative border
@@ -980,7 +1118,7 @@ const Renderer = {
         this.ctx.strokeRect(30, 30, this.canvas.width - 60, this.canvas.height - 60);
         
         // Inner golden border
-        this.ctx.strokeStyle = '#654321';
+        this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(35, 35, this.canvas.width - 70, this.canvas.height - 70);
         
@@ -1065,20 +1203,21 @@ const Renderer = {
     renderGameOverScreen(game) {
         if (!game.gameOver || game.victory) return; // Skip if victory (has its own overlay)
         
-        this.ctx.fillStyle = 'rgba(10, 5, 5, 1)';
+        // Desert sand game over background
+        this.ctx.fillStyle = 'rgba(61, 43, 31, 1)';
         this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
         
-        // Gothic game over styling
+        // Desert game over styling
         this.ctx.shadowBlur = 15;
-        this.ctx.shadowColor = '#8B0000';
+        this.ctx.shadowColor = '#8b5a2b'; // Sandy brown shadow
         this.ctx.fillStyle = '#DC143C';
         this.ctx.font = 'bold 52px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('⚜ QUEST FAILED ⚜', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText('☥ QUEST FAILED ☥', this.canvas.width / 2, this.canvas.height / 2);
         this.ctx.shadowBlur = 0;
         
         this.ctx.font = '18px serif';
-        this.ctx.fillStyle = '#8B4513';
+        this.ctx.fillStyle = '#d4a574'; // Light sand
         this.ctx.fillText('Press R to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
         this.ctx.textAlign = 'left';
     }

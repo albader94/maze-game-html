@@ -33,6 +33,12 @@ const Game = {
             GameLogic.init();
             TutorialSystem.init();
             
+            // Initialize sound system (will start on first user interaction)
+            SoundManager.init();
+            
+            // Apply initial settings (including volume)
+            this.applySettings();
+            
             // Setup development tools
             this.setupDevTools();
             
@@ -1145,6 +1151,10 @@ const Game = {
         const volumeValue = document.getElementById('volumeValue');
         volumeSlider.addEventListener('input', (e) => {
             volumeValue.textContent = `${Math.round(e.target.value * 100)}%`;
+            // Apply volume change immediately for testing
+            if (window.SoundManager) {
+                SoundManager.setVolume(parseFloat(e.target.value));
+            }
         });
         
         // Touch sensitivity slider
@@ -1203,6 +1213,8 @@ const Game = {
         this.settings.showDebugInfo = document.getElementById('showDebugInfo').checked;
         this.settings.enableSoundEffects = document.getElementById('enableSoundEffects').checked;
         this.settings.autoSave = document.getElementById('autoSave').checked;
+        this.settings.volume = parseFloat(document.getElementById('volume').value);
+        this.settings.touchSensitivity = parseFloat(document.getElementById('touchSensitivity').value);
         
         this.saveSettings();
         this.applySettings();
@@ -1215,6 +1227,11 @@ const Game = {
             this.createDebugPanel();
         } else {
             this.removeDebugPanel();
+        }
+        
+        // Apply volume settings
+        if (window.SoundManager) {
+            SoundManager.setVolume(this.settings.volume);
         }
         
         // Apply touch sensitivity

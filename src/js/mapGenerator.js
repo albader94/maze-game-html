@@ -23,25 +23,42 @@ const MapGenerator = {
         // Add rooms for variety
         this.addRooms(grid, game.mapWidth, game.mapHeight, floorNum);
         
-        // Convert grid to walls
-        this.createWalls(grid, game, cellSize);
-        
         // Find empty spaces for entities
         const emptySpaces = this.findEmptySpaces(grid, game.mapWidth, game.mapHeight, cellSize);
-        
-        // Place game entities
-        this.placeDeathMarkers(game, floorNum);
-        this.placeOrbs(game, emptySpaces);
-        this.placeGhouls(game, emptySpaces, floorNum);
         
         // Only place stairs if this is NOT the final level
         if (floorNum < CONFIG.GAME.MAX_FLOORS) {
             this.placeStairs(game, emptySpaces);
+            // Clear walls around stairs position (3x3 area)
+            if (game.stairs) {
+                const stairGridX = Math.floor(game.stairs.x / cellSize);
+                const stairGridY = Math.floor(game.stairs.y / cellSize);
+                
+                // Clear a 3x3 area around the stairs
+                for (let dy = -1; dy <= 1; dy++) {
+                    for (let dx = -1; dx <= 1; dx++) {
+                        const clearX = stairGridX + dx;
+                        const clearY = stairGridY + dy;
+                        if (clearX >= 0 && clearX < game.mapWidth && 
+                            clearY >= 0 && clearY < game.mapHeight) {
+                            grid[clearY][clearX] = 0; // Clear wall
+                        }
+                    }
+                }
+            }
         } else {
             // Final level has no stairs - only the Pearl can complete the game
             console.log(`🔮 Final level ${floorNum}: No stairs placed - Pearl is the only exit`);
             game.stairs = null; // Ensure no stairs object exists
         }
+        
+        // Convert grid to walls (after stairs area is cleared)
+        this.createWalls(grid, game, cellSize);
+        
+        // Place game entities
+        this.placeDeathMarkers(game, floorNum);
+        this.placeOrbs(game, emptySpaces);
+        this.placeGhouls(game, emptySpaces, floorNum);
         
         // Reset player position using the same empty spaces
         this.resetPlayerPosition(game, cellSize, emptySpaces);

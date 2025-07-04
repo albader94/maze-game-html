@@ -632,9 +632,9 @@ const GameState = {
                 player: {
                     light: this.game.player.light,
                     orbsCollected: this.game.player.orbsCollected,
-                    inventory: [...this.game.player.inventory],
-                    deathMarkers: [...this.game.player.deathMarkers],
-                    checkpointInventory: [...this.game.player.checkpointInventory]
+                    inventory: this.game.player.inventory ? [...this.game.player.inventory] : [],
+                    deathMarkers: this.game.player.deathMarkers ? [...this.game.player.deathMarkers] : [],
+                    checkpointInventory: this.game.player.checkpointInventory ? [...this.game.player.checkpointInventory] : []
                 },
                 timestamp: Date.now()
             };

@@ -253,6 +253,11 @@ const InputManager = {
         window.addEventListener('keydown', (e) => {
             this.keys[e.key.toLowerCase()] = true;
             this.handleKeyDown(e);
+            
+            // Enable audio on first user interaction
+            if (window.SoundManager) {
+                SoundManager.handleUserInteraction();
+            }
         });
 
         window.addEventListener('keyup', (e) => {
@@ -265,6 +270,11 @@ const InputManager = {
         const canvas = document.getElementById('gameCanvas');
         canvas.addEventListener('click', (e) => {
             this.handleClick(e);
+            
+            // Enable audio on first user interaction
+            if (window.SoundManager) {
+                SoundManager.handleUserInteraction();
+            }
         });
     },
 

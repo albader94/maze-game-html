@@ -5,6 +5,10 @@ const SoundManager = {
     currentAmbient: null,
     crossfadeStarted: false,
     nextAmbient: null,
+    currentBackground: null,
+    backgroundCrossfadeStarted: false,
+    nextBackground: null,
+    ghoulDetectionPlayed: new Set(),
     volume: 0.7,
     ambientVolume: 0.15,  // Reduced for subtlety
     sfxVolume: 0.3,      // Reduced for less intrusive SFX
@@ -20,10 +24,26 @@ const SoundManager = {
         // Load all sounds with correct paths relative to public/index.html
         // Load underground ambience
         this.loadSound('ambient', '../assets/sound/Underground_ambience.mp3');
+        this.loadSound('background', '../assets/sound/backfround-sound.mp3');
         
         // Load wind sounds
         this.loadSound('wind1', '../assets/sound/Wind through passages/Wind_through_passage-1.mp3');
         this.loadSound('wind2', '../assets/sound/Wind through passages/Wind_through_passage-2.mp3');
+        
+        // Load game event sounds
+        this.loadSound('death', '../assets/sound/Death_sound_Ominous.mp3');
+        this.loadSound('orb_collection', '../assets/sound/Orb_collection.mp3');
+        
+        // Load individual orb sounds
+        this.loadSound('blue_orb', '../assets/sound/blue-orb.mp3');
+        this.loadSound('gold_orb', '../assets/sound/gold-orb.mp3');
+        this.loadSound('green_orb', '../assets/sound/green-orb.mp3');
+        this.loadSound('purple_orb', '../assets/sound/purple-orb.mp3');
+        this.loadSound('white_orb', '../assets/sound/white-orb.mp3');
+        this.loadSound('red_orb', '../assets/sound/red-orb.mp3');
+        
+        // Load ghoul tension sounds
+        this.loadSound('ghoul_detection', '../assets/sound/ghoul-detection.mp3');
         
         this.initialized = true;
         
@@ -67,6 +87,9 @@ const SoundManager = {
         
         // Start with underground ambience
         this.playAmbientLoop();
+        
+        // Start background music
+        this.playBackgroundLoop();
         
         // Occasionally play wind sounds
         this.scheduleWindSounds();
@@ -169,6 +192,80 @@ const SoundManager = {
         }
     },
     
+    // Play death sound effect
+    playDeathSound() {
+        this.playSFX('death', 0.6);
+    },
+    
+    // Play orb collection sound effect based on orb type
+    playOrbCollection(orbType) {
+        if (orbType === 'common') {
+            this.playSFX('blue_orb', 0.4);
+        } else if (orbType === 'golden') {
+            this.playSFX('gold_orb', 0.4);
+        } else {
+            // For purple, green, white, red orbs - play generic collection sound
+            this.playSFX('orb_collection', 0.3); // Slightly quieter as requested
+        }
+    },
+    
+    // Play orb usage sound effect
+    playOrbUsage(orbType) {
+        switch(orbType) {
+            case 'regeneration':
+                this.playSFX('green_orb', 0.4);
+                break;
+            case 'phase':
+                this.playSFX('purple_orb', 0.4);
+                break;
+            case 'reveal':
+                this.playSFX('white_orb', 0.4);
+                break;
+            case 'flame':
+                this.playSFX('red_orb', 0.4);
+                break;
+            default:
+                // Fallback for any other orb types
+                this.playSFX('orb_collection', 0.3);
+        }
+    },
+    
+    // Play ghoul detection sound (one-time alert when ghoul spots player)
+    playGhoulDetection(ghoulId) {
+        if (!this.ghoulDetectionPlayed.has(ghoulId)) {
+            this.ghoulDetectionPlayed.add(ghoulId);
+            this.playSFX('ghoul_detection', 0.3); // Subtle volume
+        }
+    },
+    
+    
+    // Update ghoul tension sounds based on their states
+    updateGhoulTension(ghoulStates) {
+        let hasStalkingGhouls = false;
+        
+        // Check for stalking ghouls and new detections
+        ghoulStates.forEach(ghoulInfo => {
+            if (ghoulInfo.state === 'stalking') {
+                hasStalkingGhouls = true;
+                
+                // Play detection sound when ghoul first starts stalking
+                if (ghoulInfo.justStartedStalking) {
+                    this.playGhoulDetection(ghoulInfo.id);
+                }
+            }
+        });
+        
+        // No stalking sound - only detection alerts
+        
+        // Clean up detection tracking for ghouls no longer nearby
+        const currentGhoulIds = new Set(ghoulStates.map(g => g.id));
+        for (const ghoulId of this.ghoulDetectionPlayed) {
+            if (!currentGhoulIds.has(ghoulId)) {
+                this.ghoulDetectionPlayed.delete(ghoulId);
+            }
+        }
+    },
+    
     // Schedule random wind sounds (only during gameplay)
     scheduleWindSounds() {
         const playWind = () => {
@@ -194,14 +291,112 @@ const SoundManager = {
         setTimeout(playWind, 10000 + Math.random() * 20000);
     },
     
+    // Play looping background music with crossfade for seamless loop
+    playBackgroundLoop() {
+        if (this.sounds.background && !this.currentBackground) {
+            try {
+                this.currentBackground = this.sounds.background.cloneNode();
+                this.currentBackground.volume = 0.25 * this.volume; // Slightly louder than ambient
+                this.currentBackground.loop = false; // Handle looping manually for crossfade
+                
+                this.currentBackground.preload = 'auto';
+                
+                // Handle crossfade before track ends (start crossfade 3 seconds before end for abrupt ending)
+                this.currentBackground.addEventListener('timeupdate', () => {
+                    if (this.currentBackground) {
+                        const timeLeft = this.currentBackground.duration - this.currentBackground.currentTime;
+                        // Start crossfade 3 seconds before end to handle abrupt ending
+                        if (timeLeft <= 3 && timeLeft > 0 && !this.backgroundCrossfadeStarted) {
+                            this.backgroundCrossfadeStarted = true;
+                            this.startBackgroundCrossfade();
+                        }
+                    }
+                });
+                
+                this.currentBackground.addEventListener('ended', () => {
+                    this.currentBackground = null;
+                    this.backgroundCrossfadeStarted = false;
+                    // Start next loop if not paused
+                    if (!this.isPaused) {
+                        this.playBackgroundLoop();
+                    }
+                });
+                
+                this.currentBackground.play().catch(e => {
+                    console.warn('Could not play background music:', e);
+                });
+            } catch (error) {
+                console.warn('Error playing background music:', error);
+            }
+        }
+    },
+    
+    // Start crossfade for background music to handle abrupt ending
+    startBackgroundCrossfade() {
+        if (this.sounds.background && !this.nextBackground) {
+            try {
+                // Create next background sound
+                this.nextBackground = this.sounds.background.cloneNode();
+                this.nextBackground.volume = 0; // Start silent
+                this.nextBackground.preload = 'auto';
+                
+                // Start playing the next sound
+                this.nextBackground.play().catch(e => {
+                    console.warn('Could not play crossfade background music:', e);
+                });
+                
+                // Crossfade: fade out current, fade in next over 3 seconds
+                const fadeStep = 0.02; // Smaller steps for smoother fade
+                const fadeInterval = setInterval(() => {
+                    if (this.currentBackground && this.nextBackground) {
+                        // Fade out current
+                        this.currentBackground.volume = Math.max(0, this.currentBackground.volume - fadeStep);
+                        // Fade in next
+                        this.nextBackground.volume = Math.min(0.25 * this.volume, this.nextBackground.volume + fadeStep);
+                        
+                        // When crossfade complete
+                        if (this.currentBackground.volume <= 0 && this.nextBackground.volume >= 0.25 * this.volume) {
+                            clearInterval(fadeInterval);
+                            // Switch to next sound
+                            if (this.currentBackground) {
+                                this.currentBackground.pause();
+                            }
+                            this.currentBackground = this.nextBackground;
+                            this.nextBackground = null;
+                            this.backgroundCrossfadeStarted = false;
+                            
+                            // Setup next crossfade
+                            this.currentBackground.addEventListener('timeupdate', () => {
+                                if (this.currentBackground) {
+                                    const timeLeft = this.currentBackground.duration - this.currentBackground.currentTime;
+                                    if (timeLeft <= 3 && timeLeft > 0 && !this.backgroundCrossfadeStarted) {
+                                        this.backgroundCrossfadeStarted = true;
+                                        this.startBackgroundCrossfade();
+                                    }
+                                }
+                            });
+                        }
+                    } else {
+                        clearInterval(fadeInterval);
+                    }
+                }, 50); // Crossfade every 50ms for smooth transition
+            } catch (error) {
+                console.warn('Error starting background crossfade:', error);
+            }
+        }
+    },
+    
     
     // Set master volume
     setVolume(volume) {
         this.volume = Math.max(0, Math.min(1, volume));
         
-        // Update current ambient sound volume
+        // Update current sound volumes
         if (this.currentAmbient) {
             this.currentAmbient.volume = this.ambientVolume * this.volume;
+        }
+        if (this.currentBackground) {
+            this.currentBackground.volume = 0.25 * this.volume;
         }
     },
     
@@ -212,6 +407,12 @@ const SoundManager = {
         }
         if (this.nextAmbient) {
             this.nextAmbient.pause();
+        }
+        if (this.currentBackground) {
+            this.currentBackground.pause();
+        }
+        if (this.nextBackground) {
+            this.nextBackground.pause();
         }
         this.isPaused = true;
     },
@@ -234,6 +435,20 @@ const SoundManager = {
                 console.warn('Could not resume crossfade ambient sound:', e);
             });
         }
+        
+        if (this.currentBackground) {
+            this.currentBackground.play().catch(e => {
+                console.warn('Could not resume background music:', e);
+            });
+        }
+        
+        if (this.nextBackground) {
+            this.nextBackground.play().catch(e => {
+                console.warn('Could not resume crossfade background music:', e);
+            });
+        }
+        
+        
     },
     
     // Stop all sounds completely
@@ -246,6 +461,16 @@ const SoundManager = {
             this.nextAmbient.pause();
             this.nextAmbient = null;
         }
+        if (this.currentBackground) {
+            this.currentBackground.pause();
+            this.currentBackground = null;
+        }
+        if (this.nextBackground) {
+            this.nextBackground.pause();
+            this.nextBackground = null;
+        }
+        this.backgroundCrossfadeStarted = false;
+        this.ghoulDetectionPlayed.clear();
         this.crossfadeStarted = false;
         this.isPaused = false;
     },

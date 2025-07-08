@@ -150,6 +150,7 @@ const GameState = {
         
         this.resetGame();
         this.game.state = 'playing'; // Set to playing after reset
+        console.log('🎮 Game state set to:', this.game.state);
         
         // Generate the first floor
         if (typeof MapGenerator !== 'undefined' && MapGenerator.generateFloor) {
@@ -178,10 +179,7 @@ const GameState = {
             }
         }
         
-        // Start tutorial if enabled
-        if (typeof TutorialSystem !== 'undefined') {
-            TutorialSystem.startTutorial();
-        }
+        // Don't start tutorial here - it will be started after story narration
         
         // Update inventory display to ensure it shows the correct initial state
         if (typeof InventoryManager !== 'undefined' && InventoryManager.updateDisplay) {
@@ -210,6 +208,11 @@ const GameState = {
         this.stats.gamesPlayed++;
         this.stats.sessionStartTime = Date.now();
         this.saveStats();
+        
+        // Final state check
+        console.log('✅ Game started successfully. Final state:', this.game.state);
+        console.log('📍 Player position:', this.game.player.x, this.game.player.y);
+        console.log('🗺️ Floor:', this.game.floor);
     },
 
     // Quit to menu

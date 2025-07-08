@@ -148,6 +148,11 @@ const EntityManager = {
     collectOrb(game, orb) {
         orb.collected = true;
         
+        // Play orb collection sound based on type
+        if (window.SoundManager) {
+            SoundManager.playOrbCollection(orb.type);
+        }
+        
         const orbType = ORB_TYPES[orb.type];
         if (!orbType) return;
         

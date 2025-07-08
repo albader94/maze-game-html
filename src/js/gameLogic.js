@@ -638,14 +638,23 @@ const GameLogic = {
 
     // Update ghouls with improved AI and defeat mechanism
     updateGhouls(game, deltaTime) {
+        const ghoulStates = [];
+        
         for (const ghoul of game.ghouls) {
             const distToPlayer = Utils.distance(ghoul, game.player);
+            const previousState = ghoul.state;
+            
+            // Ensure ghoul has an ID for sound tracking
+            if (!ghoul.id) {
+                ghoul.id = Math.random().toString(36).substr(2, 9);
+            }
             
             if (game.swarming) {
                 // During swarm - move directly toward player
                 const angle = Math.atan2(game.player.y - ghoul.y, game.player.x - ghoul.x);
                 ghoul.x += Math.cos(angle) * ghoul.speed;
                 ghoul.y += Math.sin(angle) * ghoul.speed;
+                ghoul.state = 'swarming';
             } else if (distToPlayer < game.player.lightRadius * 0.6) {
                 // Flee from bright light
                 const angle = Math.atan2(ghoul.y - game.player.y, ghoul.x - game.player.x);
@@ -672,11 +681,26 @@ const GameLogic = {
                 ghoul.state = 'patrol';
             }
             
+            // Track state changes for sound system (only for nearby ghouls)
+            if (distToPlayer <= 200) { // Slightly larger range for sound detection
+                ghoulStates.push({
+                    id: ghoul.id,
+                    state: ghoul.state,
+                    distance: distToPlayer,
+                    justStartedStalking: previousState !== 'stalking' && ghoul.state === 'stalking'
+                });
+            }
+            
             // Ghoul damage to player when close but not in bright light
             if (!game.swarming && distToPlayer < 30 && distToPlayer > game.player.lightRadius * 0.8) {
                 game.player.light -= 0.3;
                 game.player.light = Math.max(0, game.player.light);
             }
+        }
+        
+        // Update ghoul tension sounds based on their states
+        if (window.SoundManager && !game.swarming) {
+            SoundManager.updateGhoulTension(ghoulStates);
         }
     },
 
@@ -822,6 +846,11 @@ const GameLogic = {
                 game.deathScreen = true;
                 game.swarming = false;
                 game.darknessFade = 0;
+                
+                // Play death sound
+                if (window.SoundManager) {
+                    SoundManager.playDeathSound();
+                }
                 GameState.recordDeath();
                 console.log('💀 Swarm completed, showing death screen');
             }

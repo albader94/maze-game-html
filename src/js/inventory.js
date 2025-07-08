@@ -10,16 +10,25 @@ const InventoryManager = {
             case 'purple':
                 game.player.powers.phase = CONFIG.GAME.PHASE_DURATION;
                 Utils.showMessage(MESSAGES.STORY.PHASE_ACTIVATED, 2500);
+                if (window.SoundManager) {
+                    SoundManager.playOrbUsage('phase');
+                }
                 break;
                 
             case 'green':
                 game.player.powers.regeneration = CONFIG.GAME.REGENERATION_DURATION;
                 Utils.showMessage(MESSAGES.STORY.REGENERATION_ACTIVATED, 2500);
+                if (window.SoundManager) {
+                    SoundManager.playOrbUsage('regeneration');
+                }
                 break;
                 
             case 'white':
                 game.player.powers.reveal = CONFIG.GAME.REVEAL_DURATION;
                 Utils.showMessage(MESSAGES.STORY.REVEAL_ACTIVATED, 2500);
+                if (window.SoundManager) {
+                    SoundManager.playOrbUsage('reveal');
+                }
                 break;
                 
             case 'red':
@@ -28,6 +37,9 @@ const InventoryManager = {
                 Utils.showMessage(MESSAGES.STORY.LIFELINE_USED, 3000);
                 // Create revival effect
                 Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 20, 6);
+                if (window.SoundManager) {
+                    SoundManager.playOrbUsage('flame');
+                }
                 break;
         }
         

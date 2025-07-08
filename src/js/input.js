@@ -422,7 +422,13 @@ const InputManager = {
     handleMenuAction(action) {
         switch (action) {
             case 'newGame':
-                GameState.startGame();
+                // Start story narration first, which will then start the game
+                if (window.StoryNarration) {
+                    StoryNarration.start();
+                } else {
+                    // Fallback if story system not available
+                    GameState.startGame();
+                }
                 break;
             case 'leaderboards':
                 // TODO: Implement leaderboards screen

@@ -364,8 +364,8 @@ const InputManager = {
             GameState.quitToMenu();
         }
         
-        // Start game from menu
-        if (e.key === ' ' && game.state === 'menu') {
+        // Start game from menu (but not if story narration is playing)
+        if (e.key === ' ' && game.state === 'menu' && !(window.StoryNarration && window.StoryNarration.isPlaying)) {
             e.preventDefault();
             GameState.startGame();
         }

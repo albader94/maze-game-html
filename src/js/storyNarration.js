@@ -3,6 +3,7 @@ const StoryNarration = {
     currentPart: 0,
     isPlaying: false,
     skipPressed: false,
+    completed: false,
     currentNarrationAudio: null,
     narrationTexts: [
         // Part 1
@@ -27,6 +28,7 @@ const StoryNarration = {
         this.isPlaying = true;
         this.currentPart = 0;
         this.skipPressed = false;
+        this.completed = false;
         
         // Handle user interaction for audio
         if (window.SoundManager && window.SoundManager.handleUserInteraction) {
@@ -128,6 +130,7 @@ const StoryNarration = {
         // Listen for ESC key
         this.escHandler = (e) => {
             if (e.key === 'Escape') {
+                e.stopImmediatePropagation();
                 this.skip();
             }
         };
@@ -218,41 +221,44 @@ const StoryNarration = {
     
     // Complete the narration and start the game
     complete() {
+        // Guard against being called multiple times
+        if (this.completed) return;
+        this.completed = true;
+
+        // Remove ESC handler immediately to prevent re-entry
+        document.removeEventListener('keydown', this.escHandler);
+
+        // Stop any playing narration
+        this.stopCurrentNarration();
+
+        // Mark narration as no longer playing
+        this.isPlaying = false;
+
+        // Start the game BEFORE removing overlay so state is 'playing'
+        // while the overlay fades out (prevents menu from rendering underneath)
+        console.log('Story complete - calling GameState.startGame()...');
+
+        // Call the official startGame method
+        GameState.startGame();
+
+        // Verify the game started
+        const game = GameState.getGame();
+        console.log('Game state after startGame:', game.state);
+
+        // Start tutorial after game loads
+        setTimeout(() => {
+            if (window.TutorialSystem && window.TutorialSystem.startTutorial) {
+                window.TutorialSystem.startTutorial();
+            }
+        }, 500);
+
+        // Now fade out and remove the overlay
         const overlay = document.getElementById('storyOverlay');
         if (overlay) {
             overlay.style.opacity = '0';
-            
+
             setTimeout(() => {
                 overlay.remove();
-                document.removeEventListener('keydown', this.escHandler);
-                
-                // Stop any playing narration
-                this.stopCurrentNarration();
-                
-                // Start the game after story
-                this.isPlaying = false;
-                
-                // Start the game using GameState.startGame()
-                if (window.GameState && window.GameState.startGame) {
-                    console.log('Story complete - calling GameState.startGame()...');
-                    
-                    // Call the official startGame method
-                    window.GameState.startGame();
-                    
-                    // Verify the game started
-                    const game = window.GameState.getGame();
-                    console.log('Game state after startGame:', game.state);
-                    
-                    // Start tutorial after game loads
-                    setTimeout(() => {
-                        if (window.TutorialSystem && window.TutorialSystem.startTutorial) {
-                            window.TutorialSystem.startTutorial();
-                        }
-                    }, 500);
-                } else {
-                    console.error('GameState.startGame not found!');
-                }
-                
             }, 1000);
         }
     }

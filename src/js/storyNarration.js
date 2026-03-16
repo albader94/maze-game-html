@@ -99,24 +99,33 @@ const StoryNarration = {
         
         // Create skip button
         const skipButton = document.createElement('button');
-        skipButton.textContent = 'Skip (ESC)';
+        skipButton.textContent = 'Skip';
         skipButton.style.cssText = `
             position: absolute;
             bottom: 30px;
             right: 30px;
-            padding: 10px 20px;
+            padding: 14px 28px;
+            min-width: 44px;
+            min-height: 44px;
             background: rgba(212, 175, 55, 0.2);
             border: 1px solid #d4af37;
             color: #d4af37;
             font-family: 'Courier New', monospace;
-            font-size: 14px;
+            font-size: 16px;
             cursor: pointer;
             transition: all 0.3s ease;
-            opacity: 0.5;
+            opacity: 0.7;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         `;
         skipButton.onmouseover = () => skipButton.style.opacity = '1';
-        skipButton.onmouseout = () => skipButton.style.opacity = '0.5';
-        skipButton.onclick = () => this.skip();
+        skipButton.onmouseout = () => skipButton.style.opacity = '0.7';
+        skipButton.onclick = (e) => { e.preventDefault(); this.skip(); };
+        skipButton.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.skip();
+        }, { passive: false });
         
         overlay.appendChild(textContainer);
         overlay.appendChild(skipButton);

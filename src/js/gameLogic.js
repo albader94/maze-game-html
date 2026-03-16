@@ -2,8 +2,8 @@
 const GameLogic = {
     errorHandler: {
         errors: [],
-        maxErrors: 10,
-        
+        maxErrors: 50,
+
         // Log error with context
         logError(error, context = '') {
             try {
@@ -15,11 +15,11 @@ const GameLogic = {
                     stack: error && error.stack ? error.stack : 'No stack trace available',
                     gameState: this.getGameStateSnapshot()
                 };
-                
+
                 this.errors.push(errorInfo);
-                
-                // Keep only last 50 errors
-                if (this.errors.length > 50) {
+
+                // Keep only the most recent errors
+                if (this.errors.length > this.maxErrors) {
                     this.errors.shift();
                 }
                 
@@ -376,7 +376,6 @@ const GameLogic = {
                 selectedSlot: 0,
                 deathMarkers: [],
                 lastPosition: { x: 100, y: 100 },
-                survivalTime: 0,
                 powers: { phase: 0, regeneration: 0, reveal: 0 }
             };
             
@@ -437,15 +436,15 @@ const GameLogic = {
 
     // Update gameplay with error boundaries
     updateGameplay(game, deltaTime) {
+        // Increment game time counter (used by renderer for animations)
+        game.time++;
+
         // Update player with error handling
         this.safeUpdate(() => this.updatePlayer(game, deltaTime), 'Player Update');
-        
+
         // Update entities with error handling
         this.safeUpdate(() => this.updateEntities(game, deltaTime), 'Entity Update');
-        
-        // Update physics with error handling
-        this.safeUpdate(() => this.updatePhysics(game), 'Physics Update');
-        
+
         // Update game logic with error handling
         this.safeUpdate(() => this.updateGameRules(game, deltaTime), 'Game Rules Update');
     },
@@ -486,7 +485,7 @@ const GameLogic = {
         this.updatePlayerPowers(game, deltaTime);
         
         // Calculate light depletion rate based on ghoul presence
-        let lightDepletionRate = CONFIG.LIGHT.DEPLETION_RATE;
+        let lightDepletionRate = CONFIG.PLAYER.LIGHT_DECAY_RATE;
         
         // Count stalking ghouls nearby
         let stalkingGhouls = 0;
@@ -670,9 +669,9 @@ const GameLogic = {
             } else {
                 // Patrol behavior
                 if (!ghoul.patrolTarget || Utils.distance(ghoul, ghoul.patrolTarget) < 20) {
-                    ghoul.patrolTarget = { 
-                        x: Math.random() * game.mapWidth * 40, 
-                        y: Math.random() * game.mapHeight * 40 
+                    ghoul.patrolTarget = {
+                        x: Math.random() * game.mapWidth * CONFIG.MAP.CELL_SIZE,
+                        y: Math.random() * game.mapHeight * CONFIG.MAP.CELL_SIZE
                     };
                 }
                 const angle = Math.atan2(ghoul.patrolTarget.y - ghoul.y, ghoul.patrolTarget.x - ghoul.x);
@@ -693,7 +692,7 @@ const GameLogic = {
             
             // Ghoul damage to player when close but not in bright light
             if (!game.swarming && distToPlayer < 30 && distToPlayer > game.player.lightRadius * 0.8) {
-                game.player.light -= 0.3;
+                game.player.light -= CONFIG.PLAYER.LIGHT_DRAIN_FROM_GHOULS;
                 game.player.light = Math.max(0, game.player.light);
             }
         }
@@ -753,18 +752,13 @@ const GameLogic = {
         }
     },
 
-    // Update physics (placeholder for future physics system)
-    updatePhysics(game) {
-        // Future: Add collision resolution, physics simulation, etc.
-    },
-
     // Update game rules
     updateGameRules(game, deltaTime) {
         // Check stairs detection - use same logic as original
         if (game.stairs && Utils.distance(game.player, game.stairs) < 40) {
-            console.log(`🚪 Player using stairs to go from floor ${game.floor} to ${game.floor + 1}`);
-            
-            game.floor++;
+            console.log(`🚪 Player using stairs to descend from floor ${game.floor} to ${game.floor - 1}`);
+
+            game.floor--;
             // Generate new floor or proceed normally
             {
                 if (game.floor % 5 === 0) {
@@ -932,29 +926,6 @@ const GameLogic = {
         }
         
         console.log(`🌊 Swarm started: ${game.ghouls.length} total ghouls, timer: ${game.swarmTimer}`);
-    },
-
-    // Proceed to next floor
-    proceedToNextFloor(game) {
-        try {
-            game.floor--;
-            
-            // Save checkpoint every 5 floors
-            if (game.floor % 5 === 0) {
-                GameState.saveCheckpoint();
-            }
-            
-            // Generate new floor
-            MapGenerator.generateFloor(game);
-            
-            // Create floor transition effect
-            Utils.createCircularParticles(game, game.player.x, game.player.y, '#00ff00', 30, 8);
-            
-        } catch (error) {
-            this.errorHandler.logError(error, 'Floor Transition');
-            // Fallback: regenerate current floor
-            MapGenerator.generateFloor(game);
-        }
     },
 
     // Render game with error handling

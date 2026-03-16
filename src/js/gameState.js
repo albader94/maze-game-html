@@ -15,13 +15,6 @@ const GameState = {
             firstTimeOrbs: new Set(), // Track which orb types have been collected for the first time
             tutorialPopup: null
         },
-        stats: {
-            totalOrbs: 0,
-            totalFloors: 0,
-            totalDeaths: 0,
-            bestFloor: 1,
-            sessionTime: 0
-        },
         player: {
             x: 400,
             y: 300,
@@ -38,8 +31,7 @@ const GameState = {
                 reveal: 0
             },
             deathMarkers: [],
-            lastPosition: { x: 100, y: 100 },
-            survivalTime: 0
+            lastPosition: { x: 100, y: 100 }
         },
         camera: {
             x: 0,
@@ -63,8 +55,7 @@ const GameState = {
         mapWidth: CONFIG.MAP.WIDTH,
         mapHeight: CONFIG.MAP.HEIGHT,
         gameStartTime: Date.now(),
-        distanceTraveled: 0,
-        ghoulsDefeated: 0
+        distanceTraveled: 0
     },
 
     // Game statistics
@@ -104,7 +95,6 @@ const GameState = {
             this.resetGame();
             console.log('✅ Game reset completed');
             
-            this.stats.gamesPlayed++;
             this.stats.lastPlayed = Date.now();
             this.saveStats();
             console.log('✅ Stats updated and saved');
@@ -140,7 +130,6 @@ const GameState = {
         }
         
         this.game = this.createInitialGameState();
-        this.initializeGame();
         return this.game;
     },
 
@@ -187,16 +176,12 @@ const GameState = {
             console.log(`🎒 Initial inventory display updated`);
         }
         
-        // Show UI elements with safety checks
-        const elements = ['ui', 'minimap', 'inventory', 'story'];
-        elements.forEach(id => {
-            const element = document.getElementById(id);
-            if (element) {
-                element.style.display = id === 'inventory' ? 'flex' : 'block';
-            } else {
-                console.warn(`⚠️ Element '${id}' not found`);
-            }
-        });
+        // Note: UI elements (ui, minimap, inventory) are rendered on canvas
+        // and hidden via CSS !important. Only the story element needs display toggling.
+        const storyEl = document.getElementById('story');
+        if (storyEl) {
+            storyEl.style.display = 'block';
+        }
         
         // Set checkpoint with safety check
         const checkpointElement = document.getElementById('checkpoint');
@@ -222,24 +207,34 @@ const GameState = {
         this.game.swarming = false;
         this.game.swarmTimer = 0;
         this.game.darknessFade = 0;
-        
-        // Hide UI elements
-        document.getElementById('ui').style.display = 'none';
-        document.getElementById('minimap').style.display = 'none';
-        document.getElementById('inventory').style.display = 'none';
-        document.getElementById('story').style.display = 'none';
-        document.getElementById('powerStatus').textContent = '';
+
+        // Stop all sounds when returning to menu
+        if (window.SoundManager) {
+            SoundManager.stopAll();
+        }
+
+        // Hide story element (other UI elements are rendered on canvas and hidden via CSS)
+        const storyEl = document.getElementById('story');
+        if (storyEl) storyEl.style.display = 'none';
+        const powerStatusEl = document.getElementById('powerStatus');
+        if (powerStatusEl) powerStatusEl.textContent = '';
+
+        // Reset floor transition effect on renderer
+        if (typeof Renderer !== 'undefined') {
+            Renderer.lastRenderedFloor = null;
+            Renderer.floorTransitionAlpha = 0;
+        }
     },
 
     // Respawn at checkpoint
     respawnAtCheckpoint() {
         console.log(`🔄 Respawning at checkpoint floor ${this.game.checkpoint}...`);
         
-        // Add death marker at current location
+        // Add death marker at current location (store absolute floor for matching in placeDeathMarkers)
         this.game.player.deathMarkers.push({
             x: this.game.player.x,
             y: this.game.player.y,
-            floor: this.game.floor
+            floor: Math.abs(this.game.floor)
         });
         
         // Reset to checkpoint floor
@@ -255,6 +250,7 @@ const GameState = {
         // Clear powers and reset player state
         this.game.player.powers = { phase: 0, regeneration: 0, reveal: 0 };
         this.game.player.lightRadius = CONFIG.PLAYER.LIGHT_RADIUS;
+        this.game.player.isDead = false;
         
         // Regenerate the checkpoint floor
         if (typeof MapGenerator !== 'undefined' && MapGenerator.generateFloor) {
@@ -270,11 +266,11 @@ const GameState = {
                     ghoul.speed = 2; // Reset to normal speed
                 }
                 
-                // Update camera to follow player
+                // Update camera to follow player (instant snap on respawn)
                 if (typeof Utils !== 'undefined' && Utils.updateCamera) {
-                    Utils.updateCamera(this.game);
+                    Utils.updateCamera(this.game, true);
                 }
-                
+
                 console.log(`✅ Respawned at checkpoint floor ${this.game.floor} at position (${this.game.player.x}, ${this.game.player.y})`);
                 console.log(`🔄 Reset ${this.game.ghouls.length} ghouls to normal state`);
             } catch (error) {
@@ -323,7 +319,7 @@ const GameState = {
         } else {
             // If no level entry inventory is set, this means we're on the first level
             // or there was an error - default to empty inventory for first level
-            if (currentFloor === 1) {
+            if (currentFloor === -1) {
                 entryInventory = [null, null, null];
                 console.log(`🎒 Level 1 restart - using empty inventory (starting inventory)`);
             } else {
@@ -344,10 +340,11 @@ const GameState = {
         this.game.swarmTimer = 0;
         this.game.darknessFade = 0;
         this.game.deathScreen = false;
-        
+        this.game.player.isDead = false;
+
         // Player position will be properly set by MapGenerator.generateFloor() -> resetPlayerPosition()
         // This ensures the player spawns in a valid, wall-free location
-        
+
         // Regenerate the current floor
         if (typeof MapGenerator !== 'undefined' && MapGenerator.generateFloor) {
             try {
@@ -361,7 +358,7 @@ const GameState = {
                 
                 // Update camera to follow player
                 if (typeof Utils !== 'undefined' && Utils.updateCamera) {
-                    Utils.updateCamera(this.game);
+                    Utils.updateCamera(this.game, true);
                 }
                 
                 console.log(`✅ Level ${currentFloor} restarted successfully`);
@@ -369,8 +366,9 @@ const GameState = {
             } catch (error) {
                 console.warn('⚠️ Failed to regenerate current level:', error);
                 // Try to recover by ensuring player has valid position
-                this.game.player.x = Math.max(cellSize, this.game.player.x);
-                this.game.player.y = Math.max(cellSize, this.game.player.y);
+                const cs = CONFIG.MAP.CELL_SIZE || 40;
+                this.game.player.x = Math.max(cs, this.game.player.x);
+                this.game.player.y = Math.max(cs, this.game.player.y);
             }
         }
         
@@ -419,8 +417,8 @@ const GameState = {
             }
         }
         
-        // Update deepest floor
-        if (this.game.floor > this.stats.deepestFloor) {
+        // Update deepest floor (floors are negative, so deeper = more negative)
+        if (this.game.floor < this.stats.deepestFloor) {
             this.stats.deepestFloor = this.game.floor;
         }
         
@@ -467,8 +465,8 @@ const GameState = {
             newAchievements.push('survivor');
         }
         
-        // Completionist
-        if (this.game.floor >= CONFIG.GAME.MAX_FLOORS && !this.stats.achievements.has('completionist')) {
+        // Completionist (floors are negative, so check absolute value)
+        if (Math.abs(this.game.floor) >= CONFIG.GAME.MAX_FLOORS && !this.stats.achievements.has('completionist')) {
             newAchievements.push('completionist');
         }
         
@@ -586,7 +584,7 @@ const GameState = {
         return {
             totalPlayTime: formatTime(this.stats.totalPlayTime),
             gamesPlayed: this.stats.gamesPlayed,
-            deepestFloor: `-${this.stats.deepestFloor}`,
+            deepestFloor: `${Math.abs(this.stats.deepestFloor)}`,
             totalOrbsCollected: this.stats.totalOrbsCollected,
             totalDistanceTraveled: Math.round(this.stats.totalDistanceTraveled),
             totalDeaths: this.stats.totalDeaths,
@@ -670,7 +668,7 @@ const GameState = {
             
             // Restore saved values
             this.game.floor = gameData.floor;
-            this.game.checkpoint = gameData.checkpoint || 0;
+            this.game.checkpoint = gameData.checkpoint || -1;
             this.game.player.light = gameData.player.light || 100;
             this.game.player.orbsCollected = gameData.player.orbsCollected || 0;
             this.game.player.inventory = gameData.player.inventory || [null, null, null];
@@ -707,11 +705,11 @@ const GameState = {
     // Load game from checkpoint
     loadCheckpoint() {
         try {
-            const savedGame = this.loadGame();
-            if (savedGame && savedGame.checkpoint) {
-                this.game.floor = savedGame.checkpoint;
+            const loaded = this.loadGame();
+            if (loaded && this.game.checkpoint) {
+                this.game.floor = this.game.checkpoint;
                 this.game.player.light = 75; // Restore some light at checkpoint
-                MapGenerator.generateFloor(this.game, this.game.floor);
+                MapGenerator.generateFloor(this.game);
                 console.log(`Loaded checkpoint at floor ${this.game.floor}`);
             }
         } catch (error) {
@@ -734,13 +732,6 @@ const GameState = {
                 firstTimeOrbs: new Set(),
                 tutorialPopup: null
             },
-            stats: {
-                totalOrbs: 0,
-                totalFloors: 0,
-                totalDeaths: 0,
-                bestFloor: 1,
-                sessionTime: 0
-            },
             player: {
                 x: CONFIG.PLAYER.START_X || 100,
                 y: CONFIG.PLAYER.START_Y || 100,
@@ -754,7 +745,6 @@ const GameState = {
                 selectedSlot: 0,
                 deathMarkers: [],
                 lastPosition: { x: 100, y: 100 },
-                survivalTime: 0,
                 powers: {
                     phase: 0,
                     regeneration: 0,
@@ -783,10 +773,5 @@ const GameState = {
             distanceTraveled: 0,
             survivalTime: 0
         };
-    },
-
-    // Initialize game
-    initializeGame() {
-        // Additional initialization logic if needed
     }
 }; 

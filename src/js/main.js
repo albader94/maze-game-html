@@ -707,18 +707,24 @@ const Game = {
         // Create settings button
         const settingsBtn = document.createElement('button');
         settingsBtn.textContent = '⚙️';
+        settingsBtn.id = 'settingsButton';
         settingsBtn.style.cssText = `
             position: fixed;
             top: 10px;
             right: 10px;
-            background: rgba(0, 0, 0, 0.7);
-            color: white;
+            background: rgba(42, 24, 16, 0.85);
+            color: #DAA520;
             border: 2px solid #8B4513;
-            border-radius: 5px;
-            padding: 8px 12px;
+            border-radius: 8px;
+            padding: 10px 14px;
+            min-width: 44px;
+            min-height: 44px;
             cursor: pointer;
-            font-size: 16px;
+            font-size: 18px;
             z-index: 1000;
+            pointer-events: auto;
+            -webkit-tap-highlight-color: transparent;
+            touch-action: manipulation;
         `;
         // Settings button now acts like ESC key - shows pause menu if in game
         settingsBtn.addEventListener('click', () => {
@@ -1229,9 +1235,10 @@ const Game = {
             this.removeDebugPanel();
         }
         
-        // Apply volume settings
+        // Apply audio settings
         if (window.SoundManager) {
             SoundManager.setVolume(this.settings.volume);
+            SoundManager.setEnabled(this.settings.enableSoundEffects);
         }
         
         // Apply touch sensitivity
@@ -1377,11 +1384,16 @@ const Game = {
                     this.showFPS(deltaTime);
                 }
                 
+                // Update mobile UI visibility
+                if (typeof InputManager !== 'undefined' && InputManager.updateMobileUI) {
+                    InputManager.updateMobileUI();
+                }
+
                 // Auto-save periodically (only when not paused)
                 if (!this.isPaused && this.settings.autoSave) {
                     this.autoSave();
                 }
-                
+
             } catch (error) {
                 console.error('❌ Game loop error:', error);
                 this.showCriticalError(error);
@@ -1415,7 +1427,16 @@ const Game = {
         
         ctx.fillStyle = '#B0C4DE';
         ctx.font = '24px monospace';
-        ctx.fillText('Press ESC to resume or open settings', canvas.width / 2, canvas.height / 2 + 20);
+        const isMobilePause = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        if (isMobilePause) {
+            ctx.fillText('Tap pause button to resume', canvas.width / 2, canvas.height / 2 + 20);
+        } else {
+            ctx.fillText('Press ESC to resume or open settings', canvas.width / 2, canvas.height / 2 + 20);
+        }
+
+        // Reset text properties to avoid affecting subsequent rendering
+        ctx.textBaseline = 'alphabetic';
+        ctx.textAlign = 'left';
     },
 
     // Show FPS counter
@@ -1572,110 +1593,8 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// Handle window resize
-window.addEventListener('resize', () => {
-    // Game uses fixed canvas size, but we could add responsive handling here
-    console.log('Window resized');
-});
-
-// Handle errors
-window.addEventListener('error', (event) => {
-    console.error('Global error:', event.error);
-    // Game object handles its own errors through GameLogic
-});
-
-// Export for debugging
-window.GameDebug = {
-    getGame: () => GameState.getGame(),
-    getStats: () => {
-        try {
-            const game = GameState.getGame();
-            return GameState.getFormattedStats();
-        } catch (error) {
-            return { error: 'Could not get stats' };
-        }
-    },
-    resetGame: () => {
-        try {
-            GameState.resetGame();
-            console.log('Game reset');
-        } catch (error) {
-            console.error('Failed to reset game:', error);
-        }
-    },
-    teleportToFloor: (floor) => {
-        try {
-            const game = GameState.getGame();
-            game.floor = Math.max(1, Math.min(floor, CONFIG.GAME.MAX_FLOORS));
-            MapGenerator.generateFloor(game, game.floor);
-        } catch (error) {
-            console.error('Failed to teleport:', error);
-        }
-    },
-    giveOrb: (type) => {
-        try {
-            const game = GameState.getGame();
-            const slot = InventoryManager.getFirstEmptySlot();
-            if (slot >= 0 && ORB_TYPES[type]) {
-                game.player.inventory[slot] = type;
-                InventoryManager.updateDisplay();
-            }
-        } catch (error) {
-            console.error('Failed to give orb:', error);
-        }
-    },
-    setLight: (amount) => {
-        try {
-            const game = GameState.getGame();
-            game.player.light = Math.max(0, Math.min(amount, CONFIG.PLAYER.MAX_LIGHT));
-        } catch (error) {
-            console.error('Failed to set light:', error);
-        }
-    }
-};
+// Note: Window resize is handled by InputManager.setupResponsiveCanvas()
+// Note: Global error handler is set up in GameLogic.init()
 
 console.log('Main game script loaded. Game will initialize when DOM is ready.');
 console.log('Debug commands available in console via window.GameDebug');
-
-// Handle key down events
-document.addEventListener('keydown', (e) => {
-    if (Game.game && Game.game.state === 'playing') {
-        // Movement keys
-        if (e.key === 'w' || e.key === 'W' || e.key === 'ArrowUp') {
-            Game.keys.up = true;
-        }
-        if (e.key === 's' || e.key === 'S' || e.key === 'ArrowDown') {
-            Game.keys.down = true;
-        }
-        if (e.key === 'a' || e.key === 'A' || e.key === 'ArrowLeft') {
-            Game.keys.left = true;
-        }
-        if (e.key === 'd' || e.key === 'D' || e.key === 'ArrowRight') {
-            Game.keys.right = true;
-        }
-        
-        // Inventory slots
-        if (e.key >= '1' && e.key <= '3') {
-            const slot = parseInt(e.key) - 1;
-            if (typeof InventoryManager !== 'undefined') {
-                InventoryManager.useOrb(slot);
-            }
-        }
-        
-        // Help
-        if (e.key === 'h' || e.key === 'H') {
-            Game.game.showHelp = !Game.game.showHelp;
-        }
-        
-        // Pause/Settings
-        if (e.key === 'Escape') {
-            Game.togglePause();
-        }
-        
-        // Debug inventory (Ctrl+D)
-        if (e.ctrlKey && (e.key === 'd' || e.key === 'D')) {
-            e.preventDefault();
-            Game.debugInventorySystem();
-        }
-    }
-}); 

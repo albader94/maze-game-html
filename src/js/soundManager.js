@@ -14,26 +14,32 @@ const SoundManager = {
     sfxVolume: 0.3,      // Reduced for less intrusive SFX
     initialized: false,
     isPaused: false,
-    
+    muted: false,
+    enabled: true, // Controlled by settings enableSoundEffects
+    audioUnlocked: false, // Track whether user gesture has unlocked audio
+
     // Initialize sound system
     init() {
         if (this.initialized) return;
-        
-        console.log('🔊 Initializing Sound Manager');
-        
+
+        console.log('Initializing Sound Manager');
+
         // Load all sounds with correct paths relative to public/index.html
         // Load underground ambience
         this.loadSound('ambient', '../assets/sound/Underground_ambience.mp3');
         this.loadSound('background', '../assets/sound/backfround-sound.mp3');
-        
+
         // Load wind sounds
         this.loadSound('wind1', '../assets/sound/Wind through passages/Wind_through_passage-1.mp3');
         this.loadSound('wind2', '../assets/sound/Wind through passages/Wind_through_passage-2.mp3');
-        
+
         // Load game event sounds
         this.loadSound('death', '../assets/sound/Death_sound_Ominous.mp3');
         this.loadSound('orb_collection', '../assets/sound/Orb_collection.mp3');
-        
+        this.loadSound('button_select', '../assets/sound/Button_selection.mp3');
+        this.loadSound('footsteps', '../assets/sound/Footsteps_Stone.mp3');
+        this.loadSound('stalking', '../assets/sound/stalking.mp3');
+
         // Load individual orb sounds
         this.loadSound('blue_orb', '../assets/sound/blue-orb.mp3');
         this.loadSound('gold_orb', '../assets/sound/gold-orb.mp3');
@@ -41,12 +47,12 @@ const SoundManager = {
         this.loadSound('purple_orb', '../assets/sound/purple-orb.mp3');
         this.loadSound('white_orb', '../assets/sound/white-orb.mp3');
         this.loadSound('red_orb', '../assets/sound/red-orb.mp3');
-        
+
         // Load ghoul tension sounds
         this.loadSound('ghoul_detection', '../assets/sound/ghoul-detection.mp3');
-        
+
         this.initialized = true;
-        
+
         // Don't start ambient sounds automatically - wait for user interaction
     },
     
@@ -55,49 +61,61 @@ const SoundManager = {
         try {
             const audio = new Audio(path);
             audio.preload = 'auto';
-            audio.addEventListener('error', (e) => {
-                console.warn(`⚠️ Failed to load sound: ${name} from ${path}`);
+            audio.addEventListener('error', () => {
+                // Graceful fallback: mark sound as failed so we don't try to play it
+                console.warn(`Failed to load sound: ${name} from ${path}`);
+                delete this.sounds[name];
             });
             this.sounds[name] = audio;
         } catch (error) {
-            console.warn(`⚠️ Error loading sound ${name}:`, error);
+            // Graceful fallback: audio constructor failed (e.g., no audio support)
+            console.warn(`Error loading sound ${name}:`, error);
         }
     },
     
     // Play a sound effect
     playSFX(soundName, volume = null) {
-        if (!this.initialized || !this.sounds[soundName]) return;
-        
+        if (!this.initialized || !this.enabled || this.muted || !this.audioUnlocked) return;
+        if (!this.sounds[soundName]) {
+            // Graceful fallback: sound not loaded, skip silently
+            return;
+        }
+
         try {
             const sound = this.sounds[soundName].cloneNode();
             sound.volume = (volume !== null ? volume : this.sfxVolume) * this.volume;
             sound.play().catch(e => {
-                console.warn(`Could not play sound ${soundName}:`, e);
+                // Silently handle play failures (common on mobile before interaction)
             });
         } catch (error) {
-            console.warn(`Error playing sound ${soundName}:`, error);
+            // Graceful fallback: do not crash on audio errors
         }
+    },
+
+    // Play button selection sound
+    playButtonSelect() {
+        this.playSFX('button_select', 0.3);
     },
     
     
     
     // Start ambient sound loop
     startAmbientSounds() {
-        if (!this.initialized) return;
-        
+        if (!this.initialized || !this.enabled || this.muted || !this.audioUnlocked) return;
+
         // Start with underground ambience
         this.playAmbientLoop();
-        
+
         // Start background music
         this.playBackgroundLoop();
-        
+
         // Occasionally play wind sounds
         this.scheduleWindSounds();
     },
     
     // Play looping ambient sound - crossfade to handle fade-out
     playAmbientLoop() {
-        if (this.sounds.ambient && !this.currentAmbient) {
+        if (this.sounds.ambient && !this.currentAmbient && this.enabled && !this.muted && this.audioUnlocked) {
             try {
                 // Clone the audio to avoid issues
                 this.currentAmbient = this.sounds.ambient.cloneNode();
@@ -128,11 +146,11 @@ const SoundManager = {
                     }
                 });
                 
-                this.currentAmbient.play().catch(e => {
-                    console.warn('Could not play ambient sound:', e);
+                this.currentAmbient.play().catch(() => {
+                    // Silently handle - audio may not be allowed yet
                 });
             } catch (error) {
-                console.warn('Error playing ambient sound:', error);
+                // Graceful fallback
             }
         }
     },
@@ -148,9 +166,7 @@ const SoundManager = {
                 this.nextAmbient.preload = 'auto';
                 
                 // Start playing the next sound
-                this.nextAmbient.play().catch(e => {
-                    console.warn('Could not play crossfade ambient sound:', e);
-                });
+                this.nextAmbient.play().catch(() => {});
                 
                 // Crossfade: fade out current, fade in next
                 const fadeInterval = setInterval(() => {
@@ -187,7 +203,7 @@ const SoundManager = {
                     }
                 }, 100); // Crossfade every 100ms
             } catch (error) {
-                console.warn('Error starting ambient crossfade:', error);
+                // Graceful fallback
             }
         }
     },
@@ -293,7 +309,7 @@ const SoundManager = {
     
     // Play looping background music with crossfade for seamless loop
     playBackgroundLoop() {
-        if (this.sounds.background && !this.currentBackground) {
+        if (this.sounds.background && !this.currentBackground && this.enabled && !this.muted && this.audioUnlocked) {
             try {
                 this.currentBackground = this.sounds.background.cloneNode();
                 this.currentBackground.volume = 0.25 * this.volume; // Slightly louder than ambient
@@ -322,11 +338,9 @@ const SoundManager = {
                     }
                 });
                 
-                this.currentBackground.play().catch(e => {
-                    console.warn('Could not play background music:', e);
-                });
+                this.currentBackground.play().catch(() => {});
             } catch (error) {
-                console.warn('Error playing background music:', error);
+                // Graceful fallback
             }
         }
     },
@@ -341,9 +355,7 @@ const SoundManager = {
                 this.nextBackground.preload = 'auto';
                 
                 // Start playing the next sound
-                this.nextBackground.play().catch(e => {
-                    console.warn('Could not play crossfade background music:', e);
-                });
+                this.nextBackground.play().catch(() => {});
                 
                 // Crossfade: fade out current, fade in next over 3 seconds
                 const fadeStep = 0.02; // Smaller steps for smoother fade
@@ -381,7 +393,7 @@ const SoundManager = {
                     }
                 }, 50); // Crossfade every 50ms for smooth transition
             } catch (error) {
-                console.warn('Error starting background crossfade:', error);
+                // Graceful fallback
             }
         }
     },
@@ -420,35 +432,26 @@ const SoundManager = {
     // Resume all sounds (when returning to game)
     resumeAll() {
         if (!this.isPaused) return;
-        
+        if (!this.enabled || this.muted || !this.audioUnlocked) return;
+
         this.isPaused = false;
-        
+
         // If sounds were playing, resume them
         if (this.currentAmbient) {
-            this.currentAmbient.play().catch(e => {
-                console.warn('Could not resume ambient sound:', e);
-            });
+            this.currentAmbient.play().catch(() => {});
         }
-        
+
         if (this.nextAmbient) {
-            this.nextAmbient.play().catch(e => {
-                console.warn('Could not resume crossfade ambient sound:', e);
-            });
+            this.nextAmbient.play().catch(() => {});
         }
-        
+
         if (this.currentBackground) {
-            this.currentBackground.play().catch(e => {
-                console.warn('Could not resume background music:', e);
-            });
+            this.currentBackground.play().catch(() => {});
         }
-        
+
         if (this.nextBackground) {
-            this.nextBackground.play().catch(e => {
-                console.warn('Could not resume crossfade background music:', e);
-            });
+            this.nextBackground.play().catch(() => {});
         }
-        
-        
     },
     
     // Stop all sounds completely
@@ -475,14 +478,43 @@ const SoundManager = {
         this.isPaused = false;
     },
     
+    // Toggle mute on/off
+    toggleMute() {
+        this.muted = !this.muted;
+        if (this.muted) {
+            this.pauseAll();
+        } else if (this.enabled && this.audioUnlocked) {
+            this.resumeAll();
+        }
+        return this.muted;
+    },
+
+    // Set enabled state (from settings)
+    setEnabled(enabled) {
+        this.enabled = enabled;
+        if (!enabled) {
+            this.stopAll();
+        } else if (this.audioUnlocked && !this.muted) {
+            // Restart ambient sounds if audio was previously unlocked
+            if (!this.currentAmbient) {
+                this.startAmbientSounds();
+            }
+        }
+    },
+
     // Handle user interaction to enable audio (browsers require user gesture)
     handleUserInteraction() {
         if (!this.initialized) {
             this.init();
         }
-        
+
+        // Mark audio as unlocked by user gesture
+        if (!this.audioUnlocked) {
+            this.audioUnlocked = true;
+        }
+
         // Start ambient sounds on first interaction if not already playing
-        if (!this.currentAmbient && this.initialized) {
+        if (!this.currentAmbient && this.initialized && this.enabled && !this.muted) {
             this.startAmbientSounds();
         }
     }

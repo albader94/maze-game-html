@@ -5,6 +5,8 @@ const MapGenerator = {
         // Use the game's floor number if not provided
         if (floorNum === null) {
             floorNum = Math.abs(game.floor);
+        } else {
+            floorNum = Math.abs(floorNum);
         }
         
         // Clear existing floor data
@@ -63,7 +65,7 @@ const MapGenerator = {
         // Reset player position using the same empty spaces
         this.resetPlayerPosition(game, cellSize, emptySpaces);
         
-        Utils.updateCamera(game);
+        Utils.updateCamera(game, true);
         
         console.log('Floor generated:', floorNum, 'Ghouls placed:', game.ghouls.length, 'Stairs at:', game.stairs);
     },

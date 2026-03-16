@@ -25,9 +25,6 @@ const CONFIG = {
         LIGHT_DECAY_RATE: 0.02, // Reduced from 0.05 to 0.02 (60% slower)
         LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
     },
-    LIGHT: {
-        DEPLETION_RATE: 0.02 // Light depletion rate per frame
-    },
     GAME: {
         MAX_FLOORS: 2, // Restored to full game length
         CHECKPOINT_INTERVAL: 5,
@@ -101,23 +98,4 @@ const ORB_TYPES = {
     }
 };
 
-// Game Messages
-const MESSAGES = {
-    STORY: {
-        INTRO: 'The Burj Mubarak stretches below you, buried in sand and darkness...',
-        PHASE_ACTIVATED: 'Phase shift activated! Walk through walls!',
-        REGENERATION_ACTIVATED: 'Light regeneration activated!',
-        REVEAL_ACTIVATED: 'Map revealed!',
-        LIFELINE_USED: 'Lifeline used! Light fully restored!',
-        LIFELINE_AUTO: 'LIFELINE ACTIVATED! Your red orb saved you!',
-        DARKNESS_CONSUMES: 'The darkness consumes you... The ghouls are coming!',
-        PHASE_ENDING: 'Phase shift ending - moved to safe location!',
-        INVENTORY_FULL: 'Inventory full!',
-        RESPAWN: 'Respawned at checkpoint. Look for your light wisp!',
-        VICTORY: 'You found the Ancient Pearl! The curse is broken and your people are saved!'
-    },
-    FLOOR: {
-        CHECKPOINT: (floor) => `Floor -${floor}: Checkpoint saved!`,
-        PROGRESS: (floor) => `Floor -${floor}: Deeper into darkness...`
-    }
-}; 
+// Note: Game messages are defined in messages.js (MESSAGES and MessageGenerator objects)

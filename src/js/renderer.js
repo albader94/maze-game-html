@@ -4,6 +4,8 @@ const Renderer = {
     ctx: null,
     minimapCanvas: null,
     minimapCtx: null,
+    floorTransitionAlpha: 0, // For floor transition fade effect
+    lastRenderedFloor: null, // Track floor changes for transition effect
 
     // Initialize renderer
     init() {
@@ -51,7 +53,17 @@ const Renderer = {
             console.warn('⚠️ Renderer.render() called with undefined game object');
             return;
         }
-        
+
+        // Reset canvas state to prevent leakage between frames
+        this.ctx.globalAlpha = 1;
+        this.ctx.globalCompositeOperation = 'source-over';
+        this.ctx.shadowBlur = 0;
+        this.ctx.shadowColor = 'transparent';
+        this.ctx.textAlign = 'left';
+        this.ctx.textBaseline = 'alphabetic';
+        this.ctx.lineWidth = 1;
+        this.ctx.setLineDash([]);
+
         // Manage sounds based on game state
         if (window.SoundManager) {
             const isPaused = window.Game && window.Game.isPaused;
@@ -76,16 +88,15 @@ const Renderer = {
         this.ctx.save();
         this.ctx.translate(-game.camera.x, -game.camera.y);
 
-        // Render game world
+        // Render game world (order matters for correct z-layering)
         this.renderFloorTiles(game);
-        // this.renderSandParticles(game); // Atmospheric sand particles - temporarily disabled
         this.renderWalls(game);
         this.renderStairs(game);
         this.renderOrbs(game);
         this.renderGhouls(game);
         this.renderParticles(game);
-        this.renderPlayer(game);
-        this.renderLightEffect(game);
+        this.renderLightEffect(game);  // Light before player so player isn't washed out
+        this.renderPlayer(game);       // Player on top of light effect
 
         this.ctx.restore();
 
@@ -100,7 +111,20 @@ const Renderer = {
         this.renderGameUI(game);
         this.renderMinimap(game);
         this.renderInventory(game);
-        
+
+        // Floor transition fade effect
+        if (game.state === 'playing') {
+            if (this.lastRenderedFloor !== null && this.lastRenderedFloor !== game.floor) {
+                this.floorTransitionAlpha = 1.0; // Trigger fade
+            }
+            this.lastRenderedFloor = game.floor;
+        }
+        if (this.floorTransitionAlpha > 0) {
+            this.ctx.fillStyle = `rgba(0, 0, 0, ${this.floorTransitionAlpha})`;
+            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.floorTransitionAlpha = Math.max(0, this.floorTransitionAlpha - 0.04);
+        }
+
         // Render modal overlays (on top of everything)
         this.renderHelpScreen(game);
         this.renderDeathScreen(game);
@@ -114,8 +138,8 @@ const Renderer = {
         const startY = Math.floor(game.camera.y / CONFIG.MAP.CELL_SIZE);
         const endY = Math.ceil((game.camera.y + this.canvas.height) / CONFIG.MAP.CELL_SIZE);
         
-        // Very dark underground floor grid lines
-        this.ctx.strokeStyle = '#0a0a0a';
+        // Very dark underground floor grid lines (subtly visible near player)
+        this.ctx.strokeStyle = '#1a1510';
         for (let x = startX; x <= endX; x++) {
             for (let y = startY; y <= endY; y++) {
                 const tileX = x * CONFIG.MAP.CELL_SIZE;
@@ -184,16 +208,16 @@ const Renderer = {
             
             // Main Gothic platform with rounded corners
             const platformSize = 35;
-            this.ctx.save();
-            this.ctx.translate(game.stairs.x, game.stairs.y);
-            
-            // Outer platform with Gothic gradient
-            const outerGradient = this.ctx.createLinearGradient(-platformSize, -platformSize, platformSize, platformSize);
+
+            // Outer platform with Gothic gradient (use world coordinates)
+            const outerGradient = this.ctx.createLinearGradient(
+                game.stairs.x - platformSize, game.stairs.y - platformSize,
+                game.stairs.x + platformSize, game.stairs.y + platformSize
+            );
             outerGradient.addColorStop(0, '#654321'); // Gothic brown
             outerGradient.addColorStop(0.5, '#8B4513'); // Medium brown
             outerGradient.addColorStop(1, '#2A1810'); // Dark brown
-            
-            this.ctx.restore();
+
             // Draw outer platform with rounded corners
             this.drawRoundedRect(
                 game.stairs.x - platformSize,
@@ -556,32 +580,6 @@ const Renderer = {
         }
     },
 
-    // Render atmospheric sand particles
-    renderSandParticles(game) {
-        // Create floating sand/dust particles for atmosphere
-        this.ctx.save();
-        this.ctx.globalAlpha = 0.15;
-        this.ctx.fillStyle = '#d4a574';
-        
-        // Use game time for animation
-        const time = game.time || 0;
-        
-        // Generate particles based on camera position for consistency
-        const particleCount = 30;
-        for (let i = 0; i < particleCount; i++) {
-            const seed = i * 1000;
-            const x = ((game.camera.x + seed + time * 0.2) % (this.canvas.width + 100)) - 50;
-            const y = ((game.camera.y + seed * 0.7 + Math.sin(time * 0.001 + i) * 100) % (this.canvas.height + 100)) - 50;
-            const size = 1 + Math.sin(seed) * 2;
-            
-            this.ctx.beginPath();
-            this.ctx.arc(game.camera.x + x, game.camera.y + y, size, 0, Math.PI * 2);
-            this.ctx.fill();
-        }
-        
-        this.ctx.restore();
-    },
-
     // Render darkness vignette
     renderVignette() {
         try {
@@ -634,8 +632,8 @@ const Renderer = {
         let textY = uiY + 20;
         const lineHeight = 16;
         
-        // Floor info
-        this.ctx.fillText(`Floor: ${game.floor} / -50`, uiX + 10, textY);
+        // Floor info (use CONFIG for max floors)
+        this.ctx.fillText(`Floor: ${game.floor} / -${CONFIG.GAME.MAX_FLOORS}`, uiX + 10, textY);
         textY += lineHeight;
         
         // Light percentage
@@ -658,8 +656,8 @@ const Renderer = {
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(barX, barY, barWidth, barHeight);
         
-        // Light bar fill
-        const fillWidth = (game.player.light / 100) * (barWidth - 2);
+        // Light bar fill (clamped to bar bounds)
+        const fillWidth = Math.min(barWidth - 2, Math.max(0, game.player.light / 100) * (barWidth - 2));
         if (fillWidth > 0) {
             const gradient = this.ctx.createLinearGradient(barX, barY, barX + barWidth, barY);
             gradient.addColorStop(0, '#DAA520');
@@ -802,10 +800,16 @@ const Renderer = {
         // Very dark underground background for minimap
         this.ctx.fillStyle = '#0a0a0a';
         this.ctx.fillRect(contentX, contentY, contentWidth, contentHeight);
-        
+
+        // Clip minimap content to its bounds so nothing leaks out
+        this.ctx.save();
+        this.ctx.beginPath();
+        this.ctx.rect(contentX, contentY, contentWidth, contentHeight);
+        this.ctx.clip();
+
         const scaleX = contentWidth / mapWorldWidth;
         const scaleY = contentHeight / mapWorldHeight;
-        
+
         // Draw explored areas
         this.ctx.fillStyle = '#0f0f0f';
         for (const coord of game.explored) {
@@ -875,6 +879,9 @@ const Renderer = {
             this.canvas.width * scaleX,
             this.canvas.height * scaleY
         );
+
+        // Restore context to remove minimap clipping
+        this.ctx.restore();
     },
 
     // Render menu
@@ -926,7 +933,12 @@ const Renderer = {
         // Gothic footer with mystical symbols
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '11px serif';
-        this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', this.canvas.width / 2, 520);
+        const isMobileMenu = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        if (isMobileMenu) {
+            this.ctx.fillText('⚔ Joystick: Move • Buttons: Use Orb ⚔', this.canvas.width / 2, 520);
+        } else {
+            this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', this.canvas.width / 2, 520);
+        }
         
         // Build info with gothic styling
         this.ctx.fillStyle = '#654321';
@@ -1046,7 +1058,7 @@ const Renderer = {
         this.ctx.fillText('SACRED QUEST', this.canvas.width / 2, 110);
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '14px serif';
-        this.ctx.fillText('Descend the cursed tower to floor -50', this.canvas.width / 2, 130);
+        this.ctx.fillText(`Descend the cursed tower to floor -${CONFIG.GAME.MAX_FLOORS}`, this.canvas.width / 2, 130);
         this.ctx.fillText('Seek the Ancient Pearl to break the curse', this.canvas.width / 2, 150);
         
         // Controls section
@@ -1055,18 +1067,29 @@ const Renderer = {
         this.ctx.fillText('MYSTIC CONTROLS', this.canvas.width / 2, 190);
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '14px serif';
-        this.ctx.fillText('Arrow Keys / WASD: Navigate the darkness', this.canvas.width / 2, 210);
-        this.ctx.fillText('1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
-        this.ctx.fillText('H: Summon this guide', this.canvas.width / 2, 250);
-        
+        const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        if (isMobileDevice) {
+            this.ctx.fillText('Virtual Joystick: Navigate the darkness', this.canvas.width / 2, 210);
+            this.ctx.fillText('Buttons 1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
+            this.ctx.fillText('Pause button: Open settings', this.canvas.width / 2, 250);
+        } else {
+            this.ctx.fillText('Arrow Keys / WASD: Navigate the darkness', this.canvas.width / 2, 210);
+            this.ctx.fillText('1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
+            this.ctx.fillText('H: Summon this guide', this.canvas.width / 2, 250);
+        }
+
         // Orb guide
         this.renderHelpOrbGuide();
-        
+
         // Footer
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '16px serif';
-        this.ctx.fillText('Press H to dismiss this guide', this.canvas.width / 2, 520);
+        if (isMobileDevice) {
+            this.ctx.fillText('Tap anywhere to dismiss this guide', this.canvas.width / 2, 520);
+        } else {
+            this.ctx.fillText('Press H to dismiss this guide', this.canvas.width / 2, 520);
+        }
         this.ctx.textAlign = 'left';
     },
 
@@ -1218,7 +1241,12 @@ const Renderer = {
         
         this.ctx.font = '18px serif';
         this.ctx.fillStyle = '#d4a574'; // Light sand
-        this.ctx.fillText('Press R to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
+        const isMobileGameOver = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        if (isMobileGameOver) {
+            this.ctx.fillText('Tap to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
+        } else {
+            this.ctx.fillText('Press R to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
+        }
         this.ctx.textAlign = 'left';
     }
 }; 

@@ -1,21 +1,104 @@
 /* Base Styles */
-body {
+* {
+    box-sizing: border-box;
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
     margin: 0;
+    padding: 0;
     background: #000;
     display: flex;
     justify-content: center;
     align-items: center;
     height: 100vh;
+    height: 100dvh;
+    width: 100vw;
     font-family: monospace;
     color: white;
     overflow: hidden;
+    touch-action: none;
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+    position: fixed;
+    top: 0;
+    left: 0;
 }
 
 #gameContainer {
     position: relative;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    touch-action: none;
+    overflow: hidden;
 }
 
 canvas {
     border: 2px solid #333;
     background: #111;
+    touch-action: none;
+    -ms-touch-action: none;
+}
+
+/* Mobile responsive adjustments */
+@media (max-width: 768px), (max-height: 500px) {
+    body {
+        height: 100dvh;
+    }
+
+    #gameContainer {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+    }
+
+    canvas {
+        border: none;
+    }
+
+    #ui {
+        font-size: 11px !important;
+        padding: 6px !important;
+        min-width: auto !important;
+    }
+
+    #minimap {
+        width: 100px !important;
+        height: 100px !important;
+    }
+
+    #inventory {
+        bottom: 90px !important;
+        gap: 8px !important;
+    }
+
+    .inventory-slot {
+        width: 36px !important;
+        height: 36px !important;
+        font-size: 16px !important;
+    }
+}
+
+/* Landscape mobile: tighter UI */
+@media (max-height: 500px) and (orientation: landscape) {
+    #ui {
+        font-size: 10px !important;
+        top: 2px !important;
+        left: 2px !important;
+    }
+
+    #minimap {
+        width: 80px !important;
+        height: 80px !important;
+    }
+}
+
+/* Prevent text selection everywhere in the game */
+#gameContainer, #gameContainer * {
+    -webkit-user-select: none;
+    user-select: none;
 } 

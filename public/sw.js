@@ -1,4 +1,4 @@
-const CACHE_NAME = 'buried-spire-v1.0.0';
+const CACHE_NAME = 'buried-spire-v1.1.0';
 const urlsToCache = [
   './index.html',
   './manifest.json',
@@ -7,13 +7,16 @@ const urlsToCache = [
   '../src/js/config.js',
   '../src/js/messages.js',
   '../src/js/utils.js',
+  '../src/js/soundManager.js',
   '../src/js/gameState.js',
+  '../src/js/tutorial.js',
   '../src/js/input.js',
   '../src/js/mapGenerator.js',
   '../src/js/entities.js',
   '../src/js/inventory.js',
   '../src/js/renderer.js',
   '../src/js/gameLogic.js',
+  '../src/js/storyNarration.js',
   '../src/js/main.js'
 ];
 

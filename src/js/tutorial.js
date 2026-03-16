@@ -28,11 +28,19 @@ const TutorialSystem = {
         const game = GameState.getGame();
         if (!game) return;
 
+        const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        const moveInstruction = isMobileDevice
+            ? "Use the joystick on the left side of the screen to move around."
+            : "Use WASD or Arrow Keys to move around.";
+        const orbInstruction = isMobileDevice
+            ? "Look for glowing orbs throughout the maze to restore light and gain powers."
+            : "Look for glowing orbs throughout the maze to restore light and gain powers.";
+
         const tutorialSteps = [
             {
                 title: "Welcome to the Buried Spire",
                 message: `Welcome, explorer! You stand at the entrance to the ancient Burj Mubarak, now buried beneath the shifting sands of time. Your mission is to descend ${CONFIG.GAME.MAX_FLOORS} floors to find the legendary Ancient Pearl.`,
-                instruction: "Use WASD or Arrow Keys to move around."
+                instruction: moveInstruction
             },
             {
                 title: "Your Light is Life",
@@ -42,7 +50,7 @@ const TutorialSystem = {
             {
                 title: "Collecting Orbs",
                 message: "Orbs scattered throughout the spire can restore your light or grant special powers. Blue orbs restore light immediately, while other orbs go to your inventory for later use.",
-                instruction: "Look for glowing orbs throughout the maze to restore light and gain powers."
+                instruction: orbInstruction
             },
             {
                 title: "Avoiding the Ghouls",
@@ -189,7 +197,7 @@ const TutorialSystem = {
                 </div>
                 
                 <div style="margin-top: 15px; color: #654321; font-size: 12px;">
-                    Press ESC to dismiss
+                    ${(typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport)) ? 'Tap Continue or press ESC to dismiss' : 'Press ESC to dismiss'}
                 </div>
             </div>
         `;
@@ -215,28 +223,35 @@ const TutorialSystem = {
         setTimeout(() => {
             const continueBtn = document.getElementById('tutorialContinue');
             const skipBtn = document.getElementById('tutorialSkip');
-            
-            console.log('🔍 Looking for buttons after DOM insert:');
+
+            console.log('Looking for buttons after DOM insert:');
             console.log('  Continue button found:', !!continueBtn);
             console.log('  Skip button found:', !!skipBtn);
-            
+
             if (continueBtn) {
-                console.log('🔍 Setting up Continue button onclick');
-                console.log('🔍 Continue button computed style:', window.getComputedStyle(continueBtn).pointerEvents);
-                
-                // Attach event handlers
-                continueBtn.onclick = function() {
+                // Click handler for desktop
+                continueBtn.onclick = function(e) {
+                    e.preventDefault();
                     TutorialSystem.handleTutorialContinue();
                 };
+                // Touch handler for mobile - use touchend so it doesn't conflict
+                continueBtn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    TutorialSystem.handleTutorialContinue();
+                }, { passive: false });
             }
-            
+
             if (skipBtn) {
-                console.log('🔍 Setting up Skip button onclick');
-                console.log('🔍 Skip button computed style:', window.getComputedStyle(skipBtn).pointerEvents);
-                
-                skipBtn.onclick = function() {
+                skipBtn.onclick = function(e) {
+                    e.preventDefault();
                     TutorialSystem.skipTutorial();
                 };
+                skipBtn.addEventListener('touchend', function(e) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    TutorialSystem.skipTutorial();
+                }, { passive: false });
             }
         }, 100); // Wait 100ms for DOM to settle
         
@@ -283,6 +298,14 @@ const TutorialSystem = {
         const orbData = ORB_TYPES[orbType];
         if (!orbData) return;
 
+        const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        const activateText = isMobileDevice
+            ? "Tap buttons 1, 2, or 3 on the right side of the screen to activate it based on which slot it's in."
+            : "Press keys 1, 2, or 3 to activate it based on which slot it's in.";
+        const activateTextShort = isMobileDevice
+            ? "You can also tap buttons 1, 2, or 3 for full light restoration."
+            : "You can also manually activate it with keys 1, 2, or 3 for full light restoration.";
+
         let title, message, instruction;
 
         switch (orbType) {
@@ -291,43 +314,43 @@ const TutorialSystem = {
                 message = "You've found a Blue Orb! These orbs restore 20% of your light immediately when collected. They don't take up inventory space, so collect them whenever you see them.";
                 instruction = "Blue orbs are consumed instantly - perfect for emergency light restoration!";
                 break;
-            
+
             case 'golden':
                 title = "Golden Orb - Powerful Light";
                 message = "A Golden Orb! This powerful orb restores 40% of your light immediately when collected, just like the blue orb but with greater power. It doesn't take up inventory space.";
                 instruction = "Golden orbs are consumed instantly - perfect for major light restoration!";
                 break;
-            
+
             case 'purple':
                 title = "Purple Orb - Phase Power";
                 message = "You've discovered a Purple Orb! This mystical orb grants you the power to phase through walls for 5 seconds. It goes into your inventory and can be activated manually.";
-                instruction = "The Purple Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. When activated, you can walk through walls for 5 seconds - perfect for escaping danger or finding shortcuts!";
+                instruction = `The Purple Orb goes into your inventory (slots 1-3). ${activateText} When activated, you can walk through walls for 5 seconds - perfect for escaping danger or finding shortcuts!`;
                 break;
-            
+
             case 'green':
                 title = "Green Orb - Regeneration";
                 message = "A Green Orb! This nature-powered orb slowly regenerates your light over 10 seconds. It goes into your inventory and can be activated manually when needed.";
-                instruction = "The Green Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. Perfect for long-term light management during exploration!";
+                instruction = `The Green Orb goes into your inventory (slots 1-3). ${activateText} Perfect for long-term light management during exploration!`;
                 break;
-            
+
             case 'white':
                 title = "White Orb - Map Revelation";
                 message = "You've found a White Orb! This illuminating orb reveals the entire floor layout for 5 seconds, showing walls, orbs, ghouls, and most importantly - the stairs! It goes into your inventory for manual activation.";
-                instruction = "The White Orb goes into your inventory (slots 1-3). Press keys 1, 2, or 3 to activate it based on which slot it's in. Use it strategically to quickly navigate and find the stairs!";
+                instruction = `The White Orb goes into your inventory (slots 1-3). ${activateText} Use it strategically to quickly navigate and find the stairs!`;
                 break;
-            
+
             case 'red':
                 title = "Red Orb - Lifeline";
                 message = "A rare Red Orb! This goes into your inventory and serves as your lifeline. It will automatically activate when your light reaches 0%, fully restoring your light and saving you from the ghoul swarm.";
-                instruction = "The Red Orb goes into your inventory (slots 1-3) and auto-activates at 0% light to save you! You can also manually activate it with keys 1, 2, or 3 for full light restoration. Keep it safe - it's your lifeline!";
+                instruction = `The Red Orb goes into your inventory (slots 1-3) and auto-activates at 0% light to save you! ${activateTextShort} Keep it safe - it's your lifeline!`;
                 break;
-            
+
             case 'wisp':
                 title = "Light Wisp - Death Echo";
                 message = "A Light Wisp appears where you previously died. These ethereal remnants of your past self restore 50% light when collected, helping you recover from setbacks.";
                 instruction = "Wisps mark your death locations and provide substantial light restoration.";
                 break;
-            
+
             default:
                 return; // Unknown orb type
         }

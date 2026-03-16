@@ -86,8 +86,8 @@ const Utils = {
         }
     },
 
-    // Update camera position to follow player (simple centered approach)
-    updateCamera(game) {
+    // Update camera position to follow player with smooth interpolation
+    updateCamera(game, instant) {
         // Center camera on player with world boundary constraints
         const targetCameraX = game.player.x - CONFIG.CANVAS.WIDTH / 2;
         const targetCameraY = game.player.y - CONFIG.CANVAS.HEIGHT / 2;
@@ -96,8 +96,18 @@ const Utils = {
         const maxCameraX = Math.max(0, game.mapWidth * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.WIDTH);
         const maxCameraY = Math.max(0, game.mapHeight * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.HEIGHT);
 
-        game.camera.x = Math.max(0, Math.min(targetCameraX, maxCameraX));
-        game.camera.y = Math.max(0, Math.min(targetCameraY, maxCameraY));
+        const clampedX = Math.max(0, Math.min(targetCameraX, maxCameraX));
+        const clampedY = Math.max(0, Math.min(targetCameraY, maxCameraY));
+
+        // Smooth camera lerp (instant on floor transitions or first frame)
+        if (instant) {
+            game.camera.x = clampedX;
+            game.camera.y = clampedY;
+        } else {
+            const lerpFactor = 0.12; // Smooth follow speed
+            game.camera.x += (clampedX - game.camera.x) * lerpFactor;
+            game.camera.y += (clampedY - game.camera.y) * lerpFactor;
+        }
     },
 
     // Update UI elements
@@ -121,17 +131,6 @@ const Utils = {
             powerStatus.push(`Reveal: ${Math.ceil(game.player.powers.reveal / 60)}s`);
         
         document.getElementById('powerStatus').textContent = powerStatus.join(' | ');
-        
-        // Update stalking indicator
-        let stalkingGhouls = 0;
-        for (const ghoul of game.ghouls) {
-            const distToPlayer = this.distance(ghoul, game.player);
-            if (ghoul.state === 'stalking' && distToPlayer < game.player.lightRadius * 1.5) {
-                stalkingGhouls++;
-            }
-        }
-        
-        // Stalking indicator removed - no longer displayed
     },
 
     // Mark areas as explored
@@ -313,11 +312,5 @@ const Utils = {
                 }
             }, 300);
         }, duration);
-    },
-
-    // Hide message immediately (legacy compatibility)
-    hideMessage() {
-        // This function is kept for compatibility but notifications now auto-remove
-        console.log('hideMessage called - notifications now auto-remove');
     }
-}; 
+};

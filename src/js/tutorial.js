@@ -272,16 +272,17 @@ const TutorialSystem = {
 
     // Hide tutorial popup and resume game
     hideTutorialPopup() {
-        const game = GameState.getGame();
-        if (!game) return;
-
+        // Always remove the popup from DOM first to prevent stuck pause state
         const popup = document.getElementById('tutorialPopup');
         if (popup) {
             popup.remove();
         }
-        
-        game.tutorial.showingOrbTutorial = false;
-        game.tutorial.tutorialPopup = null;
+
+        const game = GameState.getGame();
+        if (game) {
+            game.tutorial.showingOrbTutorial = false;
+            game.tutorial.tutorialPopup = null;
+        }
         console.log('📚 Tutorial popup hidden, game resumed');
     },
 
@@ -494,16 +495,22 @@ const TutorialSystem = {
         const game = GameState.getGame();
         if (!game) {
             console.log('❌ No game state found in handleTutorialContinue');
+            // Still try to remove popup from DOM to prevent stuck state
+            const popup = document.getElementById('tutorialPopup');
+            if (popup) popup.remove();
             return;
         }
 
         console.log('🎓 Tutorial continue clicked - Step:', game.tutorial.currentStep);
 
+        // Save the orb tutorial flag BEFORE hideTutorialPopup resets it
+        const wasOrbTutorial = game.tutorial.showingOrbTutorial;
+
         // Hide current popup
         this.hideTutorialPopup();
 
         // Check if this is an orb tutorial or main tutorial
-        if (game.tutorial.showingOrbTutorial) {
+        if (wasOrbTutorial) {
             // For orb tutorials, just hide the popup and resume game
             console.log('🎓 Orb tutorial completed');
             return;

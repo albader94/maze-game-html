@@ -265,6 +265,8 @@ const StoryNarration = {
         const overlay = document.getElementById('storyOverlay');
         if (overlay) {
             overlay.style.opacity = '0';
+            // Immediately stop blocking touch events during fadeout
+            overlay.style.pointerEvents = 'none';
 
             setTimeout(() => {
                 overlay.remove();

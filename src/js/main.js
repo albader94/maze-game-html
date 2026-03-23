@@ -665,14 +665,14 @@ const Game = {
             cancelButton.style.boxShadow = '0 4px 15px rgba(244, 67, 54, 0.3)';
         });
         
-        // Event listeners
-        confirmButton.addEventListener('click', () => {
-            document.body.removeChild(overlay);
+        // Event listeners (click + touch for mobile)
+        this.addMobileFriendlyListener(confirmButton, () => {
+            if (overlay.parentNode) document.body.removeChild(overlay);
             if (onConfirm) onConfirm();
         });
-        
-        cancelButton.addEventListener('click', () => {
-            document.body.removeChild(overlay);
+
+        this.addMobileFriendlyListener(cancelButton, () => {
+            if (overlay.parentNode) document.body.removeChild(overlay);
             if (onCancel) onCancel();
         });
         
@@ -727,16 +727,19 @@ const Game = {
             touch-action: manipulation;
         `;
         // Settings button now acts like ESC key - shows pause menu if in game
-        settingsBtn.addEventListener('click', () => {
+        const settingsAction = () => {
             const game = GameState.getGame();
             if (game && game.state === 'playing') {
-                // Act like ESC key - toggle pause
                 this.togglePause();
             } else {
-                // Show regular settings if not in game
                 this.showSettingsModal();
             }
-        });
+        };
+        settingsBtn.addEventListener('click', settingsAction);
+        settingsBtn.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            settingsAction();
+        }, { passive: false });
         document.body.appendChild(settingsBtn);
     },
 
@@ -1073,16 +1076,26 @@ const Game = {
         });
     },
 
+    // Add both click and touch handlers for mobile compatibility
+    addMobileFriendlyListener(element, handler) {
+        if (!element) return;
+        element.addEventListener('click', handler);
+        element.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            handler(e);
+        }, { passive: false });
+    },
+
     // Setup settings event listeners
     setupSettingsEventListeners(modal, isPauseMenu) {
         // Pause menu buttons (only if this is a pause menu)
         if (isPauseMenu) {
-            document.getElementById('resumeGame').addEventListener('click', () => {
+            this.addMobileFriendlyListener(document.getElementById('resumeGame'), () => {
                 this.isPaused = false;
                 this.hidePauseMenu();
             });
             
-            document.getElementById('restartGame').addEventListener('click', () => {
+            this.addMobileFriendlyListener(document.getElementById('restartGame'), () => {
                 const game = GameState.getGame();
                 const currentFloor = Math.abs(game.floor);
                 
@@ -1113,7 +1126,7 @@ const Game = {
                 );
             });
             
-            document.getElementById('replayFromCheckpoint').addEventListener('click', () => {
+            this.addMobileFriendlyListener(document.getElementById('replayFromCheckpoint'), () => {
                 const game = GameState.getGame();
                 const checkpointFloor = Math.abs(game.checkpoint);
                 const checkpointNumber = Math.ceil(checkpointFloor / 5);
@@ -1145,13 +1158,13 @@ const Game = {
                 );
             });
             
-            document.getElementById('quitToMenu').addEventListener('click', () => {
+            this.addMobileFriendlyListener(document.getElementById('quitToMenu'), () => {
                 this.isPaused = false;
                 this.hidePauseMenu();
                 GameState.quitToMenu();
             });
         }
-        
+
         // Volume slider
         const volumeSlider = document.getElementById('volume');
         const volumeValue = document.getElementById('volumeValue');
@@ -1171,7 +1184,7 @@ const Game = {
         });
         
         // Apply settings button
-        document.getElementById('applySettings').addEventListener('click', () => {
+        this.addMobileFriendlyListener(document.getElementById('applySettings'), () => {
             this.applySettingsFromModal();
             // Show confirmation message
             const message = document.getElementById('settingsMessage');
@@ -1182,15 +1195,15 @@ const Game = {
                 }, 3000);
             }
         });
-        
+
         // Reset settings button
-        document.getElementById('resetSettings').addEventListener('click', () => {
+        this.addMobileFriendlyListener(document.getElementById('resetSettings'), () => {
             this.resetSettings();
             this.loadSettingsIntoModal();
         });
-        
+
         // Close button
-        document.getElementById('closeModal').addEventListener('click', () => {
+        this.addMobileFriendlyListener(document.getElementById('closeModal'), () => {
             if (isPauseMenu) {
                 this.isPaused = false;
                 this.hidePauseMenu();
@@ -1198,8 +1211,8 @@ const Game = {
                 modal.remove();
             }
         });
-        
-        // Close on outside click
+
+        // Close on outside click/touch
         modal.addEventListener('click', (e) => {
             if (e.target === modal) {
                 if (isPauseMenu) {
@@ -1210,6 +1223,17 @@ const Game = {
                 }
             }
         });
+        modal.addEventListener('touchend', (e) => {
+            if (e.target === modal) {
+                e.preventDefault();
+                if (isPauseMenu) {
+                    this.isPaused = false;
+                    this.hidePauseMenu();
+                } else {
+                    modal.remove();
+                }
+            }
+        }, { passive: false });
     },
 
     // Apply settings from modal

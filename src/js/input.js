@@ -424,8 +424,36 @@ const InputManager = {
             return;
         }
 
-        const outerRadius = 60; // half of 120px joystick
-        const maxKnobTravel = 35; // max pixels the inner knob can move
+        // Helper to get dynamic joystick dimensions (adapts to CSS changes like landscape mode)
+        const getJoystickDimensions = () => {
+            const rect = joystickOuter.getBoundingClientRect();
+            return {
+                outerRadius: rect.width / 2,
+                maxKnobTravel: rect.width * 0.29 // ~35px for 120px, scales proportionally
+            };
+        };
+
+        const updateKnobVisual = (deltaX, deltaY, distance) => {
+            const dims = getJoystickDimensions();
+            let displayX, displayY;
+            if (distance > dims.maxKnobTravel) {
+                const angle = Math.atan2(deltaY, deltaX);
+                displayX = Math.cos(angle) * dims.maxKnobTravel;
+                displayY = Math.sin(angle) * dims.maxKnobTravel;
+            } else {
+                displayX = deltaX;
+                displayY = deltaY;
+            }
+            joystickInner.style.left = `${dims.outerRadius + displayX}px`;
+            joystickInner.style.top = `${dims.outerRadius + displayY}px`;
+            joystickInner.style.transform = 'translate(-50%, -50%)';
+        };
+
+        const resetKnobVisual = () => {
+            joystickInner.style.left = '50%';
+            joystickInner.style.top = '50%';
+            joystickInner.style.transform = 'translate(-50%, -50%)';
+        };
 
         joystickOuter.addEventListener('touchstart', (e) => {
             e.preventDefault();
@@ -468,21 +496,7 @@ const InputManager = {
             const deltaY = this.touchControls.currentY - this.touchControls.startY;
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
-            // Update joystick visual - clamp to max travel
-            let displayX, displayY;
-            if (distance > maxKnobTravel) {
-                const angle = Math.atan2(deltaY, deltaX);
-                displayX = Math.cos(angle) * maxKnobTravel;
-                displayY = Math.sin(angle) * maxKnobTravel;
-            } else {
-                displayX = deltaX;
-                displayY = deltaY;
-            }
-
-            // Position inner knob relative to center
-            joystickInner.style.left = `${outerRadius + displayX}px`;
-            joystickInner.style.top = `${outerRadius + displayY}px`;
-            joystickInner.style.transform = 'translate(-50%, -50%)';
+            updateKnobVisual(deltaX, deltaY, distance);
         }, { passive: false });
 
         const endTouch = (e) => {
@@ -492,10 +506,7 @@ const InputManager = {
                     if (e.changedTouches[i].identifier === this.touchControls.identifier) {
                         this.touchControls.active = false;
                         this.touchControls.identifier = null;
-                        // Reset joystick visual to center
-                        joystickInner.style.left = '50%';
-                        joystickInner.style.top = '50%';
-                        joystickInner.style.transform = 'translate(-50%, -50%)';
+                        resetKnobVisual();
                         break;
                     }
                 }
@@ -508,8 +519,39 @@ const InputManager = {
         }, { passive: false });
 
         joystickOuter.addEventListener('touchcancel', (e) => {
+            e.preventDefault();
             endTouch(e);
         }, { passive: false });
+
+        // Document-level fallback: if a joystick touch moves/ends outside the element,
+        // some browsers may not deliver the event to the original target.
+        // These fallbacks ensure the joystick state stays in sync.
+        document.addEventListener('touchmove', (e) => {
+            if (!this.touchControls.active || this.touchControls.identifier === null) return;
+
+            for (let i = 0; i < e.touches.length; i++) {
+                if (e.touches[i].identifier === this.touchControls.identifier) {
+                    this.touchControls.currentX = e.touches[i].clientX;
+                    this.touchControls.currentY = e.touches[i].clientY;
+
+                    const deltaX = this.touchControls.currentX - this.touchControls.startX;
+                    const deltaY = this.touchControls.currentY - this.touchControls.startY;
+                    const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                    updateKnobVisual(deltaX, deltaY, distance);
+                    return;
+                }
+            }
+        }, { passive: true });
+
+        document.addEventListener('touchend', (e) => {
+            if (!this.touchControls.active || this.touchControls.identifier === null) return;
+            endTouch(e);
+        }, { passive: true });
+
+        document.addEventListener('touchcancel', (e) => {
+            if (!this.touchControls.active || this.touchControls.identifier === null) return;
+            endTouch(e);
+        }, { passive: true });
 
         console.log('Virtual joystick touch events initialized');
     },
@@ -715,16 +757,16 @@ const InputManager = {
         if (this.isKeyPressed('arrowleft') || this.isKeyPressed('a')) movement.x = -1;
         if (this.isKeyPressed('arrowright') || this.isKeyPressed('d')) movement.x = 1;
 
-        // Touch input (virtual joystick)
+        // Touch input (virtual joystick) - overrides keyboard when active
         if (this.touchControls.active) {
             const deltaX = this.touchControls.currentX - this.touchControls.startX;
             const deltaY = this.touchControls.currentY - this.touchControls.startY;
             const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
 
             if (distance > this.touchControls.deadzone) {
-                // Normalize and apply sensitivity
-                // Scale movement from 0 to 1 based on distance (deadzone to max range)
-                const maxRange = 60; // pixels for full speed
+                // Use dynamic max range based on actual joystick size
+                const joystickEl = document.querySelector('.joystick-outer');
+                const maxRange = joystickEl ? joystickEl.getBoundingClientRect().width / 2 : 60;
                 const magnitude = Math.min((distance - this.touchControls.deadzone) / (maxRange - this.touchControls.deadzone), 1.0);
                 const angle = Math.atan2(deltaY, deltaX);
 

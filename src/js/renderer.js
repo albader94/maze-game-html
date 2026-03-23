@@ -14,14 +14,20 @@ const Renderer = {
         this.minimapCanvas = document.getElementById('minimap');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
 
-        // Support high-DPI displays for crisp rendering
+        this.updateCanvasBuffer();
+    },
+
+    // Update canvas buffer dimensions (called on init and orientation/resize changes)
+    updateCanvasBuffer() {
         const dpr = window.devicePixelRatio || 1;
         this.canvas.width = CONFIG.CANVAS.WIDTH * dpr;
         this.canvas.height = CONFIG.CANVAS.HEIGHT * dpr;
+        this.ctx.setTransform(1, 0, 0, 1, 0, 0); // Reset transform before re-scaling
         this.ctx.scale(dpr, dpr);
 
         this.minimapCanvas.width = CONFIG.MINIMAP.WIDTH * dpr;
         this.minimapCanvas.height = CONFIG.MINIMAP.HEIGHT * dpr;
+        this.minimapCtx.setTransform(1, 0, 0, 1, 0, 0);
         this.minimapCtx.scale(dpr, dpr);
     },
 
@@ -609,9 +615,10 @@ const Renderer = {
             return;
         }
         try {
+            const vignetteRadius = Math.max(CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT) / 2;
             const vignette = this.ctx.createRadialGradient(
                 CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, 0,
-                CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, CONFIG.CANVAS.WIDTH / 2
+                CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, vignetteRadius
             );
             // Dark underground vignette effect
             vignette.addColorStop(0, 'rgba(0,0,0,0)');
@@ -915,72 +922,79 @@ const Renderer = {
         // Dark mystical background
         this.ctx.fillStyle = '#0a0505';
         this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
-        
+
         // Dark red vignette effect for mystical atmosphere
+        const menuVignetteRadius = Math.max(CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT) / 2;
         const gradient = this.ctx.createRadialGradient(
             CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, 0,
-            CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, CONFIG.CANVAS.WIDTH / 2
+            CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, menuVignetteRadius
         );
         gradient.addColorStop(0, 'rgba(20, 5, 0, 0)');
         gradient.addColorStop(0.6, 'rgba(30, 10, 5, 0.3)');
         gradient.addColorStop(1, 'rgba(15, 0, 0, 0.7)');
         this.ctx.fillStyle = gradient;
         this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
-        
+
+        // In portrait mode, offset menu content vertically to center it
+        // Menu content spans ~265px (from title at y=90 to last button bottom at ~355)
+        // Center that content block in the available space (above the footer)
+        const isPortraitCanvas = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const menuOffsetY = isPortraitCanvas ? Math.round((CONFIG.CANVAS.HEIGHT - CONFIG.CANVAS.BASE_HEIGHT) / 3) : 0;
+
         // Main title with Gothic styling
         this.ctx.textAlign = 'center';
         this.ctx.shadowBlur = 15;
         this.ctx.shadowColor = '#8B0000'; // Dark red shadow
         this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 52px serif';
-        this.ctx.fillText('BURIED SPIRE', CONFIG.CANVAS.WIDTH / 2, 90);
-        
+        this.ctx.fillText('BURIED SPIRE', CONFIG.CANVAS.WIDTH / 2, 90 + menuOffsetY);
+
         // Subtitle with mystical glow
         this.ctx.shadowBlur = 10;
         this.ctx.shadowColor = '#654321'; // Gothic brown shadow
         this.ctx.fillStyle = '#8B4513'; // Gothic brown
         this.ctx.font = 'italic 22px serif';
-        this.ctx.fillText('Quest Into the Depths', CONFIG.CANVAS.WIDTH / 2, 120);
+        this.ctx.fillText('Quest Into the Depths', CONFIG.CANVAS.WIDTH / 2, 120 + menuOffsetY);
         this.ctx.shadowBlur = 0;
-        
+
         // Atmospheric flavor text
         this.ctx.fillStyle = '#654321'; // Gothic brown
         this.ctx.font = '14px serif';
-        this.ctx.fillText('Ancient depths await the brave...', CONFIG.CANVAS.WIDTH / 2, 150);
-        
+        this.ctx.fillText('Ancient depths await the brave...', CONFIG.CANVAS.WIDTH / 2, 150 + menuOffsetY);
+
         // Desert decorative elements
         this.ctx.fillStyle = '#a68654';
         this.ctx.font = '16px serif';
-        this.ctx.fillText('☥ ═══════════════════════════════════ ☥', CONFIG.CANVAS.WIDTH / 2, 175);
-        
-        // Menu buttons
-        this.renderMenuButtons();
-        
-        // Gothic footer with mystical symbols
+        this.ctx.fillText('☥ ═══════════════════════════════════ ☥', CONFIG.CANVAS.WIDTH / 2, 175 + menuOffsetY);
+
+        // Menu buttons (pass offset for portrait centering)
+        this.renderMenuButtons(menuOffsetY);
+
+        // Gothic footer with mystical symbols (positioned relative to bottom)
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '11px serif';
         const isMobileMenu = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         if (isMobileMenu) {
-            this.ctx.fillText('⚔ Joystick: Move • Buttons: Use Orb ⚔', CONFIG.CANVAS.WIDTH / 2, 520);
+            this.ctx.fillText('⚔ Joystick: Move • Buttons: Use Orb ⚔', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT - 80);
         } else {
-            this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', CONFIG.CANVAS.WIDTH / 2, 520);
+            this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT - 80);
         }
-        
+
         // Build info with gothic styling
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '9px serif';
-        this.ctx.fillText('Ancient Codex v1.0 • Forged in Darkness', CONFIG.CANVAS.WIDTH / 2, 545);
-        
+        this.ctx.fillText('Ancient Codex v1.0 • Forged in Darkness', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT - 55);
+
         this.ctx.textAlign = 'left';
     },
     
     // Render main menu buttons
-    renderMenuButtons() {
+    renderMenuButtons(offsetY = 0) {
         const centerX = CONFIG.CANVAS.WIDTH / 2;
         const buttonWidth = 300;
         const buttonHeight = 45;
         const buttonSpacing = 55;
-        const startY = 200;
+        const startY = 200 + offsetY;
         
         const buttons = [
             { text: 'NEW GAME', y: startY, icon: '♦' },
@@ -1107,14 +1121,14 @@ const Renderer = {
         // Orb guide
         this.renderHelpOrbGuide();
 
-        // Footer
+        // Footer (positioned relative to bottom)
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '16px serif';
         if (isMobileDevice) {
-            this.ctx.fillText('Tap anywhere to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, 520);
+            this.ctx.fillText('Tap anywhere to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT - 80);
         } else {
-            this.ctx.fillText('Press H to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, 520);
+            this.ctx.fillText('Press H to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT - 80);
         }
         this.ctx.textAlign = 'left';
     },
@@ -1156,57 +1170,61 @@ const Renderer = {
     // Render death screen
     renderDeathScreen(game) {
         if (!game.deathScreen) return;
-        
+
+        // Vertical offset for portrait mode centering
+        const isPortraitCanvas = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const deathOffsetY = isPortraitCanvas ? Math.round((CONFIG.CANVAS.HEIGHT - CONFIG.CANVAS.BASE_HEIGHT) / 3) : 0;
+
         // Dark death screen background
         this.ctx.fillStyle = 'rgba(42, 24, 16, 0.98)';
         this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
-        
+
         // Gothic decorative border
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(30, 30, CONFIG.CANVAS.WIDTH - 60, CONFIG.CANVAS.HEIGHT - 60);
-        
+
         // Inner golden border
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(35, 35, CONFIG.CANVAS.WIDTH - 70, CONFIG.CANVAS.HEIGHT - 70);
-        
+
         // Title with gothic styling
         this.ctx.shadowBlur = 12;
         this.ctx.shadowColor = '#8B0000';
         this.ctx.fillStyle = '#DC143C';
         this.ctx.font = 'bold 40px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('⚜ CLAIMED BY THE VOID ⚜', CONFIG.CANVAS.WIDTH / 2, 100);
+        this.ctx.fillText('⚜ CLAIMED BY THE VOID ⚜', CONFIG.CANVAS.WIDTH / 2, 100 + deathOffsetY);
         this.ctx.shadowBlur = 0;
-        
+
         // Stats with gothic styling
         this.ctx.fillStyle = '#CD853F';
         this.ctx.font = 'bold 20px serif';
-        this.ctx.fillText('⚰ MORTAL CHRONICLE ⚰', CONFIG.CANVAS.WIDTH / 2, 160);
-        
+        this.ctx.fillText('⚰ MORTAL CHRONICLE ⚰', CONFIG.CANVAS.WIDTH / 2, 160 + deathOffsetY);
+
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '16px serif';
         this.ctx.textAlign = 'left';
         const statsX = CONFIG.CANVAS.WIDTH / 2 - 160;
-        this.ctx.fillText(`⚔ Final Depth: Floor ${-game.floor}`, statsX, 200);
-        this.ctx.fillText(`⚜ Last Sanctuary: Floor ${-game.checkpoint}`, statsX, 220);
-        this.ctx.fillText(`💎 Orbs Gathered: ${game.player.orbsCollected}`, statsX, 240);
-        this.ctx.fillText(`💀 Deaths This Quest: ${GameState.stats.totalDeaths}`, statsX, 260);
-        this.ctx.fillText(`🏆 Deepest Descent: Floor ${-GameState.stats.deepestFloor}`, statsX, 280);
-        
+        this.ctx.fillText(`⚔ Final Depth: Floor ${-game.floor}`, statsX, 200 + deathOffsetY);
+        this.ctx.fillText(`⚜ Last Sanctuary: Floor ${-game.checkpoint}`, statsX, 220 + deathOffsetY);
+        this.ctx.fillText(`💎 Orbs Gathered: ${game.player.orbsCollected}`, statsX, 240 + deathOffsetY);
+        this.ctx.fillText(`💀 Deaths This Quest: ${GameState.stats.totalDeaths}`, statsX, 260 + deathOffsetY);
+        this.ctx.fillText(`🏆 Deepest Descent: Floor ${-GameState.stats.deepestFloor}`, statsX, 280 + deathOffsetY);
+
         // Leaderboard with gothic theme
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 18px serif';
-        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', CONFIG.CANVAS.WIDTH / 2, 330);
-        
+        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', CONFIG.CANVAS.WIDTH / 2, 330 + deathOffsetY);
+
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '14px serif';
-        this.ctx.fillText('♦ Shadow_Walker - Floor 47', CONFIG.CANVAS.WIDTH / 2, 355);
-        this.ctx.fillText('♠ LightKeeper - Floor 42', CONFIG.CANVAS.WIDTH / 2, 375);
-        this.ctx.fillText('♣ DuneRunner - Floor 38', CONFIG.CANVAS.WIDTH / 2, 395);
-        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, CONFIG.CANVAS.WIDTH / 2, 415);
+        this.ctx.fillText('♦ Shadow_Walker - Floor 47', CONFIG.CANVAS.WIDTH / 2, 355 + deathOffsetY);
+        this.ctx.fillText('♠ LightKeeper - Floor 42', CONFIG.CANVAS.WIDTH / 2, 375 + deathOffsetY);
+        this.ctx.fillText('♣ DuneRunner - Floor 38', CONFIG.CANVAS.WIDTH / 2, 395 + deathOffsetY);
+        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, CONFIG.CANVAS.WIDTH / 2, 415 + deathOffsetY);
         
         // Buttons
         this.renderDeathScreenButtons();
@@ -1216,7 +1234,7 @@ const Renderer = {
 
     // Render death screen buttons
     renderDeathScreenButtons() {
-        const btnY = 460;
+        const btnY = CONFIG.CANVAS.HEIGHT - 140;
         const btnHeight = 50;
         const btnGap = 20;
         

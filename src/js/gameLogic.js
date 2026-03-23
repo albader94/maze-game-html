@@ -462,12 +462,12 @@ const GameLogic = {
     // Update player
     updatePlayer(game, deltaTime) {
         const movement = InputManager.getMovementInput();
-        
+
         // Validate movement input
         if (typeof movement.x !== 'number' || typeof movement.y !== 'number') {
             throw new Error('Invalid movement input');
         }
-        
+
         // Apply movement with wall sliding
         if (movement.x !== 0 || movement.y !== 0) {
             const dx = movement.x * game.player.speed * deltaTime / 16;
@@ -487,6 +487,10 @@ const GameLogic = {
                 if (dy !== 0 && this.isValidPosition(game.player.x, newY, game)) {
                     game.player.y = newY;
                 }
+
+                // Push-back: if player is overlapping any wall, nudge them out
+                // This prevents getting stuck between wall gaps
+                this.resolveWallOverlaps(game);
             }
             Utils.markExplored(game);
         }
@@ -531,7 +535,10 @@ const GameLogic = {
         // Light depletion handling is done in updateGameRules() to allow for lifeline logic
     },
 
-    // Validate position
+    // Validate position using AABB collision against wall tiles.
+    // Walls are grid-aligned squares of CONFIG.MAP.CELL_SIZE.
+    // Using box collision eliminates diagonal gaps between adjacent walls
+    // that caused players to get stuck with the old circular collision.
     isValidPosition(x, y, game) {
         if (!Utils.isInBounds(x, y, game)) return false;
 
@@ -540,16 +547,23 @@ const GameLogic = {
             return true;
         }
 
+        const playerRadius = game.player.size;
+        const halfCell = CONFIG.MAP.CELL_SIZE / 2;
+
         // Use spatial grid to check only nearby walls instead of all walls
-        const collisionThreshold = game.player.size + 12;
-        const collisionThresholdSq = collisionThreshold * collisionThreshold;
         const nearbyWalls = Utils.getNearbyEntities(x, y, 'walls', 1);
 
         for (const wall of nearbyWalls) {
-            const dx = x - wall.x;
-            const dy = y - wall.y;
-            // Use squared distance to avoid expensive sqrt
-            if (dx * dx + dy * dy < collisionThresholdSq) {
+            // AABB overlap test: player circle vs wall rectangle
+            // Wall occupies [wall.x - halfCell, wall.x + halfCell] x [wall.y - halfCell, wall.y + halfCell]
+            // Find the closest point on the wall rect to the player center
+            const closestX = Math.max(wall.x - halfCell, Math.min(x, wall.x + halfCell));
+            const closestY = Math.max(wall.y - halfCell, Math.min(y, wall.y + halfCell));
+
+            const dx = x - closestX;
+            const dy = y - closestY;
+
+            if (dx * dx + dy * dy < playerRadius * playerRadius) {
                 return false;
             }
         }
@@ -557,45 +571,75 @@ const GameLogic = {
         return true;
     },
 
+    // Resolve any wall overlaps by pushing the player out of walls.
+    // Called after wall-sliding movement to handle edge cases where the player
+    // ends up partially inside a wall (e.g. diagonal gaps between walls).
+    resolveWallOverlaps(game) {
+        if (game.player.powers.phase > 0) return;
+
+        const playerRadius = game.player.size;
+        const halfCell = CONFIG.MAP.CELL_SIZE / 2;
+        const nearbyWalls = Utils.getNearbyEntities(game.player.x, game.player.y, 'walls', 1);
+
+        for (const wall of nearbyWalls) {
+            const closestX = Math.max(wall.x - halfCell, Math.min(game.player.x, wall.x + halfCell));
+            const closestY = Math.max(wall.y - halfCell, Math.min(game.player.y, wall.y + halfCell));
+
+            const dx = game.player.x - closestX;
+            const dy = game.player.y - closestY;
+            const distSq = dx * dx + dy * dy;
+
+            if (distSq < playerRadius * playerRadius && distSq > 0) {
+                // Player overlaps this wall -- push them out along the penetration vector
+                const dist = Math.sqrt(distSq);
+                const overlap = playerRadius - dist;
+                game.player.x += (dx / dist) * overlap;
+                game.player.y += (dy / dist) * overlap;
+            } else if (distSq === 0) {
+                // Player center is exactly on the wall edge/inside -- push out along dominant axis
+                const overlapX = halfCell + playerRadius - Math.abs(game.player.x - wall.x);
+                const overlapY = halfCell + playerRadius - Math.abs(game.player.y - wall.y);
+                if (overlapX > 0 && overlapY > 0) {
+                    if (overlapX < overlapY) {
+                        game.player.x += (game.player.x >= wall.x ? overlapX : -overlapX);
+                    } else {
+                        game.player.y += (game.player.y >= wall.y ? overlapY : -overlapY);
+                    }
+                }
+            }
+        }
+    },
+
     // Update player powers
     updatePlayerPowers(game, deltaTime) {
         // Update powers like in original game
         if (game.player.powers.phase > 0) {
             game.player.powers.phase--;
-            
+
             // Check if phase is about to end while player is in a wall
             if (game.player.powers.phase === 1) {
-                let inWall = false;
-                for (const wall of game.walls) {
-                    if (Utils.distance(game.player, wall) < 25) {
-                        inWall = true;
-                        break;
-                    }
-                }
-                
+                // Temporarily disable phase to test actual collision
+                game.player.powers.phase = 0;
+                const inWall = !this.isValidPosition(game.player.x, game.player.y, game);
+                game.player.powers.phase = 1; // Restore for this last frame
+
                 // If ending in wall, find nearest safe spot
                 if (inWall) {
                     let bestX = game.player.x;
                     let bestY = game.player.y;
                     let bestDist = Infinity;
-                    
-                    // Check surrounding areas for safe spot
-                    for (let dx = -80; dx <= 80; dx += 20) {
-                        for (let dy = -80; dy <= 80; dy += 20) {
-                            const testX = game.player.x + dx;
-                            const testY = game.player.y + dy;
-                            let safe = true;
-                            
-                            // Check if this position is safe
-                            for (const wall of game.walls) {
-                                if (Utils.distance({ x: testX, y: testY }, wall) < 25) {
-                                    safe = false;
-                                    break;
-                                }
-                            }
-                            
-                            if (safe) {
-                                const dist = Math.abs(dx) + Math.abs(dy);
+
+                    // Temporarily disable phase for position testing
+                    game.player.powers.phase = 0;
+
+                    // Check surrounding areas for safe spot using isValidPosition
+                    for (let ddx = -80; ddx <= 80; ddx += 10) {
+                        for (let ddy = -80; ddy <= 80; ddy += 10) {
+                            const testX = game.player.x + ddx;
+                            const testY = game.player.y + ddy;
+
+                            if (this.isValidPosition(testX, testY, game)) {
+                                const dist = Math.abs(ddx) + Math.abs(ddy);
                                 if (dist < bestDist) {
                                     bestDist = dist;
                                     bestX = testX;
@@ -604,7 +648,8 @@ const GameLogic = {
                             }
                         }
                     }
-                    
+
+                    game.player.powers.phase = 1; // Restore for this last frame
                     game.player.x = bestX;
                     game.player.y = bestY;
                 }

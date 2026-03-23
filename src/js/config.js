@@ -2,7 +2,9 @@
 const CONFIG = {
     CANVAS: {
         WIDTH: 800,
-        HEIGHT: 600
+        HEIGHT: 600,
+        BASE_WIDTH: 800,
+        BASE_HEIGHT: 600
     },
     MINIMAP: {
         WIDTH: 150,

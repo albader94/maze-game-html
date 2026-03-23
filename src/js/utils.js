@@ -198,29 +198,37 @@ const Utils = {
     },
 
     // Find safe position near given coordinates
+    // Uses AABB collision consistent with GameLogic.isValidPosition
     findSafePosition(game, x, y, radius = 80) {
         let bestX = x;
         let bestY = y;
         let bestDist = Infinity;
-        
+
+        const playerRadius = (game.player && game.player.size) || 15;
+        const halfCell = (CONFIG.MAP.CELL_SIZE || 40) / 2;
+
         // Use spatial grid for faster collision checking
         const nearbyWalls = this.getNearbyEntities(x, y, 'walls', 2);
-        
+
         // Check surrounding areas for safe spot
         for (let dx = -radius; dx <= radius; dx += 20) {
             for (let dy = -radius; dy <= radius; dy += 20) {
                 const testX = x + dx;
                 const testY = y + dy;
                 let safe = true;
-                
-                // Check if this position is safe (no wall collision)
+
+                // Check if this position is safe using AABB (circle vs rectangle)
                 for (const wall of nearbyWalls) {
-                    if (this.fastDistance({ x: testX, y: testY }, wall) < 625) { // 25^2
+                    const closestX = Math.max(wall.x - halfCell, Math.min(testX, wall.x + halfCell));
+                    const closestY = Math.max(wall.y - halfCell, Math.min(testY, wall.y + halfCell));
+                    const ddx = testX - closestX;
+                    const ddy = testY - closestY;
+                    if (ddx * ddx + ddy * ddy < playerRadius * playerRadius) {
                         safe = false;
                         break;
                     }
                 }
-                
+
                 if (safe && this.isInBounds(testX, testY, game)) {
                     const dist = Math.abs(dx) + Math.abs(dy);
                     if (dist < bestDist) {
@@ -231,7 +239,7 @@ const Utils = {
                 }
             }
         }
-        
+
         return { x: bestX, y: bestY };
     },
 

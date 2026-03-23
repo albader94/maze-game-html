@@ -76,6 +76,21 @@ canvas {
     }
 }
 
+/* Portrait mobile: ensure canvas and container fill full screen */
+@media (max-width: 768px) and (orientation: portrait) {
+    #gameContainer {
+        width: 100vw;
+        height: 100vh;
+        height: 100dvh;
+        align-items: flex-start;
+        justify-content: flex-start;
+    }
+
+    canvas {
+        border: none;
+    }
+}
+
 /* Prevent text selection everywhere in the game */
 #gameContainer, #gameContainer * {
     -webkit-user-select: none;

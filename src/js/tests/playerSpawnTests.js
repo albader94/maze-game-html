@@ -356,15 +356,19 @@ class PlayerSpawnTests {
     }
 
     /**
-     * Utility: Check for wall collisions at position
+     * Utility: Check for wall collisions at position using AABB (circle vs rectangle)
      */
     checkWallCollisions(x, y) {
+        const playerRadius = this.game.player.size || 15;
+        const halfCell = (CONFIG.MAP.CELL_SIZE || 40) / 2;
+
         for (const wall of this.game.walls) {
-            const dx = x - wall.x;
-            const dy = y - wall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < this.game.player.size + 12) {
+            const closestX = Math.max(wall.x - halfCell, Math.min(x, wall.x + halfCell));
+            const closestY = Math.max(wall.y - halfCell, Math.min(y, wall.y + halfCell));
+            const dx = x - closestX;
+            const dy = y - closestY;
+
+            if (dx * dx + dy * dy < playerRadius * playerRadius) {
                 return wall;
             }
         }

@@ -559,30 +559,34 @@ const MapGenerator = {
     },
     
     // Validate that a spawn position is safe (no wall collisions)
+    // Uses AABB collision consistent with GameLogic.isValidPosition
     validateSpawnPosition(game, x, y) {
         // Check bounds
         const mapWidth = game.mapWidth * (CONFIG.MAP.CELL_SIZE || 40);
         const mapHeight = game.mapHeight * (CONFIG.MAP.CELL_SIZE || 40);
         const margin = 20;
-        
+
         if (x < margin || x > mapWidth - margin || y < margin || y > mapHeight - margin) {
             return false;
         }
-        
-        // Check wall collisions
-        const playerSize = game.player.size || 15;
-        const wallCollisionRadius = 12; // Same as in gameLogic.js
-        
+
+        // Check wall collisions using AABB (circle vs rectangle)
+        const playerRadius = game.player.size || 15;
+        const halfCell = (CONFIG.MAP.CELL_SIZE || 40) / 2;
+
         for (const wall of game.walls) {
-            const dx = x - wall.x;
-            const dy = y - wall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            if (distance < playerSize + wallCollisionRadius) {
+            // Find closest point on wall rectangle to the test position
+            const closestX = Math.max(wall.x - halfCell, Math.min(x, wall.x + halfCell));
+            const closestY = Math.max(wall.y - halfCell, Math.min(y, wall.y + halfCell));
+
+            const dx = x - closestX;
+            const dy = y - closestY;
+
+            if (dx * dx + dy * dy < playerRadius * playerRadius) {
                 return false;
             }
         }
-        
+
         return true;
     },
     

@@ -47,30 +47,73 @@ const InputManager = {
         const resizeCanvas = () => {
             const containerWidth = container.clientWidth || window.innerWidth;
             const containerHeight = container.clientHeight || window.innerHeight;
-            const aspectRatio = CONFIG.CANVAS.WIDTH / CONFIG.CANVAS.HEIGHT;
+            const screenWidth = window.innerWidth;
+            const screenHeight = window.innerHeight;
+            const isPortrait = screenHeight > screenWidth;
 
             let newWidth, newHeight;
 
-            if (this.isMobile) {
-                // Mobile: use full available screen
-                newWidth = window.innerWidth;
-                newHeight = window.innerHeight;
+            if (this.isMobile && isPortrait) {
+                // Portrait mobile: fill the full screen by adjusting internal canvas dimensions
+                // Use the screen's full width and height (no letterboxing)
+                newWidth = screenWidth;
+                newHeight = screenHeight;
 
-                // Maintain aspect ratio
-                if (newWidth / newHeight > aspectRatio) {
-                    newWidth = newHeight * aspectRatio;
+                // Calculate new internal canvas dimensions that match portrait aspect ratio
+                // Keep the base width (800) and scale height proportionally to the screen
+                const portraitAspect = screenHeight / screenWidth;
+                const newCanvasWidth = CONFIG.CANVAS.BASE_WIDTH;
+                const newCanvasHeight = Math.round(newCanvasWidth * portraitAspect);
+
+                // Update the internal canvas coordinate system if dimensions changed
+                if (CONFIG.CANVAS.WIDTH !== newCanvasWidth || CONFIG.CANVAS.HEIGHT !== newCanvasHeight) {
+                    CONFIG.CANVAS.WIDTH = newCanvasWidth;
+                    CONFIG.CANVAS.HEIGHT = newCanvasHeight;
+                    // Reinitialize the canvas buffer to match new internal dimensions
+                    if (typeof Renderer !== 'undefined' && Renderer.updateCanvasBuffer) {
+                        Renderer.updateCanvasBuffer();
+                    }
+                }
+            } else if (this.isMobile) {
+                // Landscape mobile: use full screen with base aspect ratio
+                const baseAspectRatio = CONFIG.CANVAS.BASE_WIDTH / CONFIG.CANVAS.BASE_HEIGHT;
+                newWidth = screenWidth;
+                newHeight = screenHeight;
+
+                // Maintain the landscape aspect ratio
+                if (newWidth / newHeight > baseAspectRatio) {
+                    newWidth = newHeight * baseAspectRatio;
                 } else {
-                    newHeight = newWidth / aspectRatio;
+                    newHeight = newWidth / baseAspectRatio;
+                }
+
+                // Restore base canvas dimensions for landscape
+                if (CONFIG.CANVAS.WIDTH !== CONFIG.CANVAS.BASE_WIDTH || CONFIG.CANVAS.HEIGHT !== CONFIG.CANVAS.BASE_HEIGHT) {
+                    CONFIG.CANVAS.WIDTH = CONFIG.CANVAS.BASE_WIDTH;
+                    CONFIG.CANVAS.HEIGHT = CONFIG.CANVAS.BASE_HEIGHT;
+                    if (typeof Renderer !== 'undefined' && Renderer.updateCanvasBuffer) {
+                        Renderer.updateCanvasBuffer();
+                    }
                 }
             } else {
                 // Desktop: maintain fixed size or scale down if needed
-                newWidth = Math.min(CONFIG.CANVAS.WIDTH, containerWidth);
-                newHeight = Math.min(CONFIG.CANVAS.HEIGHT, containerHeight);
+                const baseAspectRatio = CONFIG.CANVAS.BASE_WIDTH / CONFIG.CANVAS.BASE_HEIGHT;
+                newWidth = Math.min(CONFIG.CANVAS.BASE_WIDTH, containerWidth);
+                newHeight = Math.min(CONFIG.CANVAS.BASE_HEIGHT, containerHeight);
 
-                if (newWidth / newHeight > aspectRatio) {
-                    newWidth = newHeight * aspectRatio;
+                if (newWidth / newHeight > baseAspectRatio) {
+                    newWidth = newHeight * baseAspectRatio;
                 } else {
-                    newHeight = newWidth / aspectRatio;
+                    newHeight = newWidth / baseAspectRatio;
+                }
+
+                // Ensure desktop always uses base dimensions
+                if (CONFIG.CANVAS.WIDTH !== CONFIG.CANVAS.BASE_WIDTH || CONFIG.CANVAS.HEIGHT !== CONFIG.CANVAS.BASE_HEIGHT) {
+                    CONFIG.CANVAS.WIDTH = CONFIG.CANVAS.BASE_WIDTH;
+                    CONFIG.CANVAS.HEIGHT = CONFIG.CANVAS.BASE_HEIGHT;
+                    if (typeof Renderer !== 'undefined' && Renderer.updateCanvasBuffer) {
+                        Renderer.updateCanvasBuffer();
+                    }
                 }
             }
 
@@ -674,7 +717,10 @@ const InputManager = {
         const buttonWidth = 300;
         const buttonHeight = 45;
         const buttonSpacing = 55;
-        const startY = 200;
+        // Match portrait offset from renderMenu/renderMenuButtons
+        const isPortraitCanvas = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const menuOffsetY = isPortraitCanvas ? Math.round((CONFIG.CANVAS.HEIGHT - CONFIG.CANVAS.BASE_HEIGHT) / 3) : 0;
+        const startY = 200 + menuOffsetY;
 
         const buttons = [
             { text: 'NEW GAME', y: startY, action: 'newGame' },
@@ -730,7 +776,7 @@ const InputManager = {
 
     // Handle death screen clicks
     handleDeathScreenClick(x, y) {
-        const btnY = 460;
+        const btnY = CONFIG.CANVAS.HEIGHT - 140;
         const btnHeight = 50;
         const btnGap = 20;
         const centerX = CONFIG.CANVAS.WIDTH / 2;

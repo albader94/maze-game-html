@@ -644,51 +644,55 @@ const Renderer = {
     // Render game UI elements on canvas
     renderGameUI(game) {
         if (game.state !== 'playing') return;
-        
+
+        // Scale up UI in portrait mode for readability
+        const isPortrait = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const uiScale = isPortrait ? 1.6 : 1;
+
         // UI background panel with proper spacing
         const uiX = 10;
         const uiY = 10;
-        const uiWidth = 200;
-        const uiHeight = 115; // Adjusted for better spacing
-        
+        const uiWidth = 200 * uiScale;
+        const uiHeight = 115 * uiScale;
+
         // Gothic UI background with rounded corners
-        this.drawRoundedRect(uiX, uiY, uiWidth, uiHeight, 10, 'rgba(42, 24, 16, 0.9)', '#8B4513', 2);
-        
+        this.drawRoundedRect(uiX, uiY, uiWidth, uiHeight, 10 * uiScale, 'rgba(42, 24, 16, 0.9)', '#8B4513', 2);
+
         // Inner golden border with rounded corners
-        this.drawRoundedRect(uiX + 2, uiY + 2, uiWidth - 4, uiHeight - 4, 8, null, '#DAA520', 1);
-        
+        this.drawRoundedRect(uiX + 2, uiY + 2, uiWidth - 4, uiHeight - 4, 8 * uiScale, null, '#DAA520', 1);
+
         // Text styling
         this.ctx.fillStyle = '#DAA520';
-        this.ctx.font = '13px serif';
+        this.ctx.font = `${Math.round(13 * uiScale)}px serif`;
         this.ctx.textAlign = 'left';
-        
-        let textY = uiY + 20;
-        const lineHeight = 16;
-        
+
+        let textY = uiY + 20 * uiScale;
+        const lineHeight = 16 * uiScale;
+
         // Floor info (use CONFIG for max floors)
-        this.ctx.fillText(`Floor: ${game.floor} / -${CONFIG.GAME.MAX_FLOORS}`, uiX + 10, textY);
+        this.ctx.fillText(`Floor: ${game.floor} / -${CONFIG.GAME.MAX_FLOORS}`, uiX + 10 * uiScale, textY);
         textY += lineHeight;
-        
+
         // Light percentage
         const lightPercent = Math.round(game.player.light);
-        this.ctx.fillText(`Light: ${lightPercent}%`, uiX + 10, textY);
+        this.ctx.fillText(`Light: ${lightPercent}%`, uiX + 10 * uiScale, textY);
         textY += lineHeight;
-        
+
         // Light bar
-        const barX = uiX + 10;
+        const barX = uiX + 10 * uiScale;
         const barY = textY;
-        const barWidth = 170;
-        const barHeight = 12;
-        
+        const barWidth = 170 * uiScale;
+        const barHeight = 12 * uiScale;
+
         // Light bar background
         this.ctx.fillStyle = '#1a0f08';
         this.ctx.fillRect(barX, barY, barWidth, barHeight);
-        
+
         // Light bar border
         this.ctx.strokeStyle = '#654321';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(barX, barY, barWidth, barHeight);
-        
+
         // Light bar fill (clamped to bar bounds)
         const fillWidth = Math.min(barWidth - 2, Math.max(0, game.player.light / 100) * (barWidth - 2));
         if (fillWidth > 0) {
@@ -698,27 +702,27 @@ const Renderer = {
             this.ctx.fillStyle = gradient;
             this.ctx.fillRect(barX + 1, barY + 1, fillWidth, barHeight - 2);
         }
-        
-        textY += lineHeight + 12; // Extra space after light bar
-        
+
+        textY += lineHeight + 12 * uiScale; // Extra space after light bar
+
         // Checkpoint
         const checkpointNum = Math.ceil(Math.abs(game.checkpoint || game.floor) / 5);
         this.ctx.fillStyle = '#DAA520';
-        this.ctx.fillText(`Checkpoint: ${checkpointNum}`, uiX + 10, textY);
+        this.ctx.fillText(`Checkpoint: ${checkpointNum}`, uiX + 10 * uiScale, textY);
         textY += lineHeight;
-        
+
         // Power status
         if (game.player.powers.phase > 0) {
             this.ctx.fillStyle = '#9c27b0';
-            this.ctx.fillText('♦ PHASE ACTIVE', uiX + 10, textY);
+            this.ctx.fillText('♦ PHASE ACTIVE', uiX + 10 * uiScale, textY);
         } else if (game.player.powers.regeneration > 0) {
             this.ctx.fillStyle = '#4caf50';
-            this.ctx.fillText('♦ REGENERATING', uiX + 10, textY);
+            this.ctx.fillText('♦ REGENERATING', uiX + 10 * uiScale, textY);
         } else if (game.player.powers.reveal > 0) {
             this.ctx.fillStyle = '#ffffff';
-            this.ctx.fillText('♦ MAP REVEALED', uiX + 10, textY);
+            this.ctx.fillText('♦ MAP REVEALED', uiX + 10 * uiScale, textY);
         }
-        
+
         // Ensure consistent bottom padding (match top padding)
         // The UI height should accommodate the content with equal top/bottom spacing
     },
@@ -812,13 +816,18 @@ const Renderer = {
         const mapWorldWidth = game.mapWidth * CONFIG.MAP.CELL_SIZE;
         const mapWorldHeight = game.mapHeight * CONFIG.MAP.CELL_SIZE;
         const mapAspectRatio = mapWorldWidth / mapWorldHeight;
-        
-        // Set minimap size to match stats menu height (115px) for consistency
-        const mapHeight = 115; // Match stats menu height
+
+        // Scale up minimap in portrait mode for readability
+        const isPortrait = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const uiScale = isPortrait ? 1.6 : 1;
+
+        // Set minimap size (scaled for portrait)
+        const mapHeight = 115 * uiScale;
         const mapWidth = mapHeight * mapAspectRatio;
-        
+
         const mapX = CONFIG.CANVAS.WIDTH - mapWidth - 10;
-        const mapY = 10;
+        // In portrait mode, push minimap below the settings button to avoid overlap
+        const mapY = isPortrait ? 75 : 10;
         
         // Minimap background with rounded corners and extra padding
         this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.9)', '#8B4513', 3);

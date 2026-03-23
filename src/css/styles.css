@@ -89,6 +89,14 @@ canvas {
     canvas {
         border: none;
     }
+
+    /* Scale settings button up and give it room so it doesn't overlap minimap */
+    #settingsButton {
+        font-size: 26px !important;
+        padding: 12px 16px !important;
+        min-width: 52px !important;
+        min-height: 52px !important;
+    }
 }
 
 /* Prevent text selection everywhere in the game */

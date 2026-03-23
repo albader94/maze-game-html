@@ -1279,17 +1279,37 @@ const Game = {
     // Apply graphics quality settings
     applyGraphicsQuality() {
         const quality = this.settings.graphicsQuality;
-        
+
         switch (quality) {
             case 'low':
-                // Reduce particle count, disable some effects
-                CONFIG.GRAPHICS = { particleMultiplier: 0.5, shadowQuality: 'low' };
+                CONFIG.GRAPHICS = {
+                    quality: 'low',
+                    particleMultiplier: 0.3,
+                    particles: false,
+                    vignette: false,
+                    wallGradients: false,
+                    lightFlicker: false
+                };
                 break;
             case 'medium':
-                CONFIG.GRAPHICS = { particleMultiplier: 0.75, shadowQuality: 'medium' };
+                CONFIG.GRAPHICS = {
+                    quality: 'medium',
+                    particleMultiplier: 0.7,
+                    particles: true,
+                    vignette: true,
+                    wallGradients: true,
+                    lightFlicker: true
+                };
                 break;
             case 'high':
-                CONFIG.GRAPHICS = { particleMultiplier: 1.0, shadowQuality: 'high' };
+                CONFIG.GRAPHICS = {
+                    quality: 'high',
+                    particleMultiplier: 1.0,
+                    particles: true,
+                    vignette: true,
+                    wallGradients: true,
+                    lightFlicker: true
+                };
                 break;
         }
     },
@@ -1437,25 +1457,25 @@ const Game = {
     renderPauseOverlay() {
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
-        
+
         // Semi-transparent overlay
         ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        
+        ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
+
         // Pause text
         ctx.fillStyle = '#87CEEB';
         ctx.font = 'bold 48px monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('⏸️ PAUSED', canvas.width / 2, canvas.height / 2 - 40);
-        
+        ctx.fillText('⏸️ PAUSED', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 - 40);
+
         ctx.fillStyle = '#B0C4DE';
         ctx.font = '24px monospace';
         const isMobilePause = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         if (isMobilePause) {
-            ctx.fillText('Tap pause button to resume', canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('Tap pause button to resume', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 + 20);
         } else {
-            ctx.fillText('Press ESC to resume or open settings', canvas.width / 2, canvas.height / 2 + 20);
+            ctx.fillText('Press ESC to resume or open settings', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 + 20);
         }
 
         // Reset text properties to avoid affecting subsequent rendering

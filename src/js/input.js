@@ -278,6 +278,15 @@ const InputManager = {
                 #victory-overlay > div {
                     max-width: 95vw !important;
                     padding: 20px !important;
+                    font-size: 14px !important;
+                }
+
+                #victory-overlay h1 {
+                    font-size: 2em !important;
+                }
+
+                #victory-overlay h2 {
+                    font-size: 1.3em !important;
                 }
 
                 /* Larger tap targets for mobile */
@@ -661,8 +670,7 @@ const InputManager = {
 
     // Handle menu clicks
     handleMenuClick(x, y) {
-        const canvas = document.getElementById('gameCanvas');
-        const centerX = canvas.width / 2;
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
         const buttonWidth = 300;
         const buttonHeight = 45;
         const buttonSpacing = 55;
@@ -722,21 +730,21 @@ const InputManager = {
 
     // Handle death screen clicks
     handleDeathScreenClick(x, y) {
-        const canvas = document.getElementById('gameCanvas');
         const btnY = 460;
         const btnHeight = 50;
         const btnGap = 20;
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
 
         // Respawn button
-        if (x >= canvas.width / 2 - 200 - btnGap &&
-            x <= canvas.width / 2 - 20 - btnGap &&
+        if (x >= centerX - 200 - btnGap &&
+            x <= centerX - 20 - btnGap &&
             y >= btnY && y <= btnY + btnHeight) {
             GameState.respawnAtCheckpoint();
         }
 
         // Quit button (starts at center + btnGap, width 180)
-        if (x >= canvas.width / 2 + btnGap &&
-            x <= canvas.width / 2 + btnGap + 180 &&
+        if (x >= centerX + btnGap &&
+            x <= centerX + btnGap + 180 &&
             y >= btnY && y <= btnY + btnHeight) {
             GameState.quitToMenu();
         }
@@ -787,7 +795,7 @@ const InputManager = {
 
         const isPlaying = game.state === 'playing' && !game.deathScreen && !game.showHelp && !game.victory && !game.gameOver;
         const isPaused = window.Game && window.Game.isPaused;
-        const isTutorialShowing = document.getElementById('tutorialPopup') !== null;
+        const isTutorialShowing = game.tutorial && game.tutorial.tutorialPopup !== null;
 
         if (isPlaying && !isPaused && !isTutorialShowing) {
             document.body.classList.add('mobile-active');

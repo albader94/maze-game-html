@@ -13,11 +13,16 @@ const Renderer = {
         this.ctx = this.canvas.getContext('2d');
         this.minimapCanvas = document.getElementById('minimap');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
-        
-        this.canvas.width = CONFIG.CANVAS.WIDTH;
-        this.canvas.height = CONFIG.CANVAS.HEIGHT;
-        this.minimapCanvas.width = CONFIG.MINIMAP.WIDTH;
-        this.minimapCanvas.height = CONFIG.MINIMAP.HEIGHT;
+
+        // Support high-DPI displays for crisp rendering
+        const dpr = window.devicePixelRatio || 1;
+        this.canvas.width = CONFIG.CANVAS.WIDTH * dpr;
+        this.canvas.height = CONFIG.CANVAS.HEIGHT * dpr;
+        this.ctx.scale(dpr, dpr);
+
+        this.minimapCanvas.width = CONFIG.MINIMAP.WIDTH * dpr;
+        this.minimapCanvas.height = CONFIG.MINIMAP.HEIGHT * dpr;
+        this.minimapCtx.scale(dpr, dpr);
     },
 
     // Helper function to draw rounded rectangles
@@ -78,7 +83,7 @@ const Renderer = {
         
         // Dark underground atmosphere
         this.ctx.fillStyle = '#0a0a0a';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
 
         if (game.state === 'menu') {
             this.renderMenu();
@@ -121,7 +126,7 @@ const Renderer = {
         }
         if (this.floorTransitionAlpha > 0) {
             this.ctx.fillStyle = `rgba(0, 0, 0, ${this.floorTransitionAlpha})`;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
             this.floorTransitionAlpha = Math.max(0, this.floorTransitionAlpha - 0.04);
         }
 
@@ -134,9 +139,9 @@ const Renderer = {
     // Render floor tiles
     renderFloorTiles(game) {
         const startX = Math.floor(game.camera.x / CONFIG.MAP.CELL_SIZE);
-        const endX = Math.ceil((game.camera.x + this.canvas.width) / CONFIG.MAP.CELL_SIZE);
+        const endX = Math.ceil((game.camera.x + CONFIG.CANVAS.WIDTH) / CONFIG.MAP.CELL_SIZE);
         const startY = Math.floor(game.camera.y / CONFIG.MAP.CELL_SIZE);
-        const endY = Math.ceil((game.camera.y + this.canvas.height) / CONFIG.MAP.CELL_SIZE);
+        const endY = Math.ceil((game.camera.y + CONFIG.CANVAS.HEIGHT) / CONFIG.MAP.CELL_SIZE);
         
         // Very dark underground floor grid lines (subtly visible near player)
         this.ctx.strokeStyle = '#1a1510';
@@ -160,23 +165,30 @@ const Renderer = {
     renderWalls(game) {
         // Very dark underground wall color
         this.ctx.fillStyle = '#111';
+        const useGradients = !CONFIG.GRAPHICS || CONFIG.GRAPHICS.wallGradients !== false;
         for (const wall of game.walls) {
             const dist = Utils.distance(wall, game.player);
             if (dist < game.player.lightRadius * 1.5 || game.player.powers.reveal > 0) {
                 this.ctx.globalAlpha = Math.max(0.3, 1 - (dist / (game.player.lightRadius * 2)));
-                
-                // Sandstone wall with texture gradient
-                const wallGradient = this.ctx.createLinearGradient(wall.x - 15, wall.y - 15, wall.x + 15, wall.y + 15);
-                wallGradient.addColorStop(0, '#9b8365'); // Lighter sandstone
-                wallGradient.addColorStop(0.5, '#8b7355'); // Base sandstone
-                wallGradient.addColorStop(1, '#7b6345'); // Darker shadow
-                this.ctx.fillStyle = wallGradient;
-                this.ctx.fillRect(wall.x - 15, wall.y - 15, 30, 30);
-                
-                // Subtle weathered edge
-                this.ctx.strokeStyle = '#6b5335';
-                this.ctx.lineWidth = 1;
-                this.ctx.strokeRect(wall.x - 15, wall.y - 15, 30, 30);
+
+                if (useGradients) {
+                    // Sandstone wall with texture gradient
+                    const wallGradient = this.ctx.createLinearGradient(wall.x - 15, wall.y - 15, wall.x + 15, wall.y + 15);
+                    wallGradient.addColorStop(0, '#9b8365'); // Lighter sandstone
+                    wallGradient.addColorStop(0.5, '#8b7355'); // Base sandstone
+                    wallGradient.addColorStop(1, '#7b6345'); // Darker shadow
+                    this.ctx.fillStyle = wallGradient;
+                    this.ctx.fillRect(wall.x - 15, wall.y - 15, 30, 30);
+
+                    // Subtle weathered edge
+                    this.ctx.strokeStyle = '#6b5335';
+                    this.ctx.lineWidth = 1;
+                    this.ctx.strokeRect(wall.x - 15, wall.y - 15, 30, 30);
+                } else {
+                    // Simple flat color for low quality
+                    this.ctx.fillStyle = '#8b7355';
+                    this.ctx.fillRect(wall.x - 15, wall.y - 15, 30, 30);
+                }
             }
         }
         this.ctx.globalAlpha = 1;
@@ -453,6 +465,9 @@ const Renderer = {
 
     // Render particles
     renderParticles(game) {
+        if (CONFIG.GRAPHICS && CONFIG.GRAPHICS.particles === false) {
+            return;
+        }
         for (const particle of game.particles) {
             this.ctx.globalAlpha = particle.life / 30;
             this.ctx.fillStyle = particle.color;
@@ -538,16 +553,23 @@ const Renderer = {
             }
             
             // Add subtle flicker effect using time and light level
-            const time = game.time || 0;
-            const lightPercent = game.player.light / 100;
-            const flickerIntensity = 0.04; // Subtle flicker
-            const flicker = 1 + Math.sin(time * 0.08) * flickerIntensity + Math.sin(time * 0.17) * flickerIntensity * 0.6;
-            
-            // Adjust flicker based on light level - more flicker when light is low
-            const lowLightFlicker = Math.max(0, (1 - lightPercent) * 0.08);
-            const totalFlicker = flicker + lowLightFlicker;
-            
-            const flickeredRadius = game.player.lightRadius * totalFlicker;
+            const useFlicker = !CONFIG.GRAPHICS || CONFIG.GRAPHICS.lightFlicker !== false;
+            let flickeredRadius;
+
+            if (useFlicker) {
+                const time = game.time || 0;
+                const lightPercent = game.player.light / 100;
+                const flickerIntensity = 0.04; // Subtle flicker
+                const flicker = 1 + Math.sin(time * 0.08) * flickerIntensity + Math.sin(time * 0.17) * flickerIntensity * 0.6;
+
+                // Adjust flicker based on light level - more flicker when light is low
+                const lowLightFlicker = Math.max(0, (1 - lightPercent) * 0.08);
+                const totalFlicker = flicker + lowLightFlicker;
+
+                flickeredRadius = game.player.lightRadius * totalFlicker;
+            } else {
+                flickeredRadius = game.player.lightRadius;
+            }
             
             const gradient = this.ctx.createRadialGradient(
                 game.player.x, game.player.y, 0,
@@ -555,9 +577,10 @@ const Renderer = {
             );
             
             // Warm torch fire light effect with flicker intensity
-            const baseIntensity = 0.5 * totalFlicker;
-            const midIntensity = 0.3 * totalFlicker;
-            const edgeIntensity = 0.15 * totalFlicker;
+            const intensityScale = useFlicker ? (flickeredRadius / game.player.lightRadius) : 1;
+            const baseIntensity = 0.5 * intensityScale;
+            const midIntensity = 0.3 * intensityScale;
+            const edgeIntensity = 0.15 * intensityScale;
             
             gradient.addColorStop(0, `rgba(255, 200, 100, ${baseIntensity})`); // Bright warm center
             gradient.addColorStop(0.3, `rgba(255, 150, 50, ${midIntensity})`); // Orange glow
@@ -582,10 +605,13 @@ const Renderer = {
 
     // Render darkness vignette
     renderVignette() {
+        if (CONFIG.GRAPHICS && CONFIG.GRAPHICS.vignette === false) {
+            return;
+        }
         try {
             const vignette = this.ctx.createRadialGradient(
-                this.canvas.width / 2, this.canvas.height / 2, 0,
-                this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
+                CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, 0,
+                CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, CONFIG.CANVAS.WIDTH / 2
             );
             // Dark underground vignette effect
             vignette.addColorStop(0, 'rgba(0,0,0,0)');
@@ -593,7 +619,7 @@ const Renderer = {
             vignette.addColorStop(0.8, 'rgba(0,0,0,0.4)');
             vignette.addColorStop(1, 'rgba(0,0,0,0.7)');
             this.ctx.fillStyle = vignette;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         } catch (error) {
             console.error('Error in renderVignette:', error);
         }
@@ -604,7 +630,7 @@ const Renderer = {
         if (game.darknessFade > 0) {
             // Black fade during swarm for dramatic darkness effect
             this.ctx.fillStyle = `rgba(0, 0, 0, ${game.darknessFade})`;
-            this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+            this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         }
     },
 
@@ -699,8 +725,8 @@ const Renderer = {
         const totalSlotsWidth = (slotSize * 3) + (slotGap * 2);
         
         // Position inventory at bottom center, moved down
-        const invX = (this.canvas.width - totalSlotsWidth) / 2;
-        const invY = this.canvas.height - 70;
+        const invX = (CONFIG.CANVAS.WIDTH - totalSlotsWidth) / 2;
+        const invY = CONFIG.CANVAS.HEIGHT - 70;
         
         // Render each inventory slot individually (like in reference image)
         for (let i = 0; i < 3; i++) {
@@ -784,7 +810,7 @@ const Renderer = {
         const mapHeight = 115; // Match stats menu height
         const mapWidth = mapHeight * mapAspectRatio;
         
-        const mapX = this.canvas.width - mapWidth - 10;
+        const mapX = CONFIG.CANVAS.WIDTH - mapWidth - 10;
         const mapY = 10;
         
         // Minimap background with rounded corners and extra padding
@@ -876,8 +902,8 @@ const Renderer = {
         this.ctx.strokeRect(
             contentX + (game.camera.x * scaleX),
             contentY + (game.camera.y * scaleY),
-            this.canvas.width * scaleX,
-            this.canvas.height * scaleY
+            CONFIG.CANVAS.WIDTH * scaleX,
+            CONFIG.CANVAS.HEIGHT * scaleY
         );
 
         // Restore context to remove minimap clipping
@@ -888,18 +914,18 @@ const Renderer = {
     renderMenu() {
         // Dark mystical background
         this.ctx.fillStyle = '#0a0505';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         
         // Dark red vignette effect for mystical atmosphere
         const gradient = this.ctx.createRadialGradient(
-            this.canvas.width / 2, this.canvas.height / 2, 0,
-            this.canvas.width / 2, this.canvas.height / 2, this.canvas.width / 2
+            CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, 0,
+            CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2, CONFIG.CANVAS.WIDTH / 2
         );
         gradient.addColorStop(0, 'rgba(20, 5, 0, 0)');
         gradient.addColorStop(0.6, 'rgba(30, 10, 5, 0.3)');
         gradient.addColorStop(1, 'rgba(15, 0, 0, 0.7)');
         this.ctx.fillStyle = gradient;
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         
         // Main title with Gothic styling
         this.ctx.textAlign = 'center';
@@ -907,25 +933,25 @@ const Renderer = {
         this.ctx.shadowColor = '#8B0000'; // Dark red shadow
         this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 52px serif';
-        this.ctx.fillText('BURIED SPIRE', this.canvas.width / 2, 90);
+        this.ctx.fillText('BURIED SPIRE', CONFIG.CANVAS.WIDTH / 2, 90);
         
         // Subtitle with mystical glow
         this.ctx.shadowBlur = 10;
         this.ctx.shadowColor = '#654321'; // Gothic brown shadow
         this.ctx.fillStyle = '#8B4513'; // Gothic brown
         this.ctx.font = 'italic 22px serif';
-        this.ctx.fillText('Quest Into the Depths', this.canvas.width / 2, 120);
+        this.ctx.fillText('Quest Into the Depths', CONFIG.CANVAS.WIDTH / 2, 120);
         this.ctx.shadowBlur = 0;
         
         // Atmospheric flavor text
         this.ctx.fillStyle = '#654321'; // Gothic brown
         this.ctx.font = '14px serif';
-        this.ctx.fillText('Ancient depths await the brave...', this.canvas.width / 2, 150);
+        this.ctx.fillText('Ancient depths await the brave...', CONFIG.CANVAS.WIDTH / 2, 150);
         
         // Desert decorative elements
         this.ctx.fillStyle = '#a68654';
         this.ctx.font = '16px serif';
-        this.ctx.fillText('☥ ═══════════════════════════════════ ☥', this.canvas.width / 2, 175);
+        this.ctx.fillText('☥ ═══════════════════════════════════ ☥', CONFIG.CANVAS.WIDTH / 2, 175);
         
         // Menu buttons
         this.renderMenuButtons();
@@ -935,22 +961,22 @@ const Renderer = {
         this.ctx.font = '11px serif';
         const isMobileMenu = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         if (isMobileMenu) {
-            this.ctx.fillText('⚔ Joystick: Move • Buttons: Use Orb ⚔', this.canvas.width / 2, 520);
+            this.ctx.fillText('⚔ Joystick: Move • Buttons: Use Orb ⚔', CONFIG.CANVAS.WIDTH / 2, 520);
         } else {
-            this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', this.canvas.width / 2, 520);
+            this.ctx.fillText('⚔ WASD: Move • 1-3: Use Orb • ESC: Pause ⚔', CONFIG.CANVAS.WIDTH / 2, 520);
         }
         
         // Build info with gothic styling
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '9px serif';
-        this.ctx.fillText('Ancient Codex v1.0 • Forged in Darkness', this.canvas.width / 2, 545);
+        this.ctx.fillText('Ancient Codex v1.0 • Forged in Darkness', CONFIG.CANVAS.WIDTH / 2, 545);
         
         this.ctx.textAlign = 'left';
     },
     
     // Render main menu buttons
     renderMenuButtons() {
-        const centerX = this.canvas.width / 2;
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
         const buttonWidth = 300;
         const buttonHeight = 45;
         const buttonSpacing = 55;
@@ -1031,17 +1057,17 @@ const Renderer = {
         
         // Dark background overlay
         this.ctx.fillStyle = 'rgba(42, 24, 16, 0.95)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         
         // Decorative Gothic border
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(50, 30, this.canvas.width - 100, this.canvas.height - 60);
+        this.ctx.strokeRect(50, 30, CONFIG.CANVAS.WIDTH - 100, CONFIG.CANVAS.HEIGHT - 60);
         
         // Inner golden border
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(55, 35, this.canvas.width - 110, this.canvas.height - 70);
+        this.ctx.strokeRect(55, 35, CONFIG.CANVAS.WIDTH - 110, CONFIG.CANVAS.HEIGHT - 70);
         
         // Title with gothic styling
         this.ctx.shadowBlur = 8;
@@ -1049,33 +1075,33 @@ const Renderer = {
         this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 28px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('⚜ ADVENTURER\'S GUIDE ⚜', this.canvas.width / 2, 70);
+        this.ctx.fillText('⚜ ADVENTURER\'S GUIDE ⚜', CONFIG.CANVAS.WIDTH / 2, 70);
         this.ctx.shadowBlur = 0;
         
         // Section headers with bronze styling
         this.ctx.fillStyle = '#CD853F';
         this.ctx.font = 'bold 18px serif';
-        this.ctx.fillText('SACRED QUEST', this.canvas.width / 2, 110);
+        this.ctx.fillText('SACRED QUEST', CONFIG.CANVAS.WIDTH / 2, 110);
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '14px serif';
-        this.ctx.fillText(`Descend the cursed tower to floor -${CONFIG.GAME.MAX_FLOORS}`, this.canvas.width / 2, 130);
-        this.ctx.fillText('Seek the Ancient Pearl to break the curse', this.canvas.width / 2, 150);
+        this.ctx.fillText(`Descend the cursed tower to floor -${CONFIG.GAME.MAX_FLOORS}`, CONFIG.CANVAS.WIDTH / 2, 130);
+        this.ctx.fillText('Seek the Ancient Pearl to break the curse', CONFIG.CANVAS.WIDTH / 2, 150);
         
         // Controls section
         this.ctx.fillStyle = '#CD853F';
         this.ctx.font = 'bold 18px serif';
-        this.ctx.fillText('MYSTIC CONTROLS', this.canvas.width / 2, 190);
+        this.ctx.fillText('MYSTIC CONTROLS', CONFIG.CANVAS.WIDTH / 2, 190);
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '14px serif';
         const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         if (isMobileDevice) {
-            this.ctx.fillText('Virtual Joystick: Navigate the darkness', this.canvas.width / 2, 210);
-            this.ctx.fillText('Buttons 1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
-            this.ctx.fillText('Pause button: Open settings', this.canvas.width / 2, 250);
+            this.ctx.fillText('Virtual Joystick: Navigate the darkness', CONFIG.CANVAS.WIDTH / 2, 210);
+            this.ctx.fillText('Buttons 1-3: Channel orb powers from inventory', CONFIG.CANVAS.WIDTH / 2, 230);
+            this.ctx.fillText('Pause button: Open settings', CONFIG.CANVAS.WIDTH / 2, 250);
         } else {
-            this.ctx.fillText('Arrow Keys / WASD: Navigate the darkness', this.canvas.width / 2, 210);
-            this.ctx.fillText('1-3: Channel orb powers from inventory', this.canvas.width / 2, 230);
-            this.ctx.fillText('H: Summon this guide', this.canvas.width / 2, 250);
+            this.ctx.fillText('Arrow Keys / WASD: Navigate the darkness', CONFIG.CANVAS.WIDTH / 2, 210);
+            this.ctx.fillText('1-3: Channel orb powers from inventory', CONFIG.CANVAS.WIDTH / 2, 230);
+            this.ctx.fillText('H: Summon this guide', CONFIG.CANVAS.WIDTH / 2, 250);
         }
 
         // Orb guide
@@ -1086,9 +1112,9 @@ const Renderer = {
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '16px serif';
         if (isMobileDevice) {
-            this.ctx.fillText('Tap anywhere to dismiss this guide', this.canvas.width / 2, 520);
+            this.ctx.fillText('Tap anywhere to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, 520);
         } else {
-            this.ctx.fillText('Press H to dismiss this guide', this.canvas.width / 2, 520);
+            this.ctx.fillText('Press H to dismiss this guide', CONFIG.CANVAS.WIDTH / 2, 520);
         }
         this.ctx.textAlign = 'left';
     },
@@ -1098,7 +1124,7 @@ const Renderer = {
         this.ctx.fillStyle = '#CD853F';
         this.ctx.font = 'bold 18px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('MYSTICAL ORBS', this.canvas.width / 2, 290);
+        this.ctx.fillText('MYSTICAL ORBS', CONFIG.CANVAS.WIDTH / 2, 290);
         
         this.ctx.textAlign = 'left';
         const orbX = 180;
@@ -1133,17 +1159,17 @@ const Renderer = {
         
         // Dark death screen background
         this.ctx.fillStyle = 'rgba(42, 24, 16, 0.98)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         
         // Gothic decorative border
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
-        this.ctx.strokeRect(30, 30, this.canvas.width - 60, this.canvas.height - 60);
+        this.ctx.strokeRect(30, 30, CONFIG.CANVAS.WIDTH - 60, CONFIG.CANVAS.HEIGHT - 60);
         
         // Inner golden border
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 1;
-        this.ctx.strokeRect(35, 35, this.canvas.width - 70, this.canvas.height - 70);
+        this.ctx.strokeRect(35, 35, CONFIG.CANVAS.WIDTH - 70, CONFIG.CANVAS.HEIGHT - 70);
         
         // Title with gothic styling
         this.ctx.shadowBlur = 12;
@@ -1151,18 +1177,18 @@ const Renderer = {
         this.ctx.fillStyle = '#DC143C';
         this.ctx.font = 'bold 40px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('⚜ CLAIMED BY THE VOID ⚜', this.canvas.width / 2, 100);
+        this.ctx.fillText('⚜ CLAIMED BY THE VOID ⚜', CONFIG.CANVAS.WIDTH / 2, 100);
         this.ctx.shadowBlur = 0;
         
         // Stats with gothic styling
         this.ctx.fillStyle = '#CD853F';
         this.ctx.font = 'bold 20px serif';
-        this.ctx.fillText('⚰ MORTAL CHRONICLE ⚰', this.canvas.width / 2, 160);
+        this.ctx.fillText('⚰ MORTAL CHRONICLE ⚰', CONFIG.CANVAS.WIDTH / 2, 160);
         
         this.ctx.fillStyle = '#8B4513';
         this.ctx.font = '16px serif';
         this.ctx.textAlign = 'left';
-        const statsX = this.canvas.width / 2 - 160;
+        const statsX = CONFIG.CANVAS.WIDTH / 2 - 160;
         this.ctx.fillText(`⚔ Final Depth: Floor ${-game.floor}`, statsX, 200);
         this.ctx.fillText(`⚜ Last Sanctuary: Floor ${-game.checkpoint}`, statsX, 220);
         this.ctx.fillText(`💎 Orbs Gathered: ${game.player.orbsCollected}`, statsX, 240);
@@ -1173,14 +1199,14 @@ const Renderer = {
         this.ctx.textAlign = 'center';
         this.ctx.fillStyle = '#DAA520';
         this.ctx.font = 'bold 18px serif';
-        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', this.canvas.width / 2, 330);
+        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', CONFIG.CANVAS.WIDTH / 2, 330);
         
         this.ctx.fillStyle = '#654321';
         this.ctx.font = '14px serif';
-        this.ctx.fillText('♦ Shadow_Walker - Floor 47', this.canvas.width / 2, 355);
-        this.ctx.fillText('♠ LightKeeper - Floor 42', this.canvas.width / 2, 375);
-        this.ctx.fillText('♣ DuneRunner - Floor 38', this.canvas.width / 2, 395);
-        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, this.canvas.width / 2, 415);
+        this.ctx.fillText('♦ Shadow_Walker - Floor 47', CONFIG.CANVAS.WIDTH / 2, 355);
+        this.ctx.fillText('♠ LightKeeper - Floor 42', CONFIG.CANVAS.WIDTH / 2, 375);
+        this.ctx.fillText('♣ DuneRunner - Floor 38', CONFIG.CANVAS.WIDTH / 2, 395);
+        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, CONFIG.CANVAS.WIDTH / 2, 415);
         
         // Buttons
         this.renderDeathScreenButtons();
@@ -1195,31 +1221,31 @@ const Renderer = {
         const btnGap = 20;
         
         // Respawn button with gothic styling
-        const gradient1 = this.ctx.createLinearGradient(this.canvas.width / 2 - 200 - btnGap, btnY, this.canvas.width / 2 - 20 - btnGap, btnY + btnHeight);
+        const gradient1 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 - 20 - btnGap, btnY + btnHeight);
         gradient1.addColorStop(0, '#8B4513');
         gradient1.addColorStop(1, '#654321');
         this.ctx.fillStyle = gradient1;
-        this.ctx.fillRect(this.canvas.width / 2 - 200 - btnGap, btnY, 180, btnHeight);
+        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, 180, btnHeight);
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(this.canvas.width / 2 - 200 - btnGap, btnY, 180, btnHeight);
+        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, 180, btnHeight);
         
         this.ctx.fillStyle = '#FFD700';
         this.ctx.font = 'bold 18px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('♦ RISE AGAIN', this.canvas.width / 2 - 110 - btnGap, btnY + 32);
+        this.ctx.fillText('♦ RISE AGAIN', CONFIG.CANVAS.WIDTH / 2 - 110 - btnGap, btnY + 32);
         
         // Quit button with gothic styling
-        const gradient2 = this.ctx.createLinearGradient(this.canvas.width / 2 + btnGap, btnY, this.canvas.width / 2 + 200 + btnGap, btnY + btnHeight);
+        const gradient2 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 + 200 + btnGap, btnY + btnHeight);
         gradient2.addColorStop(0, '#654321');
         gradient2.addColorStop(1, '#3d2817');
         this.ctx.fillStyle = gradient2;
-        this.ctx.fillRect(this.canvas.width / 2 + btnGap, btnY, 180, btnHeight);
+        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, 180, btnHeight);
         this.ctx.strokeStyle = '#8B4513';
-        this.ctx.strokeRect(this.canvas.width / 2 + btnGap, btnY, 180, btnHeight);
+        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, 180, btnHeight);
         
         this.ctx.fillStyle = '#CD853F';
-        this.ctx.fillText('♠ RETREAT', this.canvas.width / 2 + 110 + btnGap, btnY + 32);
+        this.ctx.fillText('♠ RETREAT', CONFIG.CANVAS.WIDTH / 2 + 110 + btnGap, btnY + 32);
     },
 
     // Render game over screen (victory has its own overlay)
@@ -1228,7 +1254,7 @@ const Renderer = {
         
         // Desert sand game over background
         this.ctx.fillStyle = 'rgba(61, 43, 31, 1)';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         
         // Desert game over styling
         this.ctx.shadowBlur = 15;
@@ -1236,16 +1262,16 @@ const Renderer = {
         this.ctx.fillStyle = '#DC143C';
         this.ctx.font = 'bold 52px serif';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('☥ QUEST FAILED ☥', this.canvas.width / 2, this.canvas.height / 2);
+        this.ctx.fillText('☥ QUEST FAILED ☥', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2);
         this.ctx.shadowBlur = 0;
         
         this.ctx.font = '18px serif';
         this.ctx.fillStyle = '#d4a574'; // Light sand
         const isMobileGameOver = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         if (isMobileGameOver) {
-            this.ctx.fillText('Tap to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
+            this.ctx.fillText('Tap to retreat to the sanctum', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 + 50);
         } else {
-            this.ctx.fillText('Press R to retreat to the sanctum', this.canvas.width / 2, this.canvas.height / 2 + 50);
+            this.ctx.fillText('Press R to retreat to the sanctum', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 + 50);
         }
         this.ctx.textAlign = 'left';
     }

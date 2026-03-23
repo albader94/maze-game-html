@@ -26,7 +26,7 @@ const CONFIG = {
         LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
     },
     GAME: {
-        MAX_FLOORS: 2, // Restored to full game length
+        MAX_FLOORS: 50, // Full game length (50 floors to reach the Ancient Pearl)
         CHECKPOINT_INTERVAL: 5,
         SWARM_DURATION: 180, // 3 seconds at 60fps
         PHASE_DURATION: 300, // 5 seconds

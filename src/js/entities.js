@@ -136,7 +136,7 @@ const EntityManager = {
         // Fill the entire canvas with the expanding light
         ctx.globalCompositeOperation = 'screen'; // Additive blending for bright effect
         ctx.fillStyle = gradient;
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
 
         // Add intense bright flash at center
         if (animation.lightRadius > 50) {
@@ -148,7 +148,7 @@ const EntityManager = {
             centerGradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
 
             ctx.fillStyle = centerGradient;
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
         }
 
         // Restore context
@@ -180,16 +180,18 @@ const EntityManager = {
             background: linear-gradient(45deg, rgba(10,5,5,0.95), rgba(42,24,16,0.98));
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
             z-index: 1000;
             color: #ffffff;
             text-align: center;
             animation: fadeIn 2s ease-in;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         `;
 
         const victoryContent = `
-            <div style="max-width: 600px; padding: 40px;">
+            <div style="max-width: 600px; padding: 40px 40px 60px; margin: auto 0;">
                 <h1 style="
                     color: #FFD700;
                     font-size: 3.5em;

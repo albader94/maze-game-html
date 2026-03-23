@@ -162,6 +162,8 @@ const Utils = {
 
     // Create particle effect with object pooling
     createParticles(game, x, y, color, count = 10, speed = 4) {
+        const multiplier = (CONFIG.GRAPHICS && CONFIG.GRAPHICS.particleMultiplier != null) ? CONFIG.GRAPHICS.particleMultiplier : 1;
+        count = Math.max(1, Math.round(count * multiplier));
         for (let i = 0; i < count; i++) {
             const particle = this.getFromPool('particlePool', () => ({}));
             particle.x = x;
@@ -178,6 +180,8 @@ const Utils = {
 
     // Create circular particle effect
     createCircularParticles(game, x, y, color, count = 20, speed = 5) {
+        const multiplier = (CONFIG.GRAPHICS && CONFIG.GRAPHICS.particleMultiplier != null) ? CONFIG.GRAPHICS.particleMultiplier : 1;
+        count = Math.max(1, Math.round(count * multiplier));
         for (let i = 0; i < count; i++) {
             const angle = (Math.PI * 2 / count) * i;
             const particle = this.getFromPool('particlePool', () => ({}));

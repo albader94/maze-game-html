@@ -468,17 +468,27 @@ const GameLogic = {
             throw new Error('Invalid movement input');
         }
         
-        // Apply movement
+        // Apply movement with wall sliding
         if (movement.x !== 0 || movement.y !== 0) {
-            const newX = game.player.x + movement.x * game.player.speed * deltaTime / 16;
-            const newY = game.player.y + movement.y * game.player.speed * deltaTime / 16;
-            
-            // Validate new position
+            const dx = movement.x * game.player.speed * deltaTime / 16;
+            const dy = movement.y * game.player.speed * deltaTime / 16;
+            const newX = game.player.x + dx;
+            const newY = game.player.y + dy;
+
+            // Try full movement first
             if (this.isValidPosition(newX, newY, game)) {
                 game.player.x = newX;
                 game.player.y = newY;
-                Utils.markExplored(game);
+            } else {
+                // Wall sliding: try each axis independently
+                if (dx !== 0 && this.isValidPosition(newX, game.player.y, game)) {
+                    game.player.x = newX;
+                }
+                if (dy !== 0 && this.isValidPosition(game.player.x, newY, game)) {
+                    game.player.y = newY;
+                }
             }
+            Utils.markExplored(game);
         }
         
         // Update player powers with validation
@@ -500,7 +510,6 @@ const GameLogic = {
         if (stalkingGhouls > 0) {
             // Each stalking ghoul increases depletion by 50%
             lightDepletionRate *= (1 + (stalkingGhouls * 0.5));
-            console.log(`⚡ ${stalkingGhouls} ghouls stalking - increased light depletion: ${lightDepletionRate.toFixed(3)}`);
         }
         
         // Update light with bounds checking
@@ -525,24 +534,26 @@ const GameLogic = {
     // Validate position
     isValidPosition(x, y, game) {
         if (!Utils.isInBounds(x, y, game)) return false;
-        
+
         // Allow walking through walls when phase power is active
         if (game.player.powers.phase > 0) {
             return true;
         }
-        
-        // Check wall collisions - walls are positioned at their center
-        for (const wall of game.walls) {
+
+        // Use spatial grid to check only nearby walls instead of all walls
+        const collisionThreshold = game.player.size + 12;
+        const collisionThresholdSq = collisionThreshold * collisionThreshold;
+        const nearbyWalls = Utils.getNearbyEntities(x, y, 'walls', 1);
+
+        for (const wall of nearbyWalls) {
             const dx = x - wall.x;
             const dy = y - wall.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-            
-            // Player size + wall collision radius (walls are 30x30, so radius ~12 for tighter collision)
-            if (distance < game.player.size + 12) {
+            // Use squared distance to avoid expensive sqrt
+            if (dx * dx + dy * dy < collisionThresholdSq) {
                 return false;
             }
         }
-        
+
         return true;
     },
 
@@ -614,23 +625,27 @@ const GameLogic = {
     updateEntities(game, deltaTime) {
         // Clear spatial grid
         Utils.clearSpatialGrid();
-        
+
         // Add walls to spatial grid
         game.walls.forEach(wall => Utils.addToSpatialGrid(wall, 'walls'));
-        
-        // Update orb pulse animations
+
+        // Add ghouls to spatial grid
+        game.ghouls.forEach(ghoul => Utils.addToSpatialGrid(ghoul, 'ghouls'));
+
+        // Add orbs to spatial grid and update pulse animations
         for (const orb of game.orbs) {
             if (!orb.collected) {
-                orb.pulse += 0.1;
+                Utils.addToSpatialGrid(orb, 'orbs');
+                orb.pulse = (orb.pulse + 0.1) % (Math.PI * 2);
             }
         }
-        
+
         // Update ghouls
         this.updateGhouls(game, deltaTime);
-        
+
         // Update particles
         this.updateParticles(game, deltaTime);
-        
+
         // Check orb collection
         this.checkOrbCollection(game);
     },
@@ -788,12 +803,7 @@ const GameLogic = {
                         game.player.light = CONFIG.PLAYER.MAX_LIGHT;
                         InventoryManager.updateDisplay();
                         
-                        const storyElement = document.getElementById('story');
-                        if (storyElement) {
-                            Utils.showMessage(MESSAGES.STORY.LIFELINE_AUTO, 3000);
-                        } else {
-                            Utils.showMessage('Lifeline orb activated! Light restored automatically.', 3000);
-                        }
+                        Utils.showMessage(MESSAGES.STORY.LIFELINE_AUTO, 3000);
                         
                         // Create revival effect
                         Utils.createCircularParticles(game, game.player.x, game.player.y, '#f44336', 30, 8);
@@ -814,12 +824,7 @@ const GameLogic = {
                 });
                 
                 // Show death message
-                const storyElement = document.getElementById('story');
-                if (storyElement) {
-                    Utils.showMessage(MESSAGES.STORY.DARKNESS_CONSUMES, 4000);
-                } else {
-                    Utils.showMessage('The darkness consumes you! Ghouls swarm from all directions!', 4000);
-                }
+                Utils.showMessage(MESSAGES.STORY.DARKNESS_CONSUMES, 4000);
                 
                 // Spawn swarm of ghouls
                 this.startSwarmSequence(game);
@@ -872,14 +877,7 @@ const GameLogic = {
         }
         
         // Show swarm message
-        const storyElement = document.getElementById('story');
-        if (storyElement) {
-            if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.DARKNESS_CONSUMES) {
-                storyElement.textContent = MESSAGES.STORY.DARKNESS_CONSUMES;
-            } else {
-                storyElement.textContent = 'The darkness consumes you! Ghouls swarm from all directions!';
-            }
-        }
+        Utils.showMessage(MESSAGES.STORY.DARKNESS_CONSUMES, 4000);
         
         // Alert all existing ghouls and make them faster
         for (const ghoul of game.ghouls) {
@@ -888,9 +886,8 @@ const GameLogic = {
         }
         
         // Spawn dramatic edge ghouls for swarm effect
-        const canvas = document.getElementById('gameCanvas');
-        const canvasWidth = canvas ? canvas.width : 800;
-        const canvasHeight = canvas ? canvas.height : 600;
+        const canvasWidth = CONFIG.CANVAS.WIDTH;
+        const canvasHeight = CONFIG.CANVAS.HEIGHT;
         
         for (let i = 0; i < 8; i++) {
             const edge = Math.floor(Math.random() * 4);
@@ -946,16 +943,16 @@ const GameLogic = {
         try {
             const canvas = document.getElementById('gameCanvas');
             const ctx = canvas.getContext('2d');
-            
+
             // Clear canvas and show error message
             ctx.fillStyle = '#000';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
+            ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
+
             ctx.fillStyle = '#fff';
             ctx.font = '20px Arial';
             ctx.textAlign = 'center';
-            ctx.fillText('Rendering Error - Press R to restart', canvas.width / 2, canvas.height / 2);
-            
+            ctx.fillText('Rendering Error - Press R to restart', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2);
+
         } catch (e) {
             console.error('Failed to recover rendering:', e);
         }

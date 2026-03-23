@@ -177,11 +177,8 @@ const GameState = {
         }
         
         // Note: UI elements (ui, minimap, inventory) are rendered on canvas
-        // and hidden via CSS !important. Only the story element needs display toggling.
-        const storyEl = document.getElementById('story');
-        if (storyEl) {
-            storyEl.style.display = 'block';
-        }
+        // and hidden via CSS !important. Story messages use Utils.showMessage() notifications.
+        // The #story element is no longer used for display.
         
         // Set checkpoint with safety check
         const checkpointElement = document.getElementById('checkpoint');

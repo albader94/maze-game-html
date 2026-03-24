@@ -1252,6 +1252,12 @@ const Game = {
 
     // Apply current settings
     applySettings() {
+        // Clean up FPS display when disabled
+        if (!this.settings.showFPS) {
+            const fpsDisplay = document.getElementById('fpsDisplay');
+            if (fpsDisplay) fpsDisplay.remove();
+        }
+
         // Apply debug panel setting
         if (this.settings.showDebugInfo) {
             this.createDebugPanel();

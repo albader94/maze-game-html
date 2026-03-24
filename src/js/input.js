@@ -54,14 +54,14 @@ const InputManager = {
             let newWidth, newHeight;
 
             if (this.isMobile && isPortrait) {
-                // Portrait mobile: fill the full screen by adjusting internal canvas dimensions
-                // Use the screen's full width and height (no letterboxing)
+                // Portrait mobile: fill the available screen below safe area (status bar/notch)
+                const safeAreaTop = parseInt(getComputedStyle(document.body).paddingTop) || 0;
                 newWidth = screenWidth;
-                newHeight = screenHeight;
+                newHeight = screenHeight - safeAreaTop;
 
                 // Calculate new internal canvas dimensions that match portrait aspect ratio
                 // Keep the base width (800) and scale height proportionally to the screen
-                const portraitAspect = screenHeight / screenWidth;
+                const portraitAspect = newHeight / newWidth;
                 const newCanvasWidth = CONFIG.CANVAS.BASE_WIDTH;
                 const newCanvasHeight = Math.round(newCanvasWidth * portraitAspect);
 
@@ -292,6 +292,12 @@ const InputManager = {
             body.mobile-menu #mobileActions,
             body.mobile-menu #mobileHelpBtn {
                 display: none;
+            }
+
+            /* Hide settings button on mobile - pause button serves same purpose */
+            body.mobile-active #settingsButton,
+            body.mobile-menu #settingsButton {
+                display: none !important;
             }
 
             /* Ensure tutorial and story overlays have touch-friendly buttons */

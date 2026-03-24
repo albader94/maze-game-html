@@ -826,8 +826,8 @@ const Renderer = {
         const mapWidth = mapHeight * mapAspectRatio;
 
         const mapX = CONFIG.CANVAS.WIDTH - mapWidth - 10;
-        // In portrait mode, push minimap below the settings button to avoid overlap
-        const mapY = isPortrait ? 75 : 10;
+        // Settings button is hidden on mobile, so minimap can sit at the top
+        const mapY = 10;
         
         // Minimap background with rounded corners and extra padding
         this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.9)', '#8B4513', 3);

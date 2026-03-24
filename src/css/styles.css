@@ -78,6 +78,10 @@ canvas {
 
 /* Portrait mobile: ensure canvas and container fill full screen */
 @media (max-width: 768px) and (orientation: portrait) {
+    html, body {
+        padding-top: env(safe-area-inset-top, 0px);
+    }
+
     #gameContainer {
         width: 100vw;
         height: 100vh;
@@ -90,13 +94,7 @@ canvas {
         border: none;
     }
 
-    /* Scale settings button up and give it room so it doesn't overlap minimap */
-    #settingsButton {
-        font-size: 26px !important;
-        padding: 12px 16px !important;
-        min-width: 52px !important;
-        min-height: 52px !important;
-    }
+    /* Settings button hidden on mobile (handled in input.js mobile CSS) */
 }
 
 /* Prevent text selection everywhere in the game */

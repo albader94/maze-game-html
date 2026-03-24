@@ -13,6 +13,7 @@ const Renderer = {
         this.ctx = this.canvas.getContext('2d');
         this.minimapCanvas = document.getElementById('minimap');
         this.minimapCtx = this.minimapCanvas.getContext('2d');
+        this.hudHeight = 0;
 
         this.updateCanvasBuffer();
     },
@@ -96,8 +97,17 @@ const Renderer = {
             return;
         }
 
+        const isPortrait = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const hudHeight = isPortrait ? (CONFIG.HUD?.PORTRAIT_HEIGHT || 0) : 0;
+        this.hudHeight = hudHeight;
+
         this.ctx.save();
-        this.ctx.translate(-game.camera.x, -game.camera.y);
+        if (hudHeight > 0) {
+            this.ctx.beginPath();
+            this.ctx.rect(0, hudHeight, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT - hudHeight);
+            this.ctx.clip();
+        }
+        this.ctx.translate(-game.camera.x, -game.camera.y + hudHeight);
 
         // Render game world (order matters for correct z-layering)
         this.renderFloorTiles(game);
@@ -114,6 +124,18 @@ const Renderer = {
         // Render victory light animation (before UI overlays for dramatic effect)
         if (game.victoryAnimation && game.victoryAnimation.active) {
             EntityManager.renderVictoryAnimation(game, this.ctx, this.canvas);
+        }
+
+        // Draw HUD band background in portrait mode
+        if (hudHeight > 0) {
+            this.ctx.fillStyle = 'rgba(10, 8, 6, 0.95)';
+            this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, hudHeight);
+            this.ctx.strokeStyle = '#3a2a1a';
+            this.ctx.lineWidth = 1;
+            this.ctx.beginPath();
+            this.ctx.moveTo(0, hudHeight);
+            this.ctx.lineTo(CONFIG.CANVAS.WIDTH, hudHeight);
+            this.ctx.stroke();
         }
 
         // Render UI overlays (behind help/death screens)
@@ -651,9 +673,9 @@ const Renderer = {
 
         // UI background panel with proper spacing
         const uiX = 10;
-        const uiY = 10;
         const uiWidth = 200 * uiScale;
         const uiHeight = 115 * uiScale;
+        const uiY = this.hudHeight > 0 ? Math.round((this.hudHeight - uiHeight) / 2) : 10;
 
         // Gothic UI background with rounded corners
         this.drawRoundedRect(uiX, uiY, uiWidth, uiHeight, 10 * uiScale, 'rgba(42, 24, 16, 0.9)', '#8B4513', 2);
@@ -827,7 +849,7 @@ const Renderer = {
 
         const mapX = CONFIG.CANVAS.WIDTH - mapWidth - 10;
         // Settings button is hidden on mobile, so minimap can sit at the top
-        const mapY = 10;
+        const mapY = this.hudHeight > 0 ? Math.round((this.hudHeight - mapHeight) / 2) : 10;
         
         // Minimap background with rounded corners and extra padding
         this.drawRoundedRect(mapX, mapY, mapWidth, mapHeight, 12, 'rgba(42, 24, 16, 0.9)', '#8B4513', 3);

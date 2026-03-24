@@ -89,12 +89,14 @@ const Utils = {
     // Update camera position to follow player with smooth interpolation
     updateCamera(game, instant) {
         // Center camera on player with world boundary constraints
+        const hudHeight = (CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT) ? (CONFIG.HUD?.PORTRAIT_HEIGHT || 0) : 0;
+        const viewportHeight = CONFIG.CANVAS.HEIGHT - hudHeight;
         const targetCameraX = game.player.x - CONFIG.CANVAS.WIDTH / 2;
-        const targetCameraY = game.player.y - CONFIG.CANVAS.HEIGHT / 2;
+        const targetCameraY = game.player.y - viewportHeight / 2;
 
         // Apply world boundaries
         const maxCameraX = Math.max(0, game.mapWidth * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.WIDTH);
-        const maxCameraY = Math.max(0, game.mapHeight * CONFIG.MAP.CELL_SIZE - CONFIG.CANVAS.HEIGHT);
+        const maxCameraY = Math.max(0, game.mapHeight * CONFIG.MAP.CELL_SIZE - viewportHeight);
 
         const clampedX = Math.max(0, Math.min(targetCameraX, maxCameraX));
         const clampedY = Math.max(0, Math.min(targetCameraY, maxCameraY));

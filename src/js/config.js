@@ -6,6 +6,9 @@ const CONFIG = {
         BASE_WIDTH: 800,
         BASE_HEIGHT: 600
     },
+    HUD: {
+        PORTRAIT_HEIGHT: 195
+    },
     MINIMAP: {
         WIDTH: 150,
         HEIGHT: 150

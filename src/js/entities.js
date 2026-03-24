@@ -118,8 +118,9 @@ const EntityManager = {
 
         // Convert world coordinates to screen coordinates
         const camera = game.camera || { x: 0, y: 0 };
+        const hudHeight = (CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT) ? (CONFIG.HUD?.PORTRAIT_HEIGHT || 0) : 0;
         const screenX = animation.pearlX - camera.x;
-        const screenY = animation.pearlY - camera.y;
+        const screenY = animation.pearlY - camera.y + hudHeight;
 
         // Create radial gradient for expanding light
         const gradient = ctx.createRadialGradient(

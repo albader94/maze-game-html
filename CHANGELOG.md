@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- CSP: added `*.firebaseapp.com` to frame-src and `unsafe-inline` to script-src for Firebase auth
+
 ## [2.2.0] - 2026-03-24
 
 ### Added

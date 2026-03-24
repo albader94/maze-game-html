@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.2.0] - 2026-03-24
+
+### Added
+- Pre-commit/push hooks to enforce changelog and release workflow
+- Mobile inventory shown in right-side action buttons with orb icons/colors
+
 ### Changed
 - Difficulty rebalance: Blue orb light restoration reduced from 20% to 15%, Golden orb reduced from 40% to 25%
 - Faster light decay rate (0.035%/frame, up from 0.02%)
@@ -14,6 +20,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - More aggressive ghoul scaling: count formula changed from 2 + floor/3 to 3 + floor/2
 - Faster ghouls: speed range changed from 0.8-1.2 to 1.0-1.6
 - Reduced orb spawns per floor from fixed 12 to dynamic 5-10
+- In-game messages are now single-line, positioned under the HUD area
+- Achievement notifications simplified to icon + title, positioned under minimap
+- Story narration skip button moved to top-left corner
+- All game messages shortened for conciseness
+- Commit & Release Workflow section in CLAUDE.md made mandatory with numbered steps
+
+### Removed
+- Save indicator toast ("Saved" notification)
+- Bottom inventory bar on mobile (replaced by side buttons)
+
+### Fixed
+- Firebase leaderboard CSP error (added apis.google.com to script-src and frame-src)
 
 ## [2.1.0] - 2026-03-24
 
@@ -98,7 +116,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Light depletion logic with ghoul drain multiplier
 - Basic inventory and pause menu
 
-[Unreleased]: https://github.com/albader94/maze-game-html/compare/HEAD
+[Unreleased]: https://github.com/albader94/maze-game-html/compare/v2.2.0...HEAD
+[2.2.0]: https://github.com/albader94/maze-game-html/compare/v2.1.0...v2.2.0
 [2.1.0]: https://github.com/albader94/maze-game-html/compare/137e322...14c772f
 [2.0.0]: https://github.com/albader94/maze-game-html/compare/8929562...02273d3
 [1.0.0]: https://github.com/albader94/maze-game-html/compare/6c2a327...8929562

@@ -67,8 +67,14 @@ All game constants live in `config.js`:
 - **Timing model (mixed — do NOT "fix")**: Player/particle movement uses `deltaTime / 16` scaling. Ghoul movement, power durations, swarm timers, and `game.time` are all frame-based (no deltaTime). This is intentional. Power durations use integer decrement (`--`) with exact equality checks (e.g., `=== 1`), so they must NOT be converted to floating-point deltaTime. New powers/timers should follow the frame-counter pattern. Light decays at 0.035%/frame; ghouls drain 0.5%/frame when near.
 - **Orb auto-collect vs inventory**: Blue/Golden/Wisp orbs auto-collect on contact. Purple/Green/White/Red go to the 3-slot inventory. This split is handled in `entities.js` collision logic.
 
-## Documentation Maintenance
+## Commit & Release Workflow (MANDATORY)
 
-- **CHANGELOG.md**: Follows [Keep a Changelog](https://keepachangelog.com/) format. When making notable changes, add an entry under the `[Unreleased]` section with the appropriate category (Added, Changed, Fixed, Removed, Security). The `[Unreleased]` section is **manual** — it is not auto-updated on commit. Always check and update it before committing.
-- **Releases**: When committing and pushing, if there are unreleased changelog entries, ask the user whether to cut a new version release (bump version in CHANGELOG, create a git tag, and publish a GitHub release).
-- **README.md**: Keep in sync when adding user-facing features, changing controls, adding orb types, or modifying the project structure. The Firebase setup instructions in the README include the Firestore security rules — update both places if rules change.
+When the user asks to commit, push, or deploy, follow these steps **in order**. Do NOT skip steps or combine commit+push into one action.
+
+1. **Update CHANGELOG.md** — Add entries under `[Unreleased]` using [Keep a Changelog](https://keepachangelog.com/) categories (Added, Changed, Fixed, Removed, Security). Read the file first to avoid duplicates.
+2. **Update README.md** — If the changes affect user-facing features, controls, orb types, project structure, or Firebase/Firestore rules, update the README to match.
+3. **Commit** — Stage and commit the changes (including changelog/readme updates).
+4. **STOP and ask about a release** — If `[Unreleased]` has entries, ask the user: *"There are unreleased changelog entries. Would you like to cut a new version release?"* If yes: bump the version in CHANGELOG, create a git tag, and publish a GitHub release. If no: proceed.
+5. **Push** — Only push after step 4 is resolved.
+
+**Do NOT push without completing step 4.** This is a blocking step.

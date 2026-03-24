@@ -1,0 +1,23 @@
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+commit' && { cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && if ! git diff --cached --name-only 2>/dev/null | grep -q '^CHANGELOG.md$'; then echo '{\"decision\":\"block\",\"reason\":\"CHANGELOG.md is not staged. Per the Commit & Release Workflow in CLAUDE.md, update CHANGELOG.md before committing.\"}'; fi; } || true",
+            "timeout": 10,
+            "statusMessage": "Checking changelog..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+push' && { cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && unreleased=$(sed -n '/^## \\[Unreleased\\]/,/^## \\[/p' CHANGELOG.md 2>/dev/null | sed '1d;$d'); if echo \"$unreleased\" | grep -qE '\\S'; then echo '{\"decision\":\"block\",\"reason\":\"CHANGELOG.md has unreleased entries. Per the Commit & Release Workflow in CLAUDE.md, you MUST ask the user whether to cut a new version release BEFORE pushing.\"}'; fi; } || true",
+            "timeout": 10,
+            "statusMessage": "Checking release workflow..."
+          }
+        ]
+      }
+    ]
+  }
+}

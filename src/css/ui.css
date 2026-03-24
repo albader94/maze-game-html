@@ -149,8 +149,8 @@
 /* --- Animations (moved from dynamic <style> elements) --- */
 
 @keyframes achievementSlide {
-    from { transform: translateX(100%); opacity: 0; }
-    to { transform: translateX(0); opacity: 1; }
+    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
+    to { transform: translateX(-50%) translateY(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
@@ -512,7 +512,7 @@
 
 .tab-btn {
     flex: 1;
-    padding: 15px 16px;
+    padding: 15px 8px;
     min-height: 48px;
     background: #654321;
     color: #8B4513;
@@ -520,6 +520,10 @@
     cursor: pointer;
     font-weight: bold;
     font-family: monospace;
+    font-size: 11px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .tab-panel--hidden {
@@ -960,18 +964,20 @@
 
 .achievement-notification {
     position: fixed;
-    top: 20px;
-    right: 20px;
+    top: 10px;
+    left: 50%;
+    transform: translateX(-50%);
     background: linear-gradient(135deg, #FFD700, #FFA500);
     color: #000;
-    padding: 15px 20px;
-    border-radius: 10px;
+    padding: 10px 16px;
+    border-radius: 8px;
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
     z-index: 10001;
     font-family: Arial, sans-serif;
     font-weight: bold;
     animation: achievementSlide 0.5s ease-out;
-    max-width: 300px;
+    max-width: 260px;
+    pointer-events: none;
 }
 
 .achievement-notification-inner {
@@ -1224,7 +1230,7 @@
     font-family: 'Courier New', monospace;
     text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
     opacity: 0;
-    transition: opacity 1.5s ease-in-out;
+    transition: opacity 0.8s ease-in-out;
 }
 
 .story-nav {
@@ -1258,7 +1264,6 @@
 .story-skip-btn {
     position: absolute;
     right: 30px;
-    bottom: 0;
 }
 
 /* --- Notification Toast --- */
@@ -1466,7 +1471,7 @@ body.mobile-active #mobileActions {
 }
 
 body.mobile-active #mobileHelpBtn {
-    display: flex;
+    display: none;
 }
 
 /* Hide joystick and action buttons during menus/death */

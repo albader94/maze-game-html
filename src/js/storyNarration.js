@@ -84,10 +84,10 @@ const StoryNarration = {
 
         navContainer.appendChild(prevButton);
         navContainer.appendChild(nextButton);
+        navContainer.appendChild(skipButton);
 
         overlay.appendChild(textContainer);
         overlay.appendChild(navContainer);
-        overlay.appendChild(skipButton);
         document.body.appendChild(overlay);
 
         // Fade in overlay
@@ -158,8 +158,9 @@ const StoryNarration = {
 
         this.transitioning = true;
 
-        // Fade out current text
+        // Fade out current text and clear it immediately
         textElement.style.opacity = '0';
+        textElement.textContent = '';
 
         setTimeout(() => {
             this.currentPart = partIndex;
@@ -169,11 +170,11 @@ const StoryNarration = {
             setTimeout(() => {
                 textElement.style.opacity = '1';
                 this.transitioning = false;
-            }, 100);
+            }, 50);
 
             // Update navigation buttons
             this.updateNavButtons();
-        }, 1500); // Wait for fade out to complete
+        }, 900); // Wait for fade out to complete
     },
 
     // Update visibility and labels of navigation buttons

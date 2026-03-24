@@ -820,7 +820,7 @@ const GameLogic = {
                 console.log(`🎒 Level entry inventory set for floor ${game.floor}:`, game.levelEntryInventory);
                 
                 MapGenerator.generateFloor(game);
-                game.player.light = Math.min(game.player.light + 30, 100);
+                game.player.light = Math.min(game.player.light + 15, 100);
             }
         }
         

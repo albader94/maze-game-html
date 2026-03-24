@@ -27,8 +27,8 @@ const CONFIG = {
         LIGHT_RADIUS: 150,
         START_X: 100, // Starting X position (will be corrected by resetPlayerPosition)
         START_Y: 500, // Starting Y position (bottom-left area)
-        LIGHT_DECAY_RATE: 0.02, // Reduced from 0.05 to 0.02 (60% slower)
-        LIGHT_DRAIN_FROM_GHOULS: 0.3 // Reduced from 0.5
+        LIGHT_DECAY_RATE: 0.035, // Base light decay per frame
+        LIGHT_DRAIN_FROM_GHOULS: 0.5 // Light drain per frame when near ghouls
     },
     GAME: {
         MAX_FLOORS: 50, // Full game length (50 floors to reach the Ancient Pearl)
@@ -45,16 +45,16 @@ const ORB_TYPES = {
     common: { 
         symbol: 'O', 
         color: '#64b5f6', 
-        lightBonus: 20,
+        lightBonus: 15,
         name: 'Blue Orb',
-        description: 'Restores 20% light'
+        description: 'Restores 15% light'
     },
     golden: { 
         symbol: '@', 
         color: '#ffeb3b', 
-        lightBonus: 40,
+        lightBonus: 25,
         name: 'Golden Orb',
-        description: 'Restores 40% light'
+        description: 'Restores 25% light'
     },
     purple: { 
         symbol: 'P', 

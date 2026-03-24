@@ -69,6 +69,11 @@ const InventoryManager = {
                 slot.title = '';
             }
         }
+
+        // Update mobile orb buttons to match inventory
+        if (typeof InputManager !== 'undefined' && InputManager.updateMobileOrbButtons) {
+            InputManager.updateMobileOrbButtons();
+        }
     },
 
     // Check if inventory has specific orb type

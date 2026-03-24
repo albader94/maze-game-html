@@ -210,8 +210,8 @@ To enable the online leaderboard on your fork:
 
 | Orb        | Symbol | Effect                            |
 | ---------- | ------ | --------------------------------- |
-| Blue Orb   | O      | Restores 20% light                |
-| Golden Orb | @      | Restores 40% light                |
+| Blue Orb   | O      | Restores 15% light                |
+| Golden Orb | @      | Restores 25% light                |
 | Purple Orb | P      | Phase through walls (5s)          |
 | Green Orb  | G      | Regenerate light (10s)            |
 | White Orb  | W      | Reveal entire map (5s)            |

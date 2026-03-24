@@ -160,9 +160,9 @@ const InputManager = {
         actionButtons.id = 'mobileActions';
         actionButtons.innerHTML = `
             <button class="mobile-btn mobile-pause-btn" data-action="pause">| |</button>
-            <button class="mobile-btn orb-btn" data-action="orb1">1</button>
-            <button class="mobile-btn orb-btn" data-action="orb2">2</button>
-            <button class="mobile-btn orb-btn" data-action="orb3">3</button>
+            <button class="mobile-btn orb-btn" id="mobileOrbBtn1" data-action="orb1">&middot;</button>
+            <button class="mobile-btn orb-btn" id="mobileOrbBtn2" data-action="orb2">&middot;</button>
+            <button class="mobile-btn orb-btn" id="mobileOrbBtn3" data-action="orb3">&middot;</button>
         `;
         document.body.appendChild(actionButtons);
 
@@ -874,6 +874,43 @@ const InputManager = {
         }
 
         return movement;
+    },
+
+    // Update mobile orb buttons to reflect current inventory contents
+    updateMobileOrbButtons() {
+        if (!this.isMobile && !this.hasTouchSupport) return;
+
+        const game = GameState.getGame();
+        if (!game || !game.player) return;
+
+        for (let i = 0; i < 3; i++) {
+            const btn = document.getElementById(`mobileOrbBtn${i + 1}`);
+            if (!btn) continue;
+
+            const orbType = game.player.inventory[i];
+            if (orbType && typeof ORB_TYPES !== 'undefined' && ORB_TYPES[orbType]) {
+                const orb = ORB_TYPES[orbType];
+                btn.textContent = orb.symbol;
+                btn.style.background = orb.color.replace(')', ', 0.35)').replace('rgb(', 'rgba(');
+                // Handle hex colors
+                if (orb.color.startsWith('#')) {
+                    const hex = orb.color.slice(1);
+                    const r = parseInt(hex.substring(0, 2), 16);
+                    const g = parseInt(hex.substring(2, 4), 16);
+                    const b = parseInt(hex.substring(4, 6), 16);
+                    btn.style.background = `rgba(${r}, ${g}, ${b}, 0.35)`;
+                }
+                btn.style.color = orb.color;
+                btn.style.borderColor = orb.color;
+                btn.style.textShadow = `0 0 8px ${orb.color}`;
+            } else {
+                btn.textContent = '\u00B7'; // middle dot
+                btn.style.background = 'rgba(0, 0, 0, 0.7)';
+                btn.style.color = 'rgba(255, 255, 255, 0.3)';
+                btn.style.borderColor = 'rgba(255, 255, 255, 0.15)';
+                btn.style.textShadow = 'none';
+            }
+        }
     },
 
     // Update mobile UI visibility based on game state

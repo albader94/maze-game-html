@@ -149,8 +149,8 @@
 /* --- Animations (moved from dynamic <style> elements) --- */
 
 @keyframes achievementSlide {
-    from { transform: translateX(-50%) translateY(-20px); opacity: 0; }
-    to { transform: translateX(-50%) translateY(0); opacity: 1; }
+    from { transform: translateX(20px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
 }
 
 @keyframes fadeIn {
@@ -964,19 +964,17 @@
 
 .achievement-notification {
     position: fixed;
-    top: 10px;
-    left: 50%;
-    transform: translateX(-50%);
+    top: 145px;
+    right: 10px;
     background: linear-gradient(135deg, #FFD700, #FFA500);
     color: #000;
-    padding: 10px 16px;
+    padding: 8px 16px;
     border-radius: 8px;
     box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
     z-index: 10001;
     font-family: Arial, sans-serif;
     font-weight: bold;
     animation: achievementSlide 0.5s ease-out;
-    max-width: 260px;
     pointer-events: none;
 }
 
@@ -990,19 +988,8 @@
     font-size: 24px;
 }
 
-.achievement-notification-title {
-    font-size: 16px;
-}
-
 .achievement-notification-name {
     font-size: 14px;
-    margin-top: 2px;
-}
-
-.achievement-notification-desc {
-    font-size: 12px;
-    opacity: 0.8;
-    margin-top: 2px;
 }
 
 /* --- Error Messages --- */
@@ -1263,7 +1250,8 @@
 
 .story-skip-btn {
     position: absolute;
-    right: 30px;
+    top: 30px;
+    left: 30px;
 }
 
 /* --- Notification Toast --- */
@@ -1281,8 +1269,11 @@
     font-family: monospace;
     font-size: 14px;
     z-index: 1000;
-    max-width: 600px;
+    max-width: 80%;
     text-align: center;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    overflow: hidden;
     opacity: 0;
     transition: opacity 0.3s ease-in-out;
     pointer-events: none;
@@ -1461,7 +1452,9 @@
 
 .orb-btn {
     font-family: monospace;
-    font-size: 20px;
+    font-size: 22px;
+    font-weight: bold;
+    transition: background 0.3s ease, color 0.3s ease, border-color 0.3s ease;
 }
 
 /* Show/hide mobile controls based on game state */

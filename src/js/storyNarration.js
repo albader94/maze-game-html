@@ -84,10 +84,10 @@ const StoryNarration = {
 
         navContainer.appendChild(prevButton);
         navContainer.appendChild(nextButton);
-        navContainer.appendChild(skipButton);
 
         overlay.appendChild(textContainer);
         overlay.appendChild(navContainer);
+        overlay.appendChild(skipButton);
         document.body.appendChild(overlay);
 
         // Fade in overlay

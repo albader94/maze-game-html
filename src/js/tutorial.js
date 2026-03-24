@@ -263,13 +263,13 @@ const TutorialSystem = {
         switch (orbType) {
             case 'common':
                 title = "Blue Orb - Light Restoration";
-                message = "You've found a Blue Orb! These orbs restore 20% of your light immediately when collected. They don't take up inventory space, so collect them whenever you see them.";
+                message = "You've found a Blue Orb! These orbs restore 15% of your light immediately when collected. They don't take up inventory space, so collect them whenever you see them.";
                 instruction = "Blue orbs are consumed instantly - perfect for emergency light restoration!";
                 break;
 
             case 'golden':
                 title = "Golden Orb - Powerful Light";
-                message = "A Golden Orb! This powerful orb restores 40% of your light immediately when collected, just like the blue orb but with greater power. It doesn't take up inventory space.";
+                message = "A Golden Orb! This powerful orb restores 25% of your light immediately when collected, just like the blue orb but with greater power. It doesn't take up inventory space.";
                 instruction = "Golden orbs are consumed instantly - perfect for major light restoration!";
                 break;
 
@@ -398,7 +398,7 @@ const TutorialSystem = {
         this.hideTutorialPopup();
         
         // Show completion message
-        Utils.showMessage("Tutorial complete! You're now ready to face the deeper mysteries of the Buried Spire. Good luck, explorer!", 5000);
+        Utils.showMessage("Tutorial complete! Good luck, explorer!", 5000);
         
         console.log('🎓 Tutorial system ended');
     },

@@ -64,10 +64,11 @@ All game constants live in `config.js`:
 - **Firebase placeholder check**: `leaderboard.js` checks for `YOUR_API_KEY` in config — if values are placeholders, leaderboard silently disables itself.
 - **Mobile HUD band**: Portrait mode uses a 195px HUD band at top. Changes to HUD elements must account for this in `renderer.js`.
 - **Service Worker caching**: After changing files, the SW may serve stale versions. Update the cache version in `sw.js` when deploying changes.
-- **Timing model (mixed — do NOT "fix")**: Player/particle movement uses `deltaTime / 16` scaling. Ghoul movement, power durations, swarm timers, and `game.time` are all frame-based (no deltaTime). This is intentional. Power durations use integer decrement (`--`) with exact equality checks (e.g., `=== 1`), so they must NOT be converted to floating-point deltaTime. New powers/timers should follow the frame-counter pattern. Light decays at 0.02%/frame; ghouls drain 0.3%/frame when near.
+- **Timing model (mixed — do NOT "fix")**: Player/particle movement uses `deltaTime / 16` scaling. Ghoul movement, power durations, swarm timers, and `game.time` are all frame-based (no deltaTime). This is intentional. Power durations use integer decrement (`--`) with exact equality checks (e.g., `=== 1`), so they must NOT be converted to floating-point deltaTime. New powers/timers should follow the frame-counter pattern. Light decays at 0.035%/frame; ghouls drain 0.5%/frame when near.
 - **Orb auto-collect vs inventory**: Blue/Golden/Wisp orbs auto-collect on contact. Purple/Green/White/Red go to the 3-slot inventory. This split is handled in `entities.js` collision logic.
 
 ## Documentation Maintenance
 
 - **CHANGELOG.md**: Follows [Keep a Changelog](https://keepachangelog.com/) format. When making notable changes, add an entry under the `[Unreleased]` section with the appropriate category (Added, Changed, Fixed, Removed, Security). The `[Unreleased]` section is **manual** — it is not auto-updated on commit. Always check and update it before committing.
+- **Releases**: When committing and pushing, if there are unreleased changelog entries, ask the user whether to cut a new version release (bump version in CHANGELOG, create a git tag, and publish a GitHub release).
 - **README.md**: Keep in sync when adding user-facing features, changing controls, adding orb types, or modifying the project structure. The Firebase setup instructions in the README include the Firestore security rules — update both places if rules change.

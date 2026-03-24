@@ -766,10 +766,14 @@ const Renderer = {
         if (game.state !== 'playing') return;
 
         const isMobileInv = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
-        const slotSize = isMobileInv ? 56 : 48;
-        const slotGap = isMobileInv ? 10 : 8;
-        const orbFontSize = isMobileInv ? 26 : 22;
-        const keyFontSize = isMobileInv ? 13 : 11;
+
+        // On mobile, skip the canvas inventory bar — the mobile orb buttons serve as inventory
+        if (isMobileInv) return;
+
+        const slotSize = 48;
+        const slotGap = 8;
+        const orbFontSize = 22;
+        const keyFontSize = 11;
         const totalSlotsWidth = (slotSize * 3) + (slotGap * 2);
 
         // Position inventory at bottom center, moved down
@@ -1204,9 +1208,9 @@ const Renderer = {
         this.ctx.fillStyle = '#8B4513';
         this.ctx.fillText('Light Restoration:', orbX, 320);
         this.ctx.fillStyle = '#64b5f6';
-        this.ctx.fillText('O  Blue Orb: Restores 20% illumination', orbX + 20, 340);
+        this.ctx.fillText('O  Blue Orb: Restores 15% illumination', orbX + 20, 340);
         this.ctx.fillStyle = '#ffeb3b';
-        this.ctx.fillText('@  Golden Orb: Restores 40% illumination', orbX + 20, 360);
+        this.ctx.fillText('@  Golden Orb: Restores 25% illumination', orbX + 20, 360);
         this.ctx.fillStyle = '#ccccff';
         this.ctx.fillText('*  Light Wisp: Soul marker - Restores 50% illumination', orbX + 20, 380);
 

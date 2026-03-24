@@ -164,7 +164,7 @@ const GameState = {
             if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.INTRO) {
                 Utils.showMessage(MESSAGES.STORY.INTRO, 4000);
             } else {
-                Utils.showMessage('Welcome to the Buried Spire. Navigate the darkness and find the stairs to descend deeper.', 4000);
+                Utils.showMessage('Navigate the darkness. Find the stairs to descend.', 4000);
             }
         }
         
@@ -303,7 +303,7 @@ const GameState = {
             if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.RESPAWN) {
                 Utils.showMessage(MESSAGES.STORY.RESPAWN, 4000);
             } else {
-                Utils.showMessage(`Respawned at checkpoint floor ${this.game.floor}. The darkness claimed you, but you persist.`, 4000);
+                Utils.showMessage(`Respawned at checkpoint floor ${this.game.floor}.`, 4000);
             }
         }
     },
@@ -390,7 +390,7 @@ const GameState = {
         }
         
         // Show restart message
-        Utils.showMessage(`Level ${Math.abs(currentFloor)} restarted. You return to the beginning with your entry inventory.`, 3000);
+        Utils.showMessage(`Level ${Math.abs(currentFloor)} restarted.`, 3000);
         
         // Debug final state after restart
         console.log(`🔍 RESTART COMPLETE - Player at (${this.game.player.x}, ${this.game.player.y})`);
@@ -503,11 +503,7 @@ const GameState = {
         notification.innerHTML = `
             <div class="achievement-notification-inner">
                 <span class="achievement-notification-icon">${achievement.icon}</span>
-                <div>
-                    <div class="achievement-notification-title">Achievement Unlocked!</div>
-                    <div class="achievement-notification-name">${achievement.name}</div>
-                    <div class="achievement-notification-desc">${achievement.description}</div>
-                </div>
+                <span class="achievement-notification-name">${achievement.name}</span>
             </div>
         `;
         

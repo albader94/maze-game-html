@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Changed
+- Difficulty rebalance: Blue orb light restoration reduced from 20% to 15%, Golden orb reduced from 40% to 25%
+- Faster light decay rate (0.035%/frame, up from 0.02%)
+- Increased ghoul light drain (0.5%/frame, up from 0.3%)
+- Reduced floor transition light bonus from +30 to +15
+- More aggressive ghoul scaling: count formula changed from 2 + floor/3 to 3 + floor/2
+- Faster ghouls: speed range changed from 0.8-1.2 to 1.0-1.6
+- Reduced orb spawns per floor from fixed 12 to dynamic 5-10
+
 ## [2.1.0] - 2026-03-24
 
 ### Added
@@ -53,7 +62,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Changed
 - Canvas rendering is now responsive and adapts to screen size
 - UI scales for mobile portrait and landscape orientations
-- Improved light decay balance (0.02% per frame, reduced from 0.05%)
+- Improved light decay balance (reduced from 0.05% per frame)
 - Enhanced ghoul AI with smoother state transitions
 
 ### Fixed

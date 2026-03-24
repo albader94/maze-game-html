@@ -1,52 +1,52 @@
 // Game Messages and Story Content
 const MESSAGES = {
     STORY: {
-        INTRO: "The ancient Burj Mubarak lies buried beneath the shifting sands of time. Your light is your lifeline in these cursed depths.",
-        PHASE_ACTIVATED: "Purple energy flows through you - walls cannot stop you now!",
-        REGENERATION_ACTIVATED: "Green light pulses within you - your energy slowly returns!",
-        REVEAL_ACTIVATED: "White light illuminates your mind - the path ahead is clear!",
-        LIFELINE_USED: "The red orb's power courses through you - death is held at bay!",
-        LIFELINE_AUTO: "The red orb automatically saves you from the darkness!",
-        PHASE_ENDING: "The purple energy fades - you phase back to safety!",
-        DARKNESS_CONSUMES: "The darkness closes in... the ghouls are coming for you!",
-        INVENTORY_FULL: "Your hands are full - you cannot carry more orbs!",
-        RESPAWN: "You awaken at the checkpoint, haunted by whispers of the deep...",
-        VICTORY: "You have found the Ancient Pearl! Its radiant light banishes the ghouls and illuminates your path home. The curse is broken!"
+        INTRO: "Your light is your lifeline in these cursed depths.",
+        PHASE_ACTIVATED: "Phase active - you can walk through walls!",
+        REGENERATION_ACTIVATED: "Regeneration active - energy slowly restoring!",
+        REVEAL_ACTIVATED: "Reveal active - the full path is shown!",
+        LIFELINE_USED: "Lifeline used - death held at bay!",
+        LIFELINE_AUTO: "Lifeline activated - saved from darkness!",
+        PHASE_ENDING: "Phase fading - returning to solid form!",
+        DARKNESS_CONSUMES: "Darkness closes in... ghouls are coming!",
+        INVENTORY_FULL: "Inventory full - cannot carry more orbs!",
+        RESPAWN: "Respawned at last checkpoint.",
+        VICTORY: "Ancient Pearl found! The curse is broken!"
     },
     
     FLOOR: {
-        PROGRESS: (floor) => `Floor ${-floor}: The darkness grows thicker as you descend...`,
-        CHECKPOINT: (floor) => `CHECKPOINT Floor ${-floor}: Your progress is saved in the ancient stones.`,
-        DEEP: (floor) => `Floor ${-floor}: The very air seems to whisper ancient secrets...`,
-        FINAL: `Floor -50: The Ancient Pearl awaits in the deepest chamber of Burj Mubarak!`
+        PROGRESS: (floor) => `Floor ${-floor}: The darkness grows thicker...`,
+        CHECKPOINT: (floor) => `Checkpoint saved - Floor ${-floor}`,
+        DEEP: (floor) => `Floor ${-floor}: Ancient whispers surround you...`,
+        FINAL: `Floor -50: The Ancient Pearl awaits below!`
     },
     
     TUTORIAL: {
-        MOVEMENT: "Use WASD or Arrow Keys to move through the buried halls.",
-        LIGHT: "Your light is precious - it slowly fades as you explore.",
-        ORBS: "Collect orbs to restore light and gain powerful abilities.",
-        GHOULS: "Avoid the ghouls - they drain your light and fear your radiance.",
-        STAIRS: "Find the stairs (▼) to descend deeper into the spire.",
-        INVENTORY: "Press 1, 2, or 3 to use orbs from your inventory."
+        MOVEMENT: "Use WASD or Arrow Keys to move.",
+        LIGHT: "Your light fades over time - collect orbs!",
+        ORBS: "Orbs restore light and grant abilities.",
+        GHOULS: "Avoid ghouls - they drain your light!",
+        STAIRS: "Find the stairs to descend deeper.",
+        INVENTORY: "Press 1/2/3 to use inventory orbs."
     },
     
     DEATH: {
         LIGHT_DEPLETED: "Your light has been extinguished...",
-        SWARM_BEGINS: "The ghouls emerge from the darkness!",
-        CONSUMED: "The shadows have claimed another soul...",
-        CHECKPOINT_LOST: "You have lost progress since your last checkpoint."
+        SWARM_BEGINS: "Ghouls emerge from the darkness!",
+        CONSUMED: "The shadows claimed you...",
+        CHECKPOINT_LOST: "Progress lost since last checkpoint."
     },
     
     ORBS: {
         COLLECTED: {
-            COMMON: "A blue orb's gentle light restores your energy.",
-            GOLDEN: "A golden orb blazes with restorative power!",
-            PURPLE: "A purple orb hums with phase energy...",
-            GREEN: "A green orb pulses with regenerative force!",
-            WHITE: "A white orb reveals the hidden paths!",
-            RED: "A red orb binds itself to your soul - a lifeline in the dark!",
-            WISP: "A wisp of your former self grants you light...",
-            PEARL: "The Ancient Pearl! Its radiant light fills you with hope and power!"
+            COMMON: "Blue orb collected - light restored!",
+            GOLDEN: "Golden orb - major light restored!",
+            PURPLE: "Purple orb - phase energy stored.",
+            GREEN: "Green orb - regeneration stored.",
+            WHITE: "White orb - reveal power stored.",
+            RED: "Red orb - lifeline acquired!",
+            WISP: "Wisp collected - light restored.",
+            PEARL: "Ancient Pearl found! You are victorious!"
         }
     },
     

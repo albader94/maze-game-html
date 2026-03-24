@@ -240,7 +240,7 @@ const MapGenerator = {
         }
         
         // Normal orb placement for other levels
-        const orbCount = 12;
+        const orbCount = Math.min(5 + Math.floor(floorNum / 5), 10);
         
         // Place guaranteed introduction orb if this is a new orb introduction floor
         this.placeIntroductionOrb(game, availableSpaces, floorNum);
@@ -364,12 +364,12 @@ const MapGenerator = {
         
         // Blue orbs available from floor 1
         if (floorNum >= 1) {
-            availableOrbs.push({ type: 'common', weight: 40 }); // Blue orb - most common
+            availableOrbs.push({ type: 'common', weight: 30 }); // Blue orb - most common
         }
         
         // Golden orbs introduced at floor 2
         if (floorNum >= 2) {
-            availableOrbs.push({ type: 'golden', weight: 25 }); // Golden orb - common
+            availableOrbs.push({ type: 'golden', weight: 15 }); // Golden orb - common
         }
         
         // Purple orbs introduced at floor 6
@@ -411,7 +411,7 @@ const MapGenerator = {
 
     // Place ghouls on the floor
     placeGhouls(game, emptySpaces, floorNum) {
-        const ghoulCount = 2 + Math.floor(floorNum / 3);
+        const ghoulCount = 3 + Math.floor(floorNum / 2);
         const availableSpaces = [...emptySpaces];
         
         for (let i = 0; i < Math.min(ghoulCount, availableSpaces.length); i++) {
@@ -421,7 +421,7 @@ const MapGenerator = {
             game.ghouls.push({
                 x: space.x,
                 y: space.y,
-                speed: 0.8 + Math.random() * 0.4,
+                speed: 1.0 + Math.random() * 0.6,
                 state: 'patrol',
                 size: 15, // Add size property for collision detection
                 patrolTarget: { 

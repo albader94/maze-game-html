@@ -855,11 +855,11 @@ const Game = {
                             <div class="help-orb-grid">
                                 <div class="help-orb-item help-orb-item--blue">
                                     <span class="help-orb-symbol help-orb-symbol--blue">O</span>
-                                    <span><strong class="help-orb-name--blue">Blue Orb:</strong> Restores 20% light - collect immediately</span>
+                                    <span><strong class="help-orb-name--blue">Blue Orb:</strong> Restores 15% light - collect immediately</span>
                                 </div>
                                 <div class="help-orb-item help-orb-item--gold">
                                     <span class="help-orb-symbol help-orb-symbol--gold">@</span>
-                                    <span><strong class="help-orb-name--gold">Golden Orb:</strong> Restores 40% light - collect immediately</span>
+                                    <span><strong class="help-orb-name--gold">Golden Orb:</strong> Restores 25% light - collect immediately</span>
                                 </div>
                                 <div class="help-orb-item help-orb-item--purple">
                                     <span class="help-orb-symbol help-orb-symbol--purple">P</span>
@@ -1415,17 +1415,7 @@ const Game = {
 
     // Show save indicator
     showSaveIndicator() {
-        const indicator = document.createElement('div');
-        indicator.className = 'save-indicator';
-        indicator.textContent = '💾 Saved';
-        
-        document.body.appendChild(indicator);
-        
-        setTimeout(() => {
-            if (indicator.parentNode) {
-                indicator.parentNode.removeChild(indicator);
-            }
-        }, 2000);
+        // Save indicator removed - no need to notify player
     },
 
     // Load settings into modal

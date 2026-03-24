@@ -35,6 +35,11 @@ const Game = {
             
             // Initialize sound system (will start on first user interaction)
             SoundManager.init();
+
+            // Initialize leaderboard service
+            if (window.LeaderboardService) {
+                LeaderboardService.init();
+            }
             
             // Apply initial settings (including volume)
             this.applySettings();
@@ -460,21 +465,7 @@ const Game = {
         
         const panel = document.createElement('div');
         panel.id = 'debugPanel';
-        panel.style.cssText = `
-            position: fixed;
-            top: 10px;
-            left: 10px;
-            background: rgba(0, 0, 0, 0.8);
-            color: #00ff00;
-            padding: 10px;
-            border-radius: 5px;
-            font-family: 'Courier New', monospace;
-            font-size: 12px;
-            z-index: 9999;
-            min-width: 200px;
-            max-height: 400px;
-            overflow-y: auto;
-        `;
+        panel.className = 'debug-panel';
         
         document.body.appendChild(panel);
         
@@ -505,7 +496,7 @@ const Game = {
         const game = GameState.getGame();
         
         panel.innerHTML = `
-            <div style="color: #ffff00; font-weight: bold;">🔍 DEBUG INFO</div>
+            <div class="debug-label">🔍 DEBUG INFO</div>
             <div>FPS: ${debugInfo.performance.fps}</div>
             <div>Frame: ${debugInfo.performance.frameTime}ms</div>
             <div>Render: ${debugInfo.performance.renderTime}ms</div>
@@ -532,119 +523,71 @@ const Game = {
     showConfirmationDialog(title, message, onConfirm, onCancel) {
         // Create overlay
         const overlay = document.createElement('div');
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.8);
-            z-index: 10000;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-        `;
-        
+        overlay.className = 'confirm-overlay';
+
         // Create dialog
         const dialog = document.createElement('div');
-        dialog.style.cssText = `
-            background: linear-gradient(135deg, #111 0%, #222 50%, #111 100%);
-            border: 3px solid #ffeb3b;
-            border-radius: 15px;
-            padding: 30px;
-            max-width: 500px;
-            width: 90%;
-            text-align: center;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-            position: relative;
-        `;
+        dialog.className = 'confirm-dialog';
         
         // Add corner decorations
         const corners = ['top-left', 'top-right', 'bottom-left', 'bottom-right'];
         corners.forEach(corner => {
             const decoration = document.createElement('div');
-            decoration.style.cssText = `
-                position: absolute;
-                width: 20px;
-                height: 20px;
-                border: 2px solid #ffeb3b;
-                ${corner.includes('top') ? 'top: -10px;' : 'bottom: -10px;'}
-                ${corner.includes('left') ? 'left: -10px;' : 'right: -10px;'}
-                ${corner.includes('top') && corner.includes('left') ? 'border-right: none; border-bottom: none;' : ''}
-                ${corner.includes('top') && corner.includes('right') ? 'border-left: none; border-bottom: none;' : ''}
-                ${corner.includes('bottom') && corner.includes('left') ? 'border-right: none; border-top: none;' : ''}
-                ${corner.includes('bottom') && corner.includes('right') ? 'border-left: none; border-top: none;' : ''}
-                background: #111;
-            `;
+            decoration.className = 'confirm-corner confirm-corner--' + corner;
             dialog.appendChild(decoration);
         });
         
         // Title
         const titleElement = document.createElement('h2');
-        titleElement.style.cssText = `
-            color: #ffeb3b;
-            margin: 0 0 20px 0;
-            font-family: monospace;
-            font-size: 24px;
-            text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);
-        `;
-        titleElement.innerHTML = title;
-        
+        titleElement.className = 'confirm-title';
+        titleElement.textContent = title;
+
         // Message
         const messageElement = document.createElement('div');
-        messageElement.style.cssText = `
-            color: #fff;
-            margin: 0 0 30px 0;
-            font-family: monospace;
-            font-size: 16px;
-            line-height: 1.5;
-            text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-        `;
-        messageElement.innerHTML = message;
+        messageElement.className = 'confirm-message';
+        // Build message content safely using DOM methods instead of innerHTML.
+        // `message` is an array of objects describing content parts:
+        //   { text: 'string' }        - plain text node
+        //   { bold: 'string' }        - <strong> element
+        //   { br: true }              - <br> line break
+        //   { items: ['a', 'b'] }     - list of text lines separated by <br>
+        if (Array.isArray(message)) {
+            message.forEach(part => {
+                if (part.text != null) {
+                    messageElement.appendChild(document.createTextNode(part.text));
+                } else if (part.bold != null) {
+                    const strong = document.createElement('strong');
+                    strong.textContent = part.bold;
+                    messageElement.appendChild(strong);
+                } else if (part.br) {
+                    messageElement.appendChild(document.createElement('br'));
+                } else if (part.items) {
+                    part.items.forEach((item, index) => {
+                        messageElement.appendChild(document.createTextNode(item));
+                        if (index < part.items.length - 1) {
+                            messageElement.appendChild(document.createElement('br'));
+                        }
+                    });
+                }
+            });
+        } else {
+            // Fallback for plain text strings
+            messageElement.textContent = message;
+        }
         
         // Button container
         const buttonContainer = document.createElement('div');
-        buttonContainer.style.cssText = `
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-        `;
-        
+        buttonContainer.className = 'confirm-buttons';
+
         // Confirm button
         const confirmButton = document.createElement('button');
         confirmButton.textContent = 'CONFIRM';
-        confirmButton.style.cssText = `
-            background: linear-gradient(135deg, #4CAF50, #45a049);
-            color: white;
-            border: 2px solid #4CAF50;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-family: monospace;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        `;
-        
+        confirmButton.className = 'confirm-btn confirm-btn--ok';
+
         // Cancel button
         const cancelButton = document.createElement('button');
         cancelButton.textContent = 'CANCEL';
-        cancelButton.style.cssText = `
-            background: linear-gradient(135deg, #f44336, #da190b);
-            color: white;
-            border: 2px solid #f44336;
-            border-radius: 8px;
-            padding: 12px 24px;
-            font-family: monospace;
-            font-weight: bold;
-            font-size: 14px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-shadow: 0 0 5px rgba(0, 0, 0, 0.5);
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
-        `;
+        cancelButton.className = 'confirm-btn confirm-btn--cancel';
         
         // Add hover effects
         confirmButton.addEventListener('mouseenter', () => {
@@ -708,24 +651,7 @@ const Game = {
         const settingsBtn = document.createElement('button');
         settingsBtn.textContent = '⚙️';
         settingsBtn.id = 'settingsButton';
-        settingsBtn.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            background: rgba(42, 24, 16, 0.85);
-            color: #DAA520;
-            border: 2px solid #8B4513;
-            border-radius: 8px;
-            padding: 10px 14px;
-            min-width: 44px;
-            min-height: 44px;
-            cursor: pointer;
-            font-size: 18px;
-            z-index: 1000;
-            pointer-events: auto;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        `;
+        settingsBtn.className = 'settings-btn';
         // Settings button now acts like ESC key - shows pause menu if in game
         const settingsAction = () => {
             const game = GameState.getGame();
@@ -756,20 +682,18 @@ const Game = {
         // Generate achievements list with all achievements visible
         let achievementsList = '';
         const unlockedAchievements = GameState.stats.achievements;
-        
+
         Object.entries(GameState.achievements).forEach(([id, achievement]) => {
             const isUnlocked = unlockedAchievements.has(id);
-            const opacity = isUnlocked ? '1' : '0.3';
-            const bgColor = isUnlocked ? 'rgba(255, 235, 59, 0.2)' : 'rgba(255, 235, 59, 0.05)';
-            const borderColor = isUnlocked ? '#ffeb3b' : '#666';
-            
+            const stateClass = isUnlocked ? 'unlocked' : 'locked';
+
             achievementsList += `
-                <div style="display: flex; align-items: center; gap: 15px; padding: 12px; background: ${bgColor}; border-radius: 8px; margin-bottom: 8px; opacity: ${opacity}; border: 1px solid ${borderColor}; box-shadow: ${isUnlocked ? '0 2px 8px rgba(255, 235, 59, 0.2)' : 'none'};">
-                    <div style="font-size: 24px; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">${achievement.icon}</div>
-                    <div style="flex: 1;">
-                        <div style="font-weight: bold; color: ${isUnlocked ? '#ffeb3b' : '#888'}; text-shadow: ${isUnlocked ? '0 0 10px rgba(255, 235, 59, 0.3)' : 'none'};">${achievement.name}</div>
-                        <div style="font-size: 12px; opacity: 0.9; margin-top: 2px; color: ${isUnlocked ? '#fff' : '#666'};">${achievement.description}</div>
-                        ${isUnlocked ? '<div style="font-size: 10px; color: #4caf50; margin-top: 2px; font-weight: bold;">✓ UNLOCKED</div>' : '<div style="font-size: 10px; color: #666; margin-top: 2px;">🔒 LOCKED</div>'}
+                <div class="achievement-item achievement-item--${stateClass}">
+                    <div class="achievement-icon">${achievement.icon}</div>
+                    <div class="achievement-info">
+                        <div class="achievement-name--${stateClass}">${achievement.name}</div>
+                        <div class="achievement-desc--${stateClass}">${achievement.description}</div>
+                        <div class="achievement-status--${stateClass}">${isUnlocked ? '✓ UNLOCKED' : '🔒 LOCKED'}</div>
                     </div>
                 </div>
             `;
@@ -777,250 +701,203 @@ const Game = {
 
         const modal = document.createElement('div');
         modal.id = 'settingsModal';
-        modal.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.95);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            font-family: serif;
-        `;
+        modal.className = 'settings-modal-overlay';
 
         modal.innerHTML = `
-            <div style="
-                background: linear-gradient(135deg, #2a1810 0%, #1a0f08 50%, #0f0705 100%);
-                border: 3px solid #8B4513;
-                border-radius: 15px;
-                padding: 30px;
-                max-width: 700px;
-                width: 90%;
-                max-height: 85vh;
-                overflow-y: auto;
-                box-shadow: 0 0 30px rgba(139, 69, 19, 0.5), inset 0 0 20px rgba(218, 165, 32, 0.1);
-                position: relative;
-            ">
+            <div class="settings-modal-content">
                 <!-- Golden corner decorations -->
-                <div style="position: absolute; top: -3px; left: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; top: -3px; right: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; bottom: -3px; left: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                <div style="position: absolute; bottom: -3px; right: -3px; width: 20px; height: 20px; background: #ffeb3b; transform: rotate(45deg);"></div>
-                
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 25px;">
-                    <h2 style="margin: 0; color: #FFD700; text-shadow: 0 0 15px rgba(139, 0, 0, 0.7); font-size: 24px; font-weight: bold; font-family: serif;">
+                <div class="settings-corner settings-corner--tl"></div>
+                <div class="settings-corner settings-corner--tr"></div>
+                <div class="settings-corner settings-corner--bl"></div>
+                <div class="settings-corner settings-corner--br"></div>
+
+                <div class="settings-header">
+                    <h2 class="settings-title">
                         ${isPauseMenu ? '⚜ QUEST PAUSED ⚜' : '⚙ SACRED SETTINGS ⚙'}
                     </h2>
-                    <button id="closeModal" style="background: none; border: 2px solid #DAA520; color: #DAA520; font-size: 20px; cursor: pointer; padding: 8px 12px; border-radius: 5px; font-weight: bold; text-shadow: 0 0 10px rgba(218, 165, 32, 0.5); font-family: serif;">✕</button>
+                    <button id="closeModal" class="settings-close-btn">✕</button>
                 </div>
-                
+
                 ${isPauseMenu ? `
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin-bottom: 25px;">
-                    <button id="resumeGame" style="padding: 15px; background: linear-gradient(135deg, #8B4513, #654321); color: #FFD700; border: 2px solid #DAA520; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.5); box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);">♦ RESUME</button>
-                    <button id="restartGame" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #CD853F; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.3); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♠ RESTART</button>
-                    <button id="replayFromCheckpoint" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #9370DB; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.3); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♣ CHECKPOINT</button>
-                    <button id="quitToMenu" style="padding: 15px; background: linear-gradient(135deg, #654321, #3d2817); color: #DC143C; border: 2px solid #8B4513; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: serif; text-shadow: 0 0 10px rgba(139, 0, 0, 0.5); box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);">♥ MENU</button>
+                <div class="pause-actions">
+                    <button id="resumeGame" class="pause-btn pause-btn--resume">♦ RESUME</button>
+                    <button id="restartGame" class="pause-btn pause-btn--restart">♠ RESTART</button>
+                    <button id="replayFromCheckpoint" class="pause-btn pause-btn--checkpoint">♣ CHECKPOINT</button>
+                    <button id="quitToMenu" class="pause-btn pause-btn--quit">♥ MENU</button>
                 </div>
                 ` : ''}
-                
-                <div style="display: flex; gap: 3px; margin-bottom: 25px; border-radius: 10px; overflow: hidden; background: #222; border: 2px solid #333;">
-                    <button id="settingsTab" class="tab-btn active" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #ffeb3b, #ff9800); color: #000; border: none; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 5px rgba(0,0,0,0.5);">⚙️ SETTINGS</button>
-                    <button id="statsTab" class="tab-btn" style="flex: 1; padding: 15px; background: #333; color: #aaa; border: none; cursor: pointer; font-weight: bold; font-family: monospace;">📊 STATS</button>
-                    <button id="achievementsTab" class="tab-btn" style="flex: 1; padding: 15px; background: #333; color: #aaa; border: none; cursor: pointer; font-weight: bold; font-family: monospace;">🏆 ACHIEVEMENTS</button>
-                    <button id="helpTab" class="tab-btn" style="flex: 1; padding: 15px; background: #333; color: #aaa; border: none; cursor: pointer; font-weight: bold; font-family: monospace;">❓ HELP</button>
+
+                <div class="tab-bar">
+                    <button id="settingsTab" class="tab-btn active">⚙️ SETTINGS</button>
+                    <button id="statsTab" class="tab-btn">📊 STATS</button>
+                    <button id="achievementsTab" class="tab-btn">🏆 ACHIEVEMENTS</button>
+                    <button id="helpTab" class="tab-btn">❓ HELP</button>
                 </div>
-                
+
                 <!-- Settings Panel -->
                 <div id="settingsPanel" class="tab-panel">
-                    <div style="display: grid; gap: 25px;">
-                        <h3 style="margin: 0; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); font-size: 20px;">⚙️ Game Settings</h3>
-                        
-                        <div style="display: grid; gap: 20px;">
-                            <div style="background: rgba(255, 235, 59, 0.1); padding: 15px; border-radius: 8px; border: 1px solid #333;">
-                                <label style="display: block; margin-bottom: 10px; color: #ffeb3b; font-weight: bold;">Graphics Quality:</label>
-                                <select id="graphicsQuality" style="width: 100%; padding: 10px; background: #222; color: #fff; border: 2px solid #333; border-radius: 5px; font-family: monospace;">
+                    <div class="settings-grid">
+                        <h3 class="settings-section-title">⚙️ Game Settings</h3>
+
+                        <div class="settings-sub-grid">
+                            <div class="settings-card">
+                                <label class="settings-label">Graphics Quality:</label>
+                                <select id="graphicsQuality" class="settings-select">
                                     <option value="low">Low (Better Performance)</option>
                                     <option value="medium">Medium (Balanced)</option>
                                     <option value="high">High (Best Quality)</option>
                                 </select>
                             </div>
-                            
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 20px;">
-                                <label style="display: flex; align-items: center; gap: 10px; color: #fff; background: rgba(255, 235, 59, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer;">
-                                    <input type="checkbox" id="showFPS" style="accent-color: #ffeb3b; transform: scale(1.2);">
-                                    <span style="font-weight: bold;">Show FPS Counter</span>
+
+                            <div class="settings-checkbox-grid">
+                                <label class="settings-checkbox-label">
+                                    <input type="checkbox" id="showFPS" class="settings-checkbox">
+                                    <span class="settings-bold">Show FPS Counter</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 10px; color: #fff; background: rgba(255, 235, 59, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer;">
-                                    <input type="checkbox" id="showDebugInfo" style="accent-color: #ffeb3b; transform: scale(1.2);">
-                                    <span style="font-weight: bold;">Debug Information</span>
+                                <label class="settings-checkbox-label">
+                                    <input type="checkbox" id="showDebugInfo" class="settings-checkbox">
+                                    <span class="settings-bold">Debug Information</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 10px; color: #fff; background: rgba(255, 235, 59, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer;">
-                                    <input type="checkbox" id="enableSoundEffects" style="accent-color: #ffeb3b; transform: scale(1.2);">
-                                    <span style="font-weight: bold;">Sound Effects</span>
+                                <label class="settings-checkbox-label">
+                                    <input type="checkbox" id="enableSoundEffects" class="settings-checkbox">
+                                    <span class="settings-bold">Sound Effects</span>
                                 </label>
-                                <label style="display: flex; align-items: center; gap: 10px; color: #fff; background: rgba(255, 235, 59, 0.1); padding: 12px; border-radius: 8px; border: 1px solid #333; cursor: pointer;">
-                                    <input type="checkbox" id="autoSave" style="accent-color: #ffeb3b; transform: scale(1.2);">
-                                    <span style="font-weight: bold;">Auto Save</span>
+                                <label class="settings-checkbox-label">
+                                    <input type="checkbox" id="autoSave" class="settings-checkbox">
+                                    <span class="settings-bold">Auto Save</span>
                                 </label>
                             </div>
-                            
-                            <div style="background: rgba(255, 235, 59, 0.1); padding: 15px; border-radius: 8px; border: 1px solid #333;">
-                                <label style="display: block; margin-bottom: 8px; color: #ffeb3b; font-weight: bold;">Volume: <span id="volumeValue" style="color: #fff;">${Math.round(this.settings.volume * 100)}%</span></label>
-                                <input type="range" id="volume" min="0" max="1" step="0.1" value="${this.settings.volume}" style="width: 100%; accent-color: #ffeb3b; height: 8px;">
+
+                            <div class="settings-card">
+                                <label class="settings-label--inline">Volume: <span id="volumeValue" class="settings-value">${Math.round(this.settings.volume * 100)}%</span></label>
+                                <input type="range" id="volume" min="0" max="1" step="0.1" value="${this.settings.volume}" class="settings-range">
                             </div>
-                            
-                            <div style="background: rgba(255, 235, 59, 0.1); padding: 15px; border-radius: 8px; border: 1px solid #333;">
-                                <label style="display: block; margin-bottom: 8px; color: #ffeb3b; font-weight: bold;">Touch Sensitivity: <span id="touchSensitivityValue" style="color: #fff;">${this.settings.touchSensitivity}x</span></label>
-                                <input type="range" id="touchSensitivity" min="0.5" max="2" step="0.1" value="${this.settings.touchSensitivity}" style="width: 100%; accent-color: #ffeb3b; height: 8px;">
+
+                            <div class="settings-card">
+                                <label class="settings-label--inline">Touch Sensitivity: <span id="touchSensitivityValue" class="settings-value">${this.settings.touchSensitivity}x</span></label>
+                                <input type="range" id="touchSensitivity" min="0.5" max="2" step="0.1" value="${this.settings.touchSensitivity}" class="settings-range">
                             </div>
                         </div>
-                        
-                        <div style="display: flex; gap: 15px; margin-top: 10px;">
-                            <button id="applySettings" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #4caf50, #66bb6a); color: white; border: 2px solid #4caf50; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(76, 175, 80, 0.5); box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);">✅ APPLY SETTINGS</button>
-                            <button id="resetSettings" style="flex: 1; padding: 15px; background: linear-gradient(135deg, #ff9800, #ffb74d); color: white; border: 2px solid #ff9800; border-radius: 8px; cursor: pointer; font-weight: bold; font-family: monospace; text-shadow: 0 0 10px rgba(255, 152, 0, 0.5); box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);">🔄 RESET DEFAULTS</button>
+
+                        <div class="settings-action-row">
+                            <button id="applySettings" class="settings-apply-btn">✅ APPLY SETTINGS</button>
+                            <button id="resetSettings" class="settings-reset-btn">🔄 RESET DEFAULTS</button>
                         </div>
-                        
-                        <div id="settingsMessage" style="display: none; padding: 15px; background: rgba(76, 175, 80, 0.2); border: 2px solid #4caf50; border-radius: 8px; color: #4caf50; text-align: center; font-weight: bold; text-shadow: 0 0 10px rgba(76, 175, 80, 0.5);">
+
+                        <div id="settingsMessage" class="settings-message">
                             ✅ Settings have been applied successfully!
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Statistics Panel -->
-                <div id="statsPanel" class="tab-panel" style="display: none;">
-                    <div style="display: grid; gap: 20px;">
-                        <h3 style="margin: 0; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); font-size: 20px;">📊 Game Statistics</h3>
-                        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; font-size: 14px;">
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Total Play Time:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.totalPlayTime}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Games Played:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.gamesPlayed}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Deepest Floor:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.deepestFloor}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Total Deaths:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.totalDeaths}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Orbs Collected:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.totalOrbsCollected}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Distance Traveled:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.totalDistanceTraveled}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Fastest Completion:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.fastestCompletion}</span>
-                            </div>
-                            <div style="padding: 15px; background: rgba(255, 235, 59, 0.1); border-radius: 8px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Achievements:</strong><br>
-                                <span style="color: #fff; font-size: 16px;">${stats.achievementsUnlocked}/${stats.totalAchievements}</span>
-                            </div>
+                <div id="statsPanel" class="tab-panel tab-panel--hidden">
+                    <div class="stats-grid">
+                        <h3 class="settings-section-title">📊 Game Statistics</h3>
+                        <div class="stats-cards">
+                            <div class="stats-card"><strong>Total Play Time:</strong><br><span>${stats.totalPlayTime}</span></div>
+                            <div class="stats-card"><strong>Games Played:</strong><br><span>${stats.gamesPlayed}</span></div>
+                            <div class="stats-card"><strong>Deepest Floor:</strong><br><span>${stats.deepestFloor}</span></div>
+                            <div class="stats-card"><strong>Total Deaths:</strong><br><span>${stats.totalDeaths}</span></div>
+                            <div class="stats-card"><strong>Orbs Collected:</strong><br><span>${stats.totalOrbsCollected}</span></div>
+                            <div class="stats-card"><strong>Distance Traveled:</strong><br><span>${stats.totalDistanceTraveled}</span></div>
+                            <div class="stats-card"><strong>Fastest Completion:</strong><br><span>${stats.fastestCompletion}</span></div>
+                            <div class="stats-card"><strong>Achievements:</strong><br><span>${stats.achievementsUnlocked}/${stats.totalAchievements}</span></div>
                         </div>
-                        <div style="margin-top: 10px;">
-                            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                                <strong style="color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5);">Achievement Progress</strong>
-                                <span style="color: #fff; font-weight: bold;">${Math.round((stats.achievementsUnlocked / stats.totalAchievements) * 100)}%</span>
+                        <div class="stats-progress-section">
+                            <div class="stats-progress-header">
+                                <strong>Achievement Progress</strong>
+                                <span>${Math.round((stats.achievementsUnlocked / stats.totalAchievements) * 100)}%</span>
                             </div>
-                            <div style="width: 100%; background: #222; border-radius: 10px; overflow: hidden; border: 2px solid #333; box-shadow: inset 0 2px 5px rgba(0,0,0,0.5);">
-                                <div style="width: ${(stats.achievementsUnlocked / stats.totalAchievements) * 100}%; height: 25px; background: linear-gradient(90deg, #ffeb3b, #ff9800); transition: width 0.5s ease; box-shadow: 0 0 10px rgba(255, 235, 59, 0.5);"></div>
+                            <div class="stats-progress-bar">
+                                <div class="stats-progress-fill" data-width="${(stats.achievementsUnlocked / stats.totalAchievements) * 100}"></div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
+
                 <!-- Achievements Panel -->
-                <div id="achievementsPanel" class="tab-panel" style="display: none;">
-                    <h3 style="margin: 0 0 20px 0; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); font-size: 20px;">🏆 Achievements</h3>
-                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
-                        ${achievementsList || '<div style="text-align: center; opacity: 0.6; padding: 30px; color: #aaa; font-size: 16px;">No achievements data available!</div>'}
+                <div id="achievementsPanel" class="tab-panel tab-panel--hidden">
+                    <h3 class="achievements-title">🏆 Achievements</h3>
+                    <div class="achievements-scroll">
+                        ${achievementsList || '<div class="achievements-empty">No achievements data available!</div>'}
                     </div>
-                    <div style="margin-top: 20px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; font-size: 13px; color: #fff; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                        💡 <strong style="color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">Tip:</strong> Unlocked achievements glow with golden light, while locked achievements remain in shadow. Explore the depths to unlock them all!
+                    <div class="achievements-tip">
+                        💡 <strong>Tip:</strong> Unlocked achievements glow with golden light, while locked achievements remain in shadow. Explore the depths to unlock them all!
                     </div>
                 </div>
-                
+
                 <!-- Help Panel -->
-                <div id="helpPanel" class="tab-panel" style="display: none;">
-                    <div style="max-height: 400px; overflow-y: auto; padding-right: 10px;">
-                        <h3 style="margin: 0 0 20px 0; color: #ffeb3b; text-shadow: 0 0 10px rgba(255, 235, 59, 0.5); font-size: 20px;">❓ Game Help & Guide</h3>
-                        
-                        <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                            <h4 style="margin: 0 0 12px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">🎯 Mission</h4>
-                            <p style="margin: 0; color: #fff; line-height: 1.5; font-size: 14px;">
+                <div id="helpPanel" class="tab-panel tab-panel--hidden">
+                    <div class="help-scroll">
+                        <h3 class="settings-section-title">❓ Game Help & Guide</h3>
+
+                        <div class="help-section">
+                            <h4>🎯 Mission</h4>
+                            <p class="help-text">
                                 Descend through the mysterious Buried Spire to reach floor -${CONFIG.GAME.MAX_FLOORS} and find the legendary Ancient Pearl. Navigate through dark corridors of the ancient Burj Mubarak while managing your light and avoiding the lurking ghouls.
                             </p>
                         </div>
-                        
-                        <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                            <h4 style="margin: 0 0 12px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">🎮 Controls</h4>
-                            <div style="color: #fff; line-height: 1.7; font-size: 14px;">
-                                <strong style="color: #ffeb3b;">Movement:</strong> WASD or Arrow Keys<br>
-                                <strong style="color: #ffeb3b;">Use Orbs:</strong> Press 1, 2, or 3 keys<br>
-                                <strong style="color: #ffeb3b;">Help:</strong> Press H to toggle help overlay<br>
-                                <strong style="color: #ffeb3b;">Pause:</strong> Press ESC to pause the game<br>
-                                <strong style="color: #ffeb3b;">Settings:</strong> Click ⚙️ button (top-right)
+
+                        <div class="help-section">
+                            <h4>🎮 Controls</h4>
+                            <div class="help-controls">
+                                <strong>Movement:</strong> WASD or Arrow Keys<br>
+                                <strong>Use Orbs:</strong> Press 1, 2, or 3 keys<br>
+                                <strong>Help:</strong> Press H to toggle help overlay<br>
+                                <strong>Pause:</strong> Press ESC to pause the game<br>
+                                <strong>Settings:</strong> Click ⚙️ button (top-right)
                             </div>
                         </div>
-                        
-                        <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                            <h4 style="margin: 0 0 15px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">🔮 Orb Types</h4>
-                            <div style="display: grid; gap: 10px; color: #fff; font-size: 13px;">
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(100, 181, 246, 0.2); border-radius: 5px; border: 1px solid #64b5f6;">
-                                    <span style="color: #64b5f6; font-size: 18px; text-shadow: 0 0 8px #64b5f6;">O</span>
-                                    <span><strong style="color: #64b5f6;">Blue Orb:</strong> Restores 20% light - collect immediately</span>
+
+                        <div class="help-section">
+                            <h4 class="help-orb-title">🔮 Orb Types</h4>
+                            <div class="help-orb-grid">
+                                <div class="help-orb-item help-orb-item--blue">
+                                    <span class="help-orb-symbol help-orb-symbol--blue">O</span>
+                                    <span><strong class="help-orb-name--blue">Blue Orb:</strong> Restores 20% light - collect immediately</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255, 235, 59, 0.2); border-radius: 5px; border: 1px solid #ffeb3b;">
-                                    <span style="color: #ffeb3b; font-size: 18px; text-shadow: 0 0 8px #ffeb3b;">@</span>
-                                    <span><strong style="color: #ffeb3b;">Golden Orb:</strong> Restores 40% light - collect immediately</span>
+                                <div class="help-orb-item help-orb-item--gold">
+                                    <span class="help-orb-symbol help-orb-symbol--gold">@</span>
+                                    <span><strong class="help-orb-name--gold">Golden Orb:</strong> Restores 40% light - collect immediately</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(156, 39, 176, 0.2); border-radius: 5px; border: 1px solid #9c27b0;">
-                                    <span style="color: #9c27b0; font-size: 18px; text-shadow: 0 0 8px #9c27b0;">P</span>
-                                    <span><strong style="color: #9c27b0;">Purple Orb:</strong> Phase through walls for 5 seconds</span>
+                                <div class="help-orb-item help-orb-item--purple">
+                                    <span class="help-orb-symbol help-orb-symbol--purple">P</span>
+                                    <span><strong class="help-orb-name--purple">Purple Orb:</strong> Phase through walls for 5 seconds</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(76, 175, 80, 0.2); border-radius: 5px; border: 1px solid #4caf50;">
-                                    <span style="color: #4caf50; font-size: 18px; text-shadow: 0 0 8px #4caf50;">G</span>
-                                    <span><strong style="color: #4caf50;">Green Orb:</strong> Regenerate light for 10 seconds</span>
+                                <div class="help-orb-item help-orb-item--green">
+                                    <span class="help-orb-symbol help-orb-symbol--green">G</span>
+                                    <span><strong class="help-orb-name--green">Green Orb:</strong> Regenerate light for 10 seconds</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(255, 255, 255, 0.2); border-radius: 5px; border: 1px solid #ffffff;">
-                                    <span style="color: #ffffff; font-size: 18px; text-shadow: 0 0 8px #ffffff;">W</span>
-                                    <span><strong style="color: #ffffff;">White Orb:</strong> Reveal entire map for 5 seconds</span>
+                                <div class="help-orb-item help-orb-item--white">
+                                    <span class="help-orb-symbol help-orb-symbol--white">W</span>
+                                    <span><strong class="help-orb-name--white">White Orb:</strong> Reveal entire map for 5 seconds</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(244, 67, 54, 0.2); border-radius: 5px; border: 1px solid #f44336;">
-                                    <span style="color: #f44336; font-size: 18px; text-shadow: 0 0 8px #f44336;">♥</span>
-                                    <span><strong style="color: #f44336;">Red Orb:</strong> Auto-revives you when light reaches 0%</span>
+                                <div class="help-orb-item help-orb-item--red">
+                                    <span class="help-orb-symbol help-orb-symbol--red">♥</span>
+                                    <span><strong class="help-orb-name--red">Red Orb:</strong> Auto-revives you when light reaches 0%</span>
                                 </div>
-                                <div style="display: flex; align-items: center; gap: 12px; padding: 8px; background: rgba(204, 204, 255, 0.2); border-radius: 5px; border: 1px solid #ccccff;">
-                                    <span style="color: #ccccff; font-size: 18px; text-shadow: 0 0 8px #ccccff;">*</span>
-                                    <span><strong style="color: #ccccff;">Light Wisp:</strong> Death marker - Restores 50% light</span>
+                                <div class="help-orb-item help-orb-item--wisp">
+                                    <span class="help-orb-symbol help-orb-symbol--wisp">*</span>
+                                    <span><strong class="help-orb-name--wisp">Light Wisp:</strong> Death marker - Restores 50% light</span>
                                 </div>
                             </div>
                         </div>
-                        
-                        <div style="margin-bottom: 25px; padding: 20px; background: rgba(255, 235, 59, 0.1); border-radius: 10px; border: 2px solid #333; box-shadow: 0 2px 8px rgba(255, 235, 59, 0.1);">
-                            <h4 style="margin: 0 0 12px 0; color: #ffeb3b; text-shadow: 0 0 8px rgba(255, 235, 59, 0.5);">👻 Ghouls & Survival</h4>
-                            <div style="color: #fff; line-height: 1.7; font-size: 14px;">
-                                • <strong style="color: #ffeb3b;">Ghouls flee from bright light</strong> - stay near the center of your light radius<br>
-                                • <strong style="color: #ffeb3b;">Ghouls stalk you in dim light</strong> - they increase light depletion when near<br>
-                                • <strong style="color: #ffeb3b;">When light reaches 0%</strong> - ghouls swarm! Use a lifeline orb or face death<br>
-                                • <strong style="color: #ffeb3b;">Checkpoints every 5 floors</strong> - you'll respawn at the last checkpoint<br>
-                                • <strong style="color: #ffeb3b;">Light radius shrinks</strong> as your light depletes - manage it carefully!
+
+                        <div class="help-section">
+                            <h4>👻 Ghouls & Survival</h4>
+                            <div class="help-survival">
+                                • <strong>Ghouls flee from bright light</strong> - stay near the center of your light radius<br>
+                                • <strong>Ghouls stalk you in dim light</strong> - they increase light depletion when near<br>
+                                • <strong>When light reaches 0%</strong> - ghouls swarm! Use a lifeline orb or face death<br>
+                                • <strong>Checkpoints every 5 floors</strong> - you'll respawn at the last checkpoint<br>
+                                • <strong>Light radius shrinks</strong> as your light depletes - manage it carefully!
                             </div>
                         </div>
-                        
-                        <div style="padding: 20px; background: rgba(255, 152, 0, 0.1); border-radius: 10px; border: 2px solid #ff9800; box-shadow: 0 2px 8px rgba(255, 152, 0, 0.1);">
-                            <h4 style="margin: 0 0 12px 0; color: #ff9800; text-shadow: 0 0 8px rgba(255, 152, 0, 0.5);">💡 Pro Tips</h4>
-                            <div style="color: #fff; line-height: 1.7; font-size: 13px;">
+
+                        <div class="help-section--tips">
+                            <h4>💡 Pro Tips</h4>
+                            <div class="help-tips-text">
                                 • Collect blue orbs immediately - they don't take inventory space<br>
                                 • Save red lifeline orbs for emergencies - they auto-activate at 0% light<br>
                                 • Use purple phase orbs to escape tight situations or find shortcuts<br>
@@ -1034,7 +911,13 @@ const Game = {
         `;
 
         document.body.appendChild(modal);
-        
+
+        // Set dynamic widths via JS (CSP-safe)
+        const progressFill = modal.querySelector('.stats-progress-fill');
+        if (progressFill) {
+            progressFill.style.width = progressFill.dataset.width + '%';
+        }
+
         // Setup tab switching
         this.setupTabSwitching(modal);
         
@@ -1055,22 +938,20 @@ const Game = {
                 // Remove active class from all tabs and panels
                 tabs.forEach(t => {
                     t.classList.remove('active');
-                    t.style.background = '#654321';
-                    t.style.color = '#8B4513';
+                    t.style.background = '';
+                    t.style.color = '';
+                    t.style.textShadow = '';
                 });
-                panels.forEach(p => p.style.display = 'none');
-                
+                panels.forEach(p => p.classList.add('tab-panel--hidden'));
+
                 // Add active class to clicked tab
                 tab.classList.add('active');
-                tab.style.background = 'linear-gradient(135deg, #DAA520, #8B4513)';
-                tab.style.color = '#000';
-                tab.style.textShadow = '0 0 5px rgba(0,0,0,0.5)';
                 
                 // Show corresponding panel
                 const panelId = tab.id.replace('Tab', 'Panel');
                 const panel = modal.querySelector(`#${panelId}`);
                 if (panel) {
-                    panel.style.display = 'block';
+                    panel.classList.remove('tab-panel--hidden');
                 }
             });
         });
@@ -1111,13 +992,18 @@ const Game = {
                         }
                     }
                 }
-                const inventoryText = inventoryItems.length > 0 ? 
-                    `<br><br><strong>Your current inventory:</strong><br>${inventoryItems.join('<br>')}` : 
-                    '<br><br><strong>Your inventory is empty.</strong>';
-                
+                const inventoryParts = inventoryItems.length > 0 ?
+                    [{ br: true }, { br: true }, { bold: 'Your current inventory:' }, { br: true }, { items: inventoryItems }] :
+                    [{ br: true }, { br: true }, { bold: 'Your inventory is empty.' }];
+
                 this.showConfirmationDialog(
-                    '🔄 RESTART LEVEL',
-                    `Are you sure you want to restart Floor ${currentFloor}?<br><br>You will restart this level with the inventory you had when you first entered it.${inventoryText}`,
+                    '\u{1F504} RESTART LEVEL',
+                    [
+                        { text: `Are you sure you want to restart Floor ${currentFloor}?` },
+                        { br: true }, { br: true },
+                        { text: 'You will restart this level with the inventory you had when you first entered it.' },
+                        ...inventoryParts
+                    ],
                     () => {
                         this.isPaused = false;
                         this.hidePauseMenu();
@@ -1143,13 +1029,18 @@ const Game = {
                         }
                     }
                 }
-                const inventoryText = inventoryItems.length > 0 ? 
-                    `<br><br><strong>Your current inventory will be retained:</strong><br>${inventoryItems.join('<br>')}` : 
-                    '<br><br><strong>Your inventory is currently empty.</strong>';
-                
+                const inventoryParts = inventoryItems.length > 0 ?
+                    [{ br: true }, { br: true }, { bold: 'Your current inventory will be retained:' }, { br: true }, { items: inventoryItems }] :
+                    [{ br: true }, { br: true }, { bold: 'Your inventory is currently empty.' }];
+
                 this.showConfirmationDialog(
-                    '📍 RETURN TO CHECKPOINT',
-                    `Are you sure you want to return to Checkpoint ${checkpointNumber}?<br><br>You will be taken to Floor ${checkpointFloor} and retain your current inventory.${inventoryText}`,
+                    '\u{1F4CD} RETURN TO CHECKPOINT',
+                    [
+                        { text: `Are you sure you want to return to Checkpoint ${checkpointNumber}?` },
+                        { br: true }, { br: true },
+                        { text: `You will be taken to Floor ${checkpointFloor} and retain your current inventory.` },
+                        ...inventoryParts
+                    ],
                     () => {
                         this.isPaused = false;
                         this.hidePauseMenu();
@@ -1361,28 +1252,25 @@ const Game = {
     // Show critical error
     showCriticalError(error) {
         const errorDiv = document.createElement('div');
-        errorDiv.style.cssText = `
-            position: fixed;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            background: #ff0000;
-            color: white;
-            padding: 20px;
-            border-radius: 10px;
-            z-index: 99999;
-            text-align: center;
-            max-width: 500px;
-        `;
+        errorDiv.className = 'critical-error';
         
-        errorDiv.innerHTML = `
-            <h2>❌ Critical Error</h2>
-            <p>The game failed to initialize properly.</p>
-            <p><strong>Error:</strong> ${error.message}</p>
-            <button onclick="location.reload()" style="background: white; color: #ff0000; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">
-                Reload Game
-            </button>
-        `;
+        const heading = document.createElement('h2');
+        heading.textContent = '\u274C Critical Error';
+        const desc = document.createElement('p');
+        desc.textContent = 'The game failed to initialize properly.';
+        const errorP = document.createElement('p');
+        const strong = document.createElement('strong');
+        strong.textContent = 'Error: ';
+        errorP.appendChild(strong);
+        errorP.appendChild(document.createTextNode(error.message));
+        const reloadBtn = document.createElement('button');
+        reloadBtn.textContent = 'Reload Game';
+        reloadBtn.className = 'critical-error-btn';
+        reloadBtn.addEventListener('click', () => location.reload());
+        errorDiv.appendChild(heading);
+        errorDiv.appendChild(desc);
+        errorDiv.appendChild(errorP);
+        errorDiv.appendChild(reloadBtn);
         
         document.body.appendChild(errorDiv);
     },
@@ -1495,18 +1383,7 @@ const Game = {
         if (!fpsDisplay) {
             fpsDisplay = document.createElement('div');
             fpsDisplay.id = 'fpsDisplay';
-            fpsDisplay.style.cssText = `
-                position: fixed;
-                top: 50px;
-                right: 10px;
-                background: rgba(0, 0, 0, 0.7);
-                color: #00ff00;
-                padding: 5px 10px;
-                border-radius: 3px;
-                font-family: 'Courier New', monospace;
-                font-size: 14px;
-                z-index: 9998;
-            `;
+            fpsDisplay.className = 'fps-display';
             document.body.appendChild(fpsDisplay);
         }
         
@@ -1539,17 +1416,7 @@ const Game = {
     // Show save indicator
     showSaveIndicator() {
         const indicator = document.createElement('div');
-        indicator.style.cssText = `
-            position: fixed;
-            top: 80px;
-            right: 10px;
-            background: rgba(0, 255, 0, 0.8);
-            color: white;
-            padding: 5px 10px;
-            border-radius: 3px;
-            font-size: 12px;
-            z-index: 9997;
-        `;
+        indicator.className = 'save-indicator';
         indicator.textContent = '💾 Saved';
         
         document.body.appendChild(indicator);

@@ -199,6 +199,13 @@ const GameState = {
 
     // Quit to menu
     quitToMenu() {
+        // Clean up name entry state and DOM elements
+        this.game.showNameEntry = false;
+        this.game.pendingScore = null;
+        if (window.InputManager && InputManager.hideNameEntryInput) {
+            InputManager.hideNameEntryInput();
+        }
+
         this.game.state = 'menu';
         this.game.deathScreen = false;
         this.game.swarming = false;
@@ -226,7 +233,14 @@ const GameState = {
     // Respawn at checkpoint
     respawnAtCheckpoint() {
         console.log(`🔄 Respawning at checkpoint floor ${this.game.checkpoint}...`);
-        
+
+        // Clean up name entry state and DOM elements
+        this.game.showNameEntry = false;
+        this.game.pendingScore = null;
+        if (window.InputManager && InputManager.hideNameEntryInput) {
+            InputManager.hideNameEntryInput();
+        }
+
         // Add death marker at current location (store absolute floor for matching in placeDeathMarkers)
         this.game.player.deathMarkers.push({
             x: this.game.player.x,
@@ -484,45 +498,18 @@ const GameState = {
         if (!achievement) return;
         
         const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #FFD700, #FFA500);
-            color: #000;
-            padding: 15px 20px;
-            border-radius: 10px;
-            box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
-            z-index: 10001;
-            font-family: Arial, sans-serif;
-            font-weight: bold;
-            animation: achievementSlide 0.5s ease-out;
-            max-width: 300px;
-        `;
-        
+        notification.className = 'achievement-notification';
+
         notification.innerHTML = `
-            <div style="display: flex; align-items: center; gap: 10px;">
-                <span style="font-size: 24px;">${achievement.icon}</span>
+            <div class="achievement-notification-inner">
+                <span class="achievement-notification-icon">${achievement.icon}</span>
                 <div>
-                    <div style="font-size: 16px;">Achievement Unlocked!</div>
-                    <div style="font-size: 14px; margin-top: 2px;">${achievement.name}</div>
-                    <div style="font-size: 12px; opacity: 0.8; margin-top: 2px;">${achievement.description}</div>
+                    <div class="achievement-notification-title">Achievement Unlocked!</div>
+                    <div class="achievement-notification-name">${achievement.name}</div>
+                    <div class="achievement-notification-desc">${achievement.description}</div>
                 </div>
             </div>
         `;
-        
-        // Add animation CSS if not already added
-        if (!document.getElementById('achievementStyles')) {
-            const style = document.createElement('style');
-            style.id = 'achievementStyles';
-            style.textContent = `
-                @keyframes achievementSlide {
-                    from { transform: translateX(100%); opacity: 0; }
-                    to { transform: translateX(0); opacity: 1; }
-                }
-            `;
-            document.head.appendChild(style);
-        }
         
         document.body.appendChild(notification);
         
@@ -768,7 +755,9 @@ const GameState = {
             mapHeight: CONFIG.MAP.HEIGHT || 20,
             gameStartTime: Date.now(),
             distanceTraveled: 0,
-            survivalTime: 0
+            survivalTime: 0,
+            showNameEntry: false,
+            pendingScore: null
         };
     }
 }; 

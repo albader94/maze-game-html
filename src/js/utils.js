@@ -286,27 +286,13 @@ const Utils = {
     // Show a message that auto-disappears after a specified time
     showMessage(text, duration = 3000) {
         // Create a temporary notification element
+        // Push notification below HUD band in mobile portrait mode
+        const isMobilePortrait = window.innerWidth <= 768 && window.innerHeight > window.innerWidth;
+        const topOffset = isMobilePortrait ? '210px' : '20px';
+
         const notification = document.createElement('div');
-        notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 0, 0, 0.9);
-            color: #fff;
-            padding: 12px 20px;
-            border-radius: 8px;
-            border: 1px solid #444;
-            backdrop-filter: blur(5px);
-            font-family: monospace;
-            font-size: 14px;
-            z-index: 1000;
-            max-width: 600px;
-            text-align: center;
-            opacity: 0;
-            transition: opacity 0.3s ease-in-out;
-            pointer-events: none;
-        `;
+        notification.className = 'game-notification';
+        notification.style.top = topOffset;
         notification.textContent = text;
         
         // Add to page

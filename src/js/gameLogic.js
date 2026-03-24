@@ -63,19 +63,7 @@ const GameLogic = {
         showErrorMessage(message) {
             try {
                 const errorDiv = document.createElement('div');
-                errorDiv.style.cssText = `
-                    position: fixed;
-                    top: 20px;
-                    right: 20px;
-                    background: rgba(255, 0, 0, 0.9);
-                    color: white;
-                    padding: 15px;
-                    border-radius: 5px;
-                    z-index: 10000;
-                    max-width: 300px;
-                    font-family: Arial, sans-serif;
-                    font-size: 14px;
-                `;
+                errorDiv.className = 'error-toast';
                 errorDiv.textContent = `Error: ${message}`;
                 
                 document.body.appendChild(errorDiv);
@@ -890,13 +878,23 @@ const GameLogic = {
                 game.deathScreen = true;
                 game.swarming = false;
                 game.darknessFade = 0;
-                
+
                 // Play death sound
                 if (window.SoundManager) {
                     SoundManager.playDeathSound();
                 }
                 GameState.recordDeath();
                 console.log('💀 Swarm completed, showing death screen');
+
+                // Submit score to leaderboard on death
+                if (window.InputManager && InputManager.handleScoreSubmission) {
+                    InputManager.handleScoreSubmission(
+                        GameState.game.floor,
+                        GameState.game.player.orbsCollected
+                    );
+                }
+
+
             }
         }
         

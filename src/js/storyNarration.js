@@ -1,244 +1,219 @@
-// Story Narration System
+// Story Narration System - Text-based with manual navigation
 const StoryNarration = {
     currentPart: 0,
     isPlaying: false,
     skipPressed: false,
     completed: false,
-    currentNarrationAudio: null,
+    transitioning: false,
     narrationTexts: [
         // Part 1
         "In the heart of an ancient desert, where the sun's rage turns sand to glass, lies a secret buried for millennia. The Spire of Shadows - a cursed monument that descends deep into the earth's forgotten depths.",
-        
+
         // Part 2
         "You are an explorer, drawn by whispers of untold treasures and mystical orbs of power. But as you descended the spiral stairs, the entrance collapsed behind you. Now, only one path remains... down.",
-        
+
         // Part 3
         "Light is life in these depths. The darkness hungers, and ancient guardians stalk the shadows. Gather the orbs, preserve your flame, and descend ever deeper. For at the bottom of this buried spire, legend speaks of the Ancient Pearl - your only escape from this tomb of shadows.",
-        
+
         // Part 4
         "Remember, brave soul: when your light fades, the darkness consumes all. Begin your descent."
     ],
-    
-    narrationDurations: [18000, 16000, 23000, 10000], // in milliseconds
-    
+
     // Start the story narration
     start() {
         if (this.isPlaying) return;
-        
+
         this.isPlaying = true;
         this.currentPart = 0;
         this.skipPressed = false;
         this.completed = false;
-        
-        // Handle user interaction for audio
-        if (window.SoundManager && window.SoundManager.handleUserInteraction) {
-            window.SoundManager.handleUserInteraction();
-        }
-        
+        this.transitioning = false;
+
         // Create story overlay
         this.createStoryOverlay();
-        
-        // Load narration sounds
-        this.loadNarrationSounds();
-        
-        // Give sounds time to load before starting
+
+        // Show the first part after overlay fades in
         setTimeout(() => {
-            // Start first narration
-            this.playNextPart();
+            this.showPart(0);
         }, 500);
     },
-    
-    // Load all narration sound files
-    loadNarrationSounds() {
-        if (window.SoundManager) {
-            console.log('Loading narration sounds...');
-            SoundManager.loadSound('narration1', '../assets/sound/Story/part1.mp3');
-            SoundManager.loadSound('narration2', '../assets/sound/Story/part2.mp3');
-            SoundManager.loadSound('narration3', '../assets/sound/Story/part3.mp3');
-            SoundManager.loadSound('narration4', '../assets/sound/Story/part4.mp3');
-            console.log('Narration sounds loaded');
-        }
-    },
-    
-    // Create the black overlay with text
+
+    // Create the black overlay with text and navigation
     createStoryOverlay() {
         // Create overlay container
         const overlay = document.createElement('div');
         overlay.id = 'storyOverlay';
-        overlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: #000;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            z-index: 10000;
-            opacity: 0;
-            transition: opacity 1s ease-in-out;
-        `;
-        
+        overlay.className = 'story-overlay';
+
         // Create text container
         const textContainer = document.createElement('div');
         textContainer.id = 'storyText';
-        textContainer.style.cssText = `
-            max-width: 800px;
-            padding: 40px;
-            text-align: center;
-            color: #d4af37;
-            font-size: 24px;
-            line-height: 1.8;
-            font-family: 'Courier New', monospace;
-            text-shadow: 0 0 10px rgba(212, 175, 55, 0.5);
-            opacity: 0;
-            transition: opacity 1.5s ease-in-out;
-        `;
-        
-        // Create skip button
+        textContainer.className = 'story-text';
+
+        // Create navigation container
+        const navContainer = document.createElement('div');
+        navContainer.id = 'storyNav';
+        navContainer.className = 'story-nav';
+
+        // Create Prev button
+        const prevButton = document.createElement('button');
+        prevButton.id = 'storyPrev';
+        prevButton.textContent = 'Prev';
+        prevButton.className = 'story-btn';
+        this.attachButtonEvents(prevButton, () => this.goToPart(this.currentPart - 1));
+
+        // Create Next / Begin button
+        const nextButton = document.createElement('button');
+        nextButton.id = 'storyNext';
+        nextButton.textContent = 'Next';
+        nextButton.className = 'story-btn';
+        this.attachButtonEvents(nextButton, () => {
+            if (this.currentPart >= this.narrationTexts.length - 1) {
+                this.complete();
+            } else {
+                this.goToPart(this.currentPart + 1);
+            }
+        });
+
+        // Create Skip button
         const skipButton = document.createElement('button');
+        skipButton.id = 'storySkip';
         skipButton.textContent = 'Skip';
-        skipButton.style.cssText = `
-            position: absolute;
-            bottom: 30px;
-            right: 30px;
-            padding: 14px 28px;
-            min-width: 44px;
-            min-height: 44px;
-            background: rgba(212, 175, 55, 0.2);
-            border: 1px solid #d4af37;
-            color: #d4af37;
-            font-family: 'Courier New', monospace;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            opacity: 0.7;
-            -webkit-tap-highlight-color: transparent;
-            touch-action: manipulation;
-        `;
-        skipButton.onmouseover = () => skipButton.style.opacity = '1';
-        skipButton.onmouseout = () => skipButton.style.opacity = '0.7';
-        skipButton.onclick = (e) => { e.preventDefault(); this.skip(); };
-        skipButton.addEventListener('touchend', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            this.skip();
-        }, { passive: false });
-        
+        skipButton.className = 'story-btn story-skip-btn';
+        this.attachButtonEvents(skipButton, () => this.skip());
+
+        navContainer.appendChild(prevButton);
+        navContainer.appendChild(nextButton);
+
         overlay.appendChild(textContainer);
+        overlay.appendChild(navContainer);
         overlay.appendChild(skipButton);
         document.body.appendChild(overlay);
-        
+
         // Fade in overlay
         setTimeout(() => {
             overlay.style.opacity = '1';
         }, 100);
-        
-        // Listen for ESC key
-        this.escHandler = (e) => {
+
+        // Listen for keyboard input
+        this.keyHandler = (e) => {
             if (e.key === 'Escape') {
                 e.stopImmediatePropagation();
                 this.skip();
+            } else if (e.key === 'ArrowRight' || e.key === 'Enter') {
+                e.stopImmediatePropagation();
+                if (this.currentPart >= this.narrationTexts.length - 1) {
+                    this.complete();
+                } else {
+                    this.goToPart(this.currentPart + 1);
+                }
+            } else if (e.key === 'ArrowLeft') {
+                e.stopImmediatePropagation();
+                if (this.currentPart > 0) {
+                    this.goToPart(this.currentPart - 1);
+                }
             }
         };
-        document.addEventListener('keydown', this.escHandler);
+        document.addEventListener('keydown', this.keyHandler);
     },
-    
-    // Play the next part of the narration
-    playNextPart() {
-        if (this.skipPressed || this.currentPart >= this.narrationTexts.length) {
-            this.complete();
-            return;
-        }
-        
+
+    // Helper to attach hover and click/touch events to a button
+    attachButtonEvents(button, action) {
+        button.addEventListener('mouseover', () => { button.style.opacity = '1'; });
+        button.addEventListener('mouseout', () => { button.style.opacity = '0.7'; });
+        button.addEventListener('click', (e) => { e.preventDefault(); action(); });
+        button.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            action();
+        }, { passive: false });
+    },
+
+    // Show a specific part with fade transition
+    showPart(partIndex) {
+        if (partIndex < 0 || partIndex >= this.narrationTexts.length) return;
+
         const textElement = document.getElementById('storyText');
         if (!textElement) return;
-        
-        // Fade out previous text
-        textElement.style.opacity = '0';
-        
+
+        this.currentPart = partIndex;
+
+        // Update text content and fade in
+        textElement.textContent = this.narrationTexts[this.currentPart];
         setTimeout(() => {
-            // Update text
+            textElement.style.opacity = '1';
+        }, 100);
+
+        // Update navigation buttons
+        this.updateNavButtons();
+    },
+
+    // Navigate to a specific part with fade transition
+    goToPart(partIndex) {
+        if (this.transitioning) return;
+        if (partIndex < 0 || partIndex >= this.narrationTexts.length) return;
+
+        const textElement = document.getElementById('storyText');
+        if (!textElement) return;
+
+        this.transitioning = true;
+
+        // Fade out current text
+        textElement.style.opacity = '0';
+
+        setTimeout(() => {
+            this.currentPart = partIndex;
             textElement.textContent = this.narrationTexts[this.currentPart];
-            
+
             // Fade in new text
             setTimeout(() => {
                 textElement.style.opacity = '1';
+                this.transitioning = false;
             }, 100);
-            
-            // Play narration audio and store reference
-            if (window.SoundManager && window.SoundManager.sounds[`narration${this.currentPart + 1}`]) {
-                // Stop any previous narration
-                this.stopCurrentNarration();
-                
-                // Clone and play new narration
-                this.currentNarrationAudio = window.SoundManager.sounds[`narration${this.currentPart + 1}`].cloneNode();
-                this.currentNarrationAudio.volume = 0.8 * (window.SoundManager.volume || 1);
-                
-                // Wait for audio to end before moving to next part
-                this.currentNarrationAudio.addEventListener('ended', () => {
-                    console.log(`Part ${this.currentPart + 1} audio ended`);
-                    if (!this.skipPressed) {
-                        // Add a small pause between narrations
-                        setTimeout(() => {
-                            this.currentPart++;
-                            this.playNextPart();
-                        }, 1000);
-                    }
-                });
-                
-                this.currentNarrationAudio.play().catch(e => {
-                    console.warn('Could not play narration:', e);
-                    // If audio fails, fall back to timer
-                    setTimeout(() => {
-                        if (!this.skipPressed) {
-                            this.currentPart++;
-                            this.playNextPart();
-                        }
-                    }, this.narrationDurations[this.currentPart]);
-                });
-            } else {
-                // No audio available, use timer
-                setTimeout(() => {
-                    if (!this.skipPressed) {
-                        this.currentPart++;
-                        this.playNextPart();
-                    }
-                }, this.narrationDurations[this.currentPart]);
-            }
-            
-        }, 1500); // Wait for fade out
+
+            // Update navigation buttons
+            this.updateNavButtons();
+        }, 1500); // Wait for fade out to complete
     },
-    
+
+    // Update visibility and labels of navigation buttons
+    updateNavButtons() {
+        const prevButton = document.getElementById('storyPrev');
+        const nextButton = document.getElementById('storyNext');
+        const skipButton = document.getElementById('storySkip');
+
+        if (prevButton) {
+            // Hide Prev on first part
+            prevButton.style.visibility = this.currentPart === 0 ? 'hidden' : 'visible';
+        }
+
+        if (nextButton) {
+            const isLastPart = this.currentPart >= this.narrationTexts.length - 1;
+            // Show "Begin" on last part, "Next" otherwise
+            nextButton.textContent = isLastPart ? 'Begin' : 'Next';
+        }
+
+        if (skipButton) {
+            // Hide Skip on last part since Begin serves the same purpose
+            const isLastPart = this.currentPart >= this.narrationTexts.length - 1;
+            skipButton.style.visibility = isLastPart ? 'hidden' : 'visible';
+        }
+    },
+
     // Skip the narration
     skip() {
         this.skipPressed = true;
-        this.stopCurrentNarration();
         this.complete();
     },
-    
-    // Stop current narration audio
-    stopCurrentNarration() {
-        if (this.currentNarrationAudio) {
-            this.currentNarrationAudio.pause();
-            this.currentNarrationAudio.currentTime = 0;
-            this.currentNarrationAudio = null;
-        }
-    },
-    
+
     // Complete the narration and start the game
     complete() {
         // Guard against being called multiple times
         if (this.completed) return;
         this.completed = true;
 
-        // Remove ESC handler immediately to prevent re-entry
-        document.removeEventListener('keydown', this.escHandler);
-
-        // Stop any playing narration
-        this.stopCurrentNarration();
+        // Remove keyboard handler immediately to prevent re-entry
+        document.removeEventListener('keydown', this.keyHandler);
 
         // Mark narration as no longer playing
         this.isPlaying = false;

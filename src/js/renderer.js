@@ -97,6 +97,11 @@ const Renderer = {
             return;
         }
 
+        if (game.state === 'leaderboard') {
+            this.renderLeaderboardScreen();
+            return;
+        }
+
         const isPortrait = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
         const hudHeight = isPortrait ? (CONFIG.HUD?.PORTRAIT_HEIGHT || 0) : 0;
         this.hudHeight = hudHeight;
@@ -162,6 +167,11 @@ const Renderer = {
         this.renderHelpScreen(game);
         this.renderDeathScreen(game);
         this.renderGameOverScreen(game);
+
+        // Name entry overlay (on top of all other overlays)
+        if (game.showNameEntry) {
+            this.renderNameEntryOverlay();
+        }
     },
 
     // Render floor tiles
@@ -669,7 +679,9 @@ const Renderer = {
 
         // Scale up UI in portrait mode for readability
         const isPortrait = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
+        const isMobileStats = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         const uiScale = isPortrait ? 1.6 : 1;
+        const baseFontSize = isMobileStats ? 14 : 13;
 
         // UI background panel with proper spacing
         const uiX = 10;
@@ -685,11 +697,11 @@ const Renderer = {
 
         // Text styling
         this.ctx.fillStyle = '#DAA520';
-        this.ctx.font = `${Math.round(13 * uiScale)}px serif`;
+        this.ctx.font = `${Math.round(baseFontSize * uiScale)}px serif`;
         this.ctx.textAlign = 'left';
 
         let textY = uiY + 20 * uiScale;
-        const lineHeight = 16 * uiScale;
+        const lineHeight = (isMobileStats ? 18 : 16) * uiScale;
 
         // Floor info (use CONFIG for max floors)
         this.ctx.fillText(`Floor: ${game.floor} / -${CONFIG.GAME.MAX_FLOORS}`, uiX + 10 * uiScale, textY);
@@ -752,75 +764,78 @@ const Renderer = {
     // Render inventory on canvas (matching reference image)
     renderInventory(game) {
         if (game.state !== 'playing') return;
-        
-        const slotSize = 48;
-        const slotGap = 8;
+
+        const isMobileInv = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        const slotSize = isMobileInv ? 56 : 48;
+        const slotGap = isMobileInv ? 10 : 8;
+        const orbFontSize = isMobileInv ? 26 : 22;
+        const keyFontSize = isMobileInv ? 13 : 11;
         const totalSlotsWidth = (slotSize * 3) + (slotGap * 2);
-        
+
         // Position inventory at bottom center, moved down
         const invX = (CONFIG.CANVAS.WIDTH - totalSlotsWidth) / 2;
         const invY = CONFIG.CANVAS.HEIGHT - 70;
-        
+
         // Render each inventory slot individually (like in reference image)
         for (let i = 0; i < 3; i++) {
             const slotX = invX + (i * (slotSize + slotGap));
             const slotY = invY;
-            
+
             // Slot background with Gothic styling
             this.drawRoundedRect(
-                slotX, slotY, slotSize, slotSize, 
-                10, 
-                'rgba(26, 15, 8, 0.8)', 
-                '#654321', 
+                slotX, slotY, slotSize, slotSize,
+                10,
+                'rgba(26, 15, 8, 0.8)',
+                '#654321',
                 2
             );
-            
+
             // Inner slot border for depth
             this.drawRoundedRect(
-                slotX + 2, slotY + 2, slotSize - 4, slotSize - 4, 
-                8, 
-                null, 
-                '#8B4513', 
+                slotX + 2, slotY + 2, slotSize - 4, slotSize - 4,
+                8,
+                null,
+                '#8B4513',
                 1
             );
-            
+
             // Active slot highlighting (only when explicitly selected and has an item)
             if (game.player.selectedSlot === i && game.player.inventory[i]) {
                 this.drawRoundedRect(
-                    slotX, slotY, slotSize, slotSize, 
-                    10, 
-                    null, 
-                    '#DAA520', 
+                    slotX, slotY, slotSize, slotSize,
+                    10,
+                    null,
+                    '#DAA520',
                     2
                 );
-                
+
                 // Subtle inner glow for active slot
                 this.ctx.shadowBlur = 8;
                 this.ctx.shadowColor = '#DAA520';
                 this.drawRoundedRect(
-                    slotX + 1, slotY + 1, slotSize - 2, slotSize - 2, 
-                    9, 
-                    null, 
-                    '#DAA520', 
+                    slotX + 1, slotY + 1, slotSize - 2, slotSize - 2,
+                    9,
+                    null,
+                    '#DAA520',
                     1
                 );
                 this.ctx.shadowBlur = 0;
             }
-            
+
             // Key indicator above slot - sand colored
             this.ctx.fillStyle = '#d4a574';
-            this.ctx.font = 'bold 11px serif';
+            this.ctx.font = `bold ${keyFontSize}px serif`;
             this.ctx.textAlign = 'center';
             this.ctx.fillText(String(i + 1), slotX + slotSize / 2, slotY - 6);
-            
+
             // Orb in slot
             const orbType = game.player.inventory[i];
             if (orbType && ORB_TYPES[orbType]) {
                 const orb = ORB_TYPES[orbType];
                 this.ctx.fillStyle = orb.color;
-                this.ctx.font = 'bold 22px serif';
+                this.ctx.font = `bold ${orbFontSize}px serif`;
                 this.ctx.textAlign = 'center';
-                
+
                 // Add subtle glow to orb
                 this.ctx.shadowBlur = 8;
                 this.ctx.shadowColor = orb.color;
@@ -1022,21 +1037,25 @@ const Renderer = {
     // Render main menu buttons
     renderMenuButtons(offsetY = 0) {
         const centerX = CONFIG.CANVAS.WIDTH / 2;
+        const isMobileBtn = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         const buttonWidth = 300;
-        const buttonHeight = 45;
-        const buttonSpacing = 55;
+        const buttonHeight = isMobileBtn ? 56 : 45;
+        const buttonSpacing = isMobileBtn ? 65 : 55;
+        const buttonFontSize = isMobileBtn ? 22 : 18;
+        const iconFontSize = isMobileBtn ? 24 : 20;
+        const textCenterY = isMobileBtn ? 34 : 28;
         const startY = 200 + offsetY;
-        
+
         const buttons = [
             { text: 'NEW GAME', y: startY, icon: '♦' },
             { text: 'LEADERBOARDS', y: startY + buttonSpacing, icon: '♠' },
             { text: 'SETTINGS', y: startY + buttonSpacing * 2, icon: '♣' }
         ];
-        
+
         for (let i = 0; i < buttons.length; i++) {
             const button = buttons[i];
             const isHovered = false; // Could add hover logic later
-            
+
             // Dark Gothic button background
             const buttonGradient = this.ctx.createLinearGradient(
                 centerX - buttonWidth/2, button.y,
@@ -1047,31 +1066,31 @@ const Renderer = {
             buttonGradient.addColorStop(1, '#1A0F08'); // Darkest brown
             this.ctx.fillStyle = buttonGradient;
             this.ctx.fillRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
-            
+
             // Dark Gothic border styling
             this.ctx.strokeStyle = '#8B4513'; // Gothic brown
             this.ctx.lineWidth = 2;
             this.ctx.strokeRect(centerX - buttonWidth/2, button.y, buttonWidth, buttonHeight);
-            
+
             // Inner golden highlight
             this.ctx.strokeStyle = '#DAA520'; // Golden
             this.ctx.lineWidth = 1;
             this.ctx.strokeRect(centerX - buttonWidth/2 + 3, button.y + 3, buttonWidth - 6, buttonHeight - 6);
-            
+
             // Button icon with golden glow
             this.ctx.shadowBlur = 6;
             this.ctx.shadowColor = '#DAA520';
             this.ctx.fillStyle = '#DAA520';
-            this.ctx.font = '20px serif';
+            this.ctx.font = `${iconFontSize}px serif`;
             this.ctx.textAlign = 'center';
-            this.ctx.fillText(button.icon, centerX - 80, button.y + 28);
+            this.ctx.fillText(button.icon, centerX - 80, button.y + textCenterY);
             this.ctx.shadowBlur = 0;
-            
+
             // Button text with Gothic styling
             this.ctx.fillStyle = '#DAA520'; // Golden for readability
-            this.ctx.font = 'bold 18px serif';
-            this.ctx.fillText(button.text, centerX + 10, button.y + 28);
-            
+            this.ctx.font = `bold ${buttonFontSize}px serif`;
+            this.ctx.fillText(button.text, centerX + 10, button.y + textCenterY);
+
             // Add mystical corner decorations
             this.ctx.fillStyle = '#8B4513';
             this.ctx.font = '12px serif';
@@ -1080,7 +1099,7 @@ const Renderer = {
             this.ctx.fillText('╚', centerX - buttonWidth/2 + 5, button.y + buttonHeight - 5);
             this.ctx.fillText('╝', centerX + buttonWidth/2 - 12, button.y + buttonHeight - 5);
         }
-        
+
         // Add mystical glow effect around buttons
         this.ctx.shadowBlur = 3;
         this.ctx.shadowColor = '#8B0000';
@@ -1091,7 +1110,7 @@ const Renderer = {
             this.ctx.strokeRect(centerX - buttonWidth/2 - 2, button.y - 2, buttonWidth + 4, buttonHeight + 4);
         }
         this.ctx.shadowBlur = 0;
-        
+
         this.ctx.textAlign = 'left';
     },
 
@@ -1099,21 +1118,25 @@ const Renderer = {
     // Render help screen
     renderHelpScreen(game) {
         if (!game.showHelp) return;
-        
+
+        const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        const bodyFont = isMobileDevice ? 16 : 14;
+        const headerFont = isMobileDevice ? 20 : 18;
+
         // Dark background overlay
         this.ctx.fillStyle = 'rgba(42, 24, 16, 0.95)';
         this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
-        
+
         // Decorative Gothic border
         this.ctx.strokeStyle = '#8B4513';
         this.ctx.lineWidth = 3;
         this.ctx.strokeRect(50, 30, CONFIG.CANVAS.WIDTH - 100, CONFIG.CANVAS.HEIGHT - 60);
-        
+
         // Inner golden border
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 1;
         this.ctx.strokeRect(55, 35, CONFIG.CANVAS.WIDTH - 110, CONFIG.CANVAS.HEIGHT - 70);
-        
+
         // Title with gothic styling
         this.ctx.shadowBlur = 8;
         this.ctx.shadowColor = '#8B0000';
@@ -1122,23 +1145,22 @@ const Renderer = {
         this.ctx.textAlign = 'center';
         this.ctx.fillText('⚜ ADVENTURER\'S GUIDE ⚜', CONFIG.CANVAS.WIDTH / 2, 70);
         this.ctx.shadowBlur = 0;
-        
+
         // Section headers with bronze styling
         this.ctx.fillStyle = '#CD853F';
-        this.ctx.font = 'bold 18px serif';
+        this.ctx.font = `bold ${headerFont}px serif`;
         this.ctx.fillText('SACRED QUEST', CONFIG.CANVAS.WIDTH / 2, 110);
         this.ctx.fillStyle = '#8B4513';
-        this.ctx.font = '14px serif';
+        this.ctx.font = `${bodyFont}px serif`;
         this.ctx.fillText(`Descend the cursed tower to floor -${CONFIG.GAME.MAX_FLOORS}`, CONFIG.CANVAS.WIDTH / 2, 130);
         this.ctx.fillText('Seek the Ancient Pearl to break the curse', CONFIG.CANVAS.WIDTH / 2, 150);
-        
+
         // Controls section
         this.ctx.fillStyle = '#CD853F';
-        this.ctx.font = 'bold 18px serif';
+        this.ctx.font = `bold ${headerFont}px serif`;
         this.ctx.fillText('MYSTIC CONTROLS', CONFIG.CANVAS.WIDTH / 2, 190);
         this.ctx.fillStyle = '#8B4513';
-        this.ctx.font = '14px serif';
-        const isMobileDevice = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        this.ctx.font = `${bodyFont}px serif`;
         if (isMobileDevice) {
             this.ctx.fillText('Virtual Joystick: Navigate the darkness', CONFIG.CANVAS.WIDTH / 2, 210);
             this.ctx.fillText('Buttons 1-3: Channel orb powers from inventory', CONFIG.CANVAS.WIDTH / 2, 230);
@@ -1150,7 +1172,7 @@ const Renderer = {
         }
 
         // Orb guide
-        this.renderHelpOrbGuide();
+        this.renderHelpOrbGuide(isMobileDevice);
 
         // Footer (positioned relative to bottom)
         this.ctx.textAlign = 'center';
@@ -1165,16 +1187,19 @@ const Renderer = {
     },
 
     // Render orb guide in help screen
-    renderHelpOrbGuide() {
+    renderHelpOrbGuide(isMobileDevice) {
+        const headerFont = isMobileDevice ? 20 : 18;
+        const bodyFont = isMobileDevice ? 16 : 14;
+
         this.ctx.fillStyle = '#CD853F';
-        this.ctx.font = 'bold 18px serif';
+        this.ctx.font = `bold ${headerFont}px serif`;
         this.ctx.textAlign = 'center';
         this.ctx.fillText('MYSTICAL ORBS', CONFIG.CANVAS.WIDTH / 2, 290);
-        
+
         this.ctx.textAlign = 'left';
         const orbX = 180;
-        this.ctx.font = '14px serif';
-        
+        this.ctx.font = `${bodyFont}px serif`;
+
         // Light orbs section
         this.ctx.fillStyle = '#8B4513';
         this.ctx.fillText('Light Restoration:', orbX, 320);
@@ -1184,7 +1209,7 @@ const Renderer = {
         this.ctx.fillText('@  Golden Orb: Restores 40% illumination', orbX + 20, 360);
         this.ctx.fillStyle = '#ccccff';
         this.ctx.fillText('*  Light Wisp: Soul marker - Restores 50% illumination', orbX + 20, 380);
-        
+
         // Power orbs section
         this.ctx.fillStyle = '#8B4513';
         this.ctx.fillText('Arcane Powers:', orbX, 410);
@@ -1250,12 +1275,43 @@ const Renderer = {
         this.ctx.font = 'bold 18px serif';
         this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', CONFIG.CANVAS.WIDTH / 2, 330 + deathOffsetY);
 
-        this.ctx.fillStyle = '#654321';
-        this.ctx.font = '14px serif';
-        this.ctx.fillText('♦ Shadow_Walker - Floor 47', CONFIG.CANVAS.WIDTH / 2, 355 + deathOffsetY);
-        this.ctx.fillText('♠ LightKeeper - Floor 42', CONFIG.CANVAS.WIDTH / 2, 375 + deathOffsetY);
-        this.ctx.fillText('♣ DuneRunner - Floor 38', CONFIG.CANVAS.WIDTH / 2, 395 + deathOffsetY);
-        this.ctx.fillText(`♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`, CONFIG.CANVAS.WIDTH / 2, 415 + deathOffsetY);
+        // Get scores from LeaderboardService (sync read of cached data)
+        const scores = (window.LeaderboardService && LeaderboardService.isReady())
+            ? LeaderboardService.getCachedScores()
+            : [];
+
+        const rankSymbols = ['♦', '♠', '♣', '♥', '♤'];
+
+        if (scores.length > 0) {
+            // Show top 3 scores
+            scores.slice(0, 3).forEach((score, i) => {
+                const symbol = rankSymbols[i] || '♦';
+                this.ctx.fillStyle = i === 0 ? '#FFD700' : (i === 1 ? '#C0C0C0' : '#CD7F32');
+                this.ctx.font = '14px serif';
+                this.ctx.fillText(
+                    `${symbol} ${score.name} - Floor ${score.deepestFloor}`,
+                    CONFIG.CANVAS.WIDTH / 2,
+                    355 + (i * 20) + deathOffsetY
+                );
+            });
+            // Always show player's entry at the bottom
+            this.ctx.fillStyle = '#654321';
+            this.ctx.fillText(
+                `♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`,
+                CONFIG.CANVAS.WIDTH / 2,
+                355 + (Math.min(scores.length, 3) * 20) + deathOffsetY
+            );
+        } else {
+            // Fallback when leaderboard unavailable
+            this.ctx.fillStyle = '#654321';
+            this.ctx.font = '14px serif';
+            this.ctx.fillText('No legends recorded yet...', CONFIG.CANVAS.WIDTH / 2, 355 + deathOffsetY);
+            this.ctx.fillText(
+                `♥ Your Legacy - Floor ${-GameState.stats.deepestFloor}`,
+                CONFIG.CANVAS.WIDTH / 2,
+                375 + deathOffsetY
+            );
+        }
         
         // Buttons
         this.renderDeathScreenButtons();
@@ -1265,36 +1321,40 @@ const Renderer = {
 
     // Render death screen buttons
     renderDeathScreenButtons() {
+        const isMobileDeath = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
         const btnY = CONFIG.CANVAS.HEIGHT - 140;
-        const btnHeight = 50;
-        const btnGap = 20;
-        
+        const btnWidth = isMobileDeath ? 200 : 180;
+        const btnHeight = isMobileDeath ? 58 : 50;
+        const btnGap = isMobileDeath ? 24 : 20;
+        const btnFontSize = isMobileDeath ? 20 : 18;
+        const btnTextY = btnY + Math.round(btnHeight / 2 + btnFontSize / 3);
+
         // Respawn button with gothic styling
-        const gradient1 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 - 20 - btnGap, btnY + btnHeight);
+        const gradient1 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 - btnWidth - btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 - btnGap, btnY + btnHeight);
         gradient1.addColorStop(0, '#8B4513');
         gradient1.addColorStop(1, '#654321');
         this.ctx.fillStyle = gradient1;
-        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, 180, btnHeight);
+        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 - btnWidth - btnGap, btnY, btnWidth, btnHeight);
         this.ctx.strokeStyle = '#DAA520';
         this.ctx.lineWidth = 2;
-        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 - 200 - btnGap, btnY, 180, btnHeight);
-        
+        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 - btnWidth - btnGap, btnY, btnWidth, btnHeight);
+
         this.ctx.fillStyle = '#FFD700';
-        this.ctx.font = 'bold 18px serif';
+        this.ctx.font = `bold ${btnFontSize}px serif`;
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('♦ RISE AGAIN', CONFIG.CANVAS.WIDTH / 2 - 110 - btnGap, btnY + 32);
-        
+        this.ctx.fillText('♦ RISE AGAIN', CONFIG.CANVAS.WIDTH / 2 - btnWidth / 2 - btnGap, btnTextY);
+
         // Quit button with gothic styling
-        const gradient2 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 + 200 + btnGap, btnY + btnHeight);
+        const gradient2 = this.ctx.createLinearGradient(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, CONFIG.CANVAS.WIDTH / 2 + btnWidth + btnGap, btnY + btnHeight);
         gradient2.addColorStop(0, '#654321');
         gradient2.addColorStop(1, '#3d2817');
         this.ctx.fillStyle = gradient2;
-        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, 180, btnHeight);
+        this.ctx.fillRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, btnWidth, btnHeight);
         this.ctx.strokeStyle = '#8B4513';
-        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, 180, btnHeight);
-        
+        this.ctx.strokeRect(CONFIG.CANVAS.WIDTH / 2 + btnGap, btnY, btnWidth, btnHeight);
+
         this.ctx.fillStyle = '#CD853F';
-        this.ctx.fillText('♠ RETREAT', CONFIG.CANVAS.WIDTH / 2 + 110 + btnGap, btnY + 32);
+        this.ctx.fillText('♠ RETREAT', CONFIG.CANVAS.WIDTH / 2 + btnWidth / 2 + btnGap, btnTextY);
     },
 
     // Render game over screen (victory has its own overlay)
@@ -1323,5 +1383,242 @@ const Renderer = {
             this.ctx.fillText('Press R to retreat to the sanctum', CONFIG.CANVAS.WIDTH / 2, CONFIG.CANVAS.HEIGHT / 2 + 50);
         }
         this.ctx.textAlign = 'left';
+    },
+
+    // Render full leaderboard screen
+    renderLeaderboardScreen() {
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
+
+        // Dark gothic background
+        this.ctx.fillStyle = 'rgba(61, 43, 31, 1)';
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
+
+        // Gothic decorative border
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(30, 30, CONFIG.CANVAS.WIDTH - 60, CONFIG.CANVAS.HEIGHT - 60);
+
+        // Inner golden border
+        this.ctx.strokeStyle = '#DAA520';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(35, 35, CONFIG.CANVAS.WIDTH - 70, CONFIG.CANVAS.HEIGHT - 70);
+
+        // Title
+        this.ctx.shadowBlur = 12;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.font = 'bold 28px serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('⚔ HALL OF LEGENDS ⚔', centerX, 80);
+        this.ctx.shadowBlur = 0;
+
+        // Decorative divider
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('═══════════════════════════════════', centerX, 105);
+
+        // Check if LeaderboardService is available and configured
+        const serviceReady = window.LeaderboardService && LeaderboardService.isReady();
+        const serviceExists = window.LeaderboardService;
+        const scores = serviceReady ? LeaderboardService.getCachedScores() : [];
+
+        if (!serviceExists) {
+            // Leaderboard not configured at all
+            this.ctx.fillStyle = '#CD853F';
+            this.ctx.font = '18px serif';
+            this.ctx.fillText('Leaderboard not configured', centerX, CONFIG.CANVAS.HEIGHT / 2 - 30);
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.font = '14px serif';
+            this.ctx.fillText('Set up LeaderboardService to enable online rankings.', centerX, CONFIG.CANVAS.HEIGHT / 2);
+            this.ctx.fillText('See project documentation for configuration details.', centerX, CONFIG.CANVAS.HEIGHT / 2 + 25);
+        } else if (scores.length === 0) {
+            // Service exists but no scores yet
+            this.ctx.fillStyle = '#CD853F';
+            this.ctx.font = '20px serif';
+            this.ctx.fillText('No legends recorded yet...', centerX, CONFIG.CANVAS.HEIGHT / 2 - 15);
+            this.ctx.fillStyle = '#8B4513';
+            this.ctx.font = '16px serif';
+            this.ctx.fillText('Be the first!', centerX, CONFIG.CANVAS.HEIGHT / 2 + 15);
+        } else {
+            // Column headers
+            this.ctx.fillStyle = '#CD853F';
+            this.ctx.font = 'bold 14px serif';
+            const headerY = 135;
+            this.ctx.textAlign = 'left';
+            this.ctx.fillText('RANK', 80, headerY);
+            this.ctx.fillText('ADVENTURER', 140, headerY);
+            this.ctx.textAlign = 'right';
+            this.ctx.fillText('FLOOR', CONFIG.CANVAS.WIDTH - 200, headerY);
+            this.ctx.fillText('ORBS', CONFIG.CANVAS.WIDTH - 90, headerY);
+            this.ctx.textAlign = 'center';
+
+            // Divider below headers
+            this.ctx.fillStyle = '#654321';
+            this.ctx.font = '10px serif';
+            this.ctx.fillText('────────────────────────────────────────────────────', centerX, headerY + 12);
+
+            // Get current player name for highlighting
+            const currentPlayerName = (window.LeaderboardService && LeaderboardService.getPlayerName)
+                ? LeaderboardService.getPlayerName()
+                : null;
+
+            // Show top 10 scores
+            const rankSymbols = ['♦', '♠', '♣', '♥', '♤', '♧', '♢', '♡', '⚜', '☥'];
+            const top10 = scores.slice(0, 10);
+            const rowHeight = 32;
+            const startY = 170;
+
+            top10.forEach((score, i) => {
+                const rowY = startY + (i * rowHeight);
+                const isCurrentPlayer = currentPlayerName && score.name === currentPlayerName;
+
+                // Row highlight for current player
+                if (isCurrentPlayer) {
+                    this.ctx.fillStyle = 'rgba(65, 105, 225, 0.15)';
+                    this.ctx.fillRect(60, rowY - 16, CONFIG.CANVAS.WIDTH - 120, rowHeight);
+                }
+
+                // Color based on rank
+                if (isCurrentPlayer) {
+                    this.ctx.fillStyle = '#4169E1'; // Royal blue for current player
+                } else if (i === 0) {
+                    this.ctx.fillStyle = '#FFD700'; // Gold
+                } else if (i === 1) {
+                    this.ctx.fillStyle = '#C0C0C0'; // Silver
+                } else if (i === 2) {
+                    this.ctx.fillStyle = '#CD7F32'; // Bronze
+                } else {
+                    this.ctx.fillStyle = '#654321'; // Standard brown
+                }
+
+                const symbol = rankSymbols[i] || '♦';
+                this.ctx.font = '16px serif';
+
+                // Rank
+                this.ctx.textAlign = 'left';
+                this.ctx.fillText(`${symbol} ${i + 1}`, 80, rowY);
+
+                // Player name (truncate if too long)
+                const displayName = score.name && score.name.length > 18
+                    ? score.name.substring(0, 16) + '...'
+                    : (score.name || 'Unknown');
+                this.ctx.fillText(displayName, 140, rowY);
+
+                // Floor depth
+                this.ctx.textAlign = 'right';
+                this.ctx.fillText(`${score.deepestFloor || 0}`, CONFIG.CANVAS.WIDTH - 200, rowY);
+
+                // Orbs collected
+                this.ctx.fillText(`${score.orbsCollected || 0}`, CONFIG.CANVAS.WIDTH - 90, rowY);
+            });
+
+            this.ctx.textAlign = 'center';
+        }
+
+        // BACK button at bottom
+        const isMobileBtn = typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport);
+        const btnWidth = isMobileBtn ? 200 : 180;
+        const btnHeight = isMobileBtn ? 58 : 50;
+        const btnY = CONFIG.CANVAS.HEIGHT - 100;
+        const btnFontSize = isMobileBtn ? 20 : 18;
+
+        // Button background gradient
+        const btnGradient = this.ctx.createLinearGradient(
+            centerX - btnWidth / 2, btnY,
+            centerX + btnWidth / 2, btnY + btnHeight
+        );
+        btnGradient.addColorStop(0, '#654321');
+        btnGradient.addColorStop(1, '#3d2817');
+        this.ctx.fillStyle = btnGradient;
+        this.ctx.fillRect(centerX - btnWidth / 2, btnY, btnWidth, btnHeight);
+
+        // Button border
+        this.ctx.strokeStyle = '#DAA520';
+        this.ctx.lineWidth = 2;
+        this.ctx.strokeRect(centerX - btnWidth / 2, btnY, btnWidth, btnHeight);
+
+        // Inner golden border
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(centerX - btnWidth / 2 + 3, btnY + 3, btnWidth - 6, btnHeight - 6);
+
+        // Button text
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.font = `bold ${btnFontSize}px serif`;
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('♦ BACK', centerX, btnY + Math.round(btnHeight / 2 + btnFontSize / 3));
+
+        this.ctx.textAlign = 'left';
+    },
+
+    // Render name entry overlay (canvas background for HTML input overlay)
+    renderNameEntryOverlay() {
+        // Semi-transparent dark overlay
+        this.ctx.fillStyle = 'rgba(10, 5, 0, 0.85)';
+        this.ctx.fillRect(0, 0, CONFIG.CANVAS.WIDTH, CONFIG.CANVAS.HEIGHT);
+
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
+        const centerY = CONFIG.CANVAS.HEIGHT / 2;
+
+        // Overlay panel background
+        const panelWidth = 420;
+        const panelHeight = 220;
+        const panelX = centerX - panelWidth / 2;
+        const panelY = centerY - panelHeight / 2;
+
+        // Dark brown panel
+        this.ctx.fillStyle = 'rgba(42, 24, 16, 0.98)';
+        this.ctx.fillRect(panelX, panelY, panelWidth, panelHeight);
+
+        // Gothic decorative border
+        this.ctx.strokeStyle = '#8B4513';
+        this.ctx.lineWidth = 3;
+        this.ctx.strokeRect(panelX, panelY, panelWidth, panelHeight);
+
+        // Inner golden border
+        this.ctx.strokeStyle = '#DAA520';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(panelX + 4, panelY + 4, panelWidth - 8, panelHeight - 8);
+
+        // Title
+        this.ctx.shadowBlur = 10;
+        this.ctx.shadowColor = '#8B0000';
+        this.ctx.fillStyle = '#DAA520';
+        this.ctx.font = 'bold 22px serif';
+        this.ctx.textAlign = 'center';
+        this.ctx.fillText('Enter Your Name, Adventurer', centerX, panelY + 50);
+        this.ctx.shadowBlur = 0;
+
+        // Decorative divider
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '12px serif';
+        this.ctx.fillText('═══════════════════════════', centerX, panelY + 70);
+
+        // Subtitle / instruction text
+        this.ctx.fillStyle = '#CD853F';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('Your name shall be etched in the Hall of Legends', centerX, panelY + 100);
+
+        // Input field placeholder area (the actual HTML input is positioned on top)
+        this.ctx.fillStyle = 'rgba(15, 8, 4, 0.8)';
+        this.ctx.fillRect(panelX + 50, panelY + 115, panelWidth - 100, 36);
+        this.ctx.strokeStyle = '#654321';
+        this.ctx.lineWidth = 1;
+        this.ctx.strokeRect(panelX + 50, panelY + 115, panelWidth - 100, 36);
+
+        // Corner decorations
+        this.ctx.fillStyle = '#8B4513';
+        this.ctx.font = '14px serif';
+        this.ctx.fillText('╔', panelX + 10, panelY + 18);
+        this.ctx.fillText('╗', panelX + panelWidth - 16, panelY + 18);
+        this.ctx.fillText('╚', panelX + 10, panelY + panelHeight - 8);
+        this.ctx.fillText('╝', panelX + panelWidth - 16, panelY + panelHeight - 8);
+
+        // Footer hint
+        this.ctx.fillStyle = '#654321';
+        this.ctx.font = '12px serif';
+        this.ctx.fillText('Press Enter to confirm', centerX, panelY + panelHeight - 25);
+
+        this.ctx.textAlign = 'left';
     }
-}; 
+};

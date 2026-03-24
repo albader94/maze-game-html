@@ -172,13 +172,7 @@ const InputManager = {
         helpBtn.className = 'mobile-btn';
         helpBtn.dataset.action = 'help';
         helpBtn.textContent = '?';
-        helpBtn.style.cssText = `
-            position: fixed;
-            top: 10px;
-            right: 10px;
-            z-index: 1000;
-            display: none;
-        `;
+        helpBtn.classList.add('mobile-help-btn');
         document.body.appendChild(helpBtn);
 
         // Add mobile-specific CSS
@@ -188,192 +182,9 @@ const InputManager = {
         this.setupMobileButtons();
     },
 
-    // Add mobile-specific styles
+    // Mobile-specific styles are now in the external stylesheet (ui.css)
     addMobileStyles() {
-        const style = document.createElement('style');
-        style.id = 'mobileInputStyles';
-        style.textContent = `
-            #virtualJoystick {
-                position: fixed;
-                bottom: 20px;
-                left: 20px;
-                width: 120px;
-                height: 120px;
-                display: none;
-                z-index: 1000;
-                touch-action: none;
-            }
-
-            .joystick-outer {
-                width: 100%;
-                height: 100%;
-                border: 3px solid rgba(255, 255, 255, 0.3);
-                border-radius: 50%;
-                background: rgba(0, 0, 0, 0.4);
-                position: relative;
-                touch-action: none;
-            }
-
-            .joystick-inner {
-                width: 46px;
-                height: 46px;
-                background: rgba(255, 255, 255, 0.6);
-                border: 2px solid rgba(255, 255, 255, 0.8);
-                border-radius: 50%;
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                pointer-events: none;
-                touch-action: none;
-            }
-
-            #mobileActions {
-                position: fixed;
-                bottom: 20px;
-                right: 15px;
-                display: none;
-                flex-direction: column;
-                gap: 10px;
-                z-index: 1000;
-                touch-action: none;
-            }
-
-            .mobile-btn {
-                width: 52px;
-                height: 52px;
-                min-width: 44px;
-                min-height: 44px;
-                border: 2px solid rgba(255, 255, 255, 0.3);
-                border-radius: 10px;
-                background: rgba(0, 0, 0, 0.7);
-                color: white;
-                font-size: 16px;
-                font-weight: bold;
-                cursor: pointer;
-                user-select: none;
-                -webkit-user-select: none;
-                -webkit-tap-highlight-color: transparent;
-                touch-action: manipulation;
-                display: flex;
-                align-items: center;
-                justify-content: center;
-            }
-
-            .mobile-btn:active, .mobile-btn.active {
-                background: rgba(255, 255, 255, 0.25);
-                transform: scale(0.92);
-            }
-
-            .mobile-pause-btn {
-                background: rgba(139, 69, 19, 0.7);
-                border-color: rgba(218, 165, 32, 0.5);
-                font-size: 12px;
-                letter-spacing: 2px;
-            }
-
-            .orb-btn {
-                font-family: monospace;
-                font-size: 18px;
-            }
-
-            /* Show/hide mobile controls based on game state */
-            body.mobile-active #virtualJoystick,
-            body.mobile-active #mobileActions {
-                display: flex;
-            }
-
-            body.mobile-active #mobileHelpBtn {
-                display: flex;
-            }
-
-            /* Hide joystick and action buttons during menus/death */
-            body.mobile-menu #virtualJoystick,
-            body.mobile-menu #mobileActions,
-            body.mobile-menu #mobileHelpBtn {
-                display: none;
-            }
-
-            /* Hide settings button on mobile - pause button serves same purpose */
-            body.mobile-active #settingsButton,
-            body.mobile-menu #settingsButton {
-                display: none !important;
-            }
-
-            /* Ensure tutorial and story overlays have touch-friendly buttons */
-            #tutorialPopup button,
-            #storyOverlay button,
-            #victory-overlay button,
-            #settingsModal button {
-                min-width: 44px;
-                min-height: 44px;
-                touch-action: manipulation;
-                -webkit-tap-highlight-color: transparent;
-            }
-
-            /* Mobile-friendly story overlay text */
-            @media (max-width: 768px) {
-                #storyOverlay #storyText {
-                    font-size: 18px !important;
-                    padding: 20px !important;
-                    max-width: 90vw !important;
-                }
-
-                #tutorialPopup > div > div {
-                    max-width: 95vw !important;
-                    padding: 20px !important;
-                }
-
-                #victory-overlay > div {
-                    max-width: 95vw !important;
-                    padding: 20px !important;
-                    font-size: 14px !important;
-                }
-
-                #victory-overlay h1 {
-                    font-size: 2em !important;
-                }
-
-                #victory-overlay h2 {
-                    font-size: 1.3em !important;
-                }
-
-                /* Larger tap targets for mobile */
-                #tutorialPopup button,
-                #storyOverlay button {
-                    min-height: 48px;
-                    padding: 14px 28px !important;
-                    font-size: 18px !important;
-                }
-            }
-
-            /* Landscape adjustments for mobile controls */
-            @media (max-height: 500px) and (orientation: landscape) {
-                #virtualJoystick {
-                    width: 90px;
-                    height: 90px;
-                    bottom: 10px;
-                    left: 10px;
-                }
-
-                .joystick-inner {
-                    width: 36px;
-                    height: 36px;
-                }
-
-                #mobileActions {
-                    bottom: 10px;
-                    right: 10px;
-                    gap: 6px;
-                }
-
-                .mobile-btn {
-                    width: 44px;
-                    height: 44px;
-                }
-            }
-        `;
-        document.head.appendChild(style);
+        // No-op: styles moved to src/css/ui.css for CSP compliance
     },
 
     // Setup mobile button events
@@ -657,8 +468,15 @@ const InputManager = {
 
         const game = GameState.getGame();
 
+        // Suppress clicks when name entry input is active
+        if (game.showNameEntry) {
+            return;
+        }
+
         if (game.state === 'menu') {
             this.handleMenuClick(x, y);
+        } else if (game.state === 'leaderboard') {
+            this.handleLeaderboardClick(x, y);
         } else if (game.deathScreen) {
             this.handleDeathScreenClick(x, y);
         } else if (game.gameOver && !game.victory) {
@@ -674,10 +492,17 @@ const InputManager = {
     handleKeyDown(e) {
         const game = GameState.getGame();
 
-        // ESC key to toggle pause
+        // Suppress keyboard input when name entry is active (handled by the input element)
+        if (game.showNameEntry) {
+            return;
+        }
+
+        // ESC key handling
         if (e.key === 'Escape') {
             e.preventDefault();
-            if (game.state === 'playing' && !game.deathScreen && !game.gameOver && !game.victory) {
+            if (game.state === 'leaderboard') {
+                GameState.game.state = 'menu';
+            } else if (game.state === 'playing' && !game.deathScreen && !game.gameOver && !game.victory) {
                 if (window.Game) {
                     window.Game.togglePause();
                 }
@@ -720,9 +545,10 @@ const InputManager = {
     // Handle menu clicks
     handleMenuClick(x, y) {
         const centerX = CONFIG.CANVAS.WIDTH / 2;
+        const isMobileBtn = this.isMobile || this.hasTouchSupport;
         const buttonWidth = 300;
-        const buttonHeight = 45;
-        const buttonSpacing = 55;
+        const buttonHeight = isMobileBtn ? 56 : 45;
+        const buttonSpacing = isMobileBtn ? 65 : 55;
         // Match portrait offset from renderMenu/renderMenuButtons
         const isPortraitCanvas = CONFIG.CANVAS.HEIGHT > CONFIG.CANVAS.BASE_HEIGHT;
         const menuOffsetY = isPortraitCanvas ? Math.round((CONFIG.CANVAS.HEIGHT - CONFIG.CANVAS.BASE_HEIGHT) / 3) : 0;
@@ -762,15 +588,11 @@ const InputManager = {
                 }
                 break;
             case 'leaderboards':
-                // Open settings modal to the stats/achievements tab as a placeholder
-                if (window.Game && window.Game.showSettingsModal) {
-                    window.Game.showSettingsModal(false);
-                    // Switch to stats tab after modal opens
-                    setTimeout(() => {
-                        const statsTab = document.getElementById('statsTab');
-                        if (statsTab) statsTab.click();
-                    }, 100);
+                // Fetch fresh scores then show leaderboard screen
+                if (window.LeaderboardService && LeaderboardService.isReady()) {
+                    LeaderboardService.fetchTopScores();
                 }
+                GameState.game.state = 'leaderboard';
                 break;
             case 'settings':
                 if (window.Game && window.Game.showSettingsModal) {
@@ -780,23 +602,239 @@ const InputManager = {
         }
     },
 
+    // Handle leaderboard screen clicks
+    handleLeaderboardClick(x, y) {
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
+        const isMobileBtn = this.isMobile || this.hasTouchSupport;
+        const btnWidth = isMobileBtn ? 200 : 180;
+        const btnHeight = isMobileBtn ? 58 : 50;
+        const btnY = CONFIG.CANVAS.HEIGHT - 100;
+
+        // BACK button
+        if (x >= centerX - btnWidth / 2 && x <= centerX + btnWidth / 2 &&
+            y >= btnY && y <= btnY + btnHeight) {
+            if (window.SoundManager) {
+                SoundManager.playButtonSelect();
+            }
+            GameState.game.state = 'menu';
+        }
+    },
+
+    // Show the HTML name entry input element over the canvas
+    showNameEntryInput() {
+        // Remove any existing input first
+        this.hideNameEntryInput();
+
+        const canvas = document.getElementById('gameCanvas');
+        const rect = canvas.getBoundingClientRect();
+
+        // Calculate where the input field should be positioned based on renderer layout
+        // Renderer draws: panelWidth = 420, panelHeight = 220, centered
+        // Input area: panelX + 50, panelY + 115, panelWidth - 100 (320px), height 36
+        const panelWidth = 420;
+        const panelHeight = 220;
+        const centerX = CONFIG.CANVAS.WIDTH / 2;
+        const centerY = CONFIG.CANVAS.HEIGHT / 2;
+        const panelX = centerX - panelWidth / 2;
+        const panelY = centerY - panelHeight / 2;
+        const inputX = panelX + 50;
+        const inputY = panelY + 115;
+        const inputW = panelWidth - 100;
+        const inputH = 36;
+
+        // Convert canvas coordinates to screen coordinates
+        const scaleX = rect.width / CONFIG.CANVAS.WIDTH;
+        const scaleY = rect.height / CONFIG.CANVAS.HEIGHT;
+
+        const screenX = rect.left + (inputX * scaleX);
+        const screenY = rect.top + (inputY * scaleY);
+        const screenW = inputW * scaleX;
+        const screenH = inputH * scaleY;
+
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.id = 'nameEntryInput';
+        input.maxLength = 20;
+        input.placeholder = 'Enter your name...';
+        input.autocomplete = 'off';
+        input.spellcheck = false;
+        input.style.position = 'fixed';
+        input.style.left = screenX + 'px';
+        input.style.top = screenY + 'px';
+        input.style.width = screenW + 'px';
+        input.style.height = screenH + 'px';
+        input.style.background = 'rgba(15, 8, 4, 0.9)';
+        input.style.color = '#DAA520';
+        input.style.border = '1px solid #654321';
+        input.style.fontFamily = 'serif';
+        input.style.fontSize = Math.max(14, 16 * scaleY) + 'px';
+        input.style.textAlign = 'center';
+        input.style.outline = 'none';
+        input.style.zIndex = '10000';
+        input.style.boxSizing = 'border-box';
+        input.style.padding = '0 8px';
+
+        input.addEventListener('keydown', (e) => {
+            e.stopPropagation(); // Prevent game key handlers from firing
+
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                const name = input.value.trim();
+                if (name.length > 0) {
+                    const nameSet = window.LeaderboardService ? LeaderboardService.setPlayerName(name) : false;
+                    if (!nameSet) {
+                        // Name was rejected — show feedback, keep input visible
+                        const input = document.getElementById('nameEntryInput');
+                        if (input) {
+                            input.value = '';
+                            input.placeholder = 'Invalid name, try again';
+                            input.style.borderColor = '#DC143C';
+                            // Reset border color after 2 seconds
+                            setTimeout(() => {
+                                if (document.getElementById('nameEntryInput')) {
+                                    input.style.borderColor = '#DAA520';
+                                    input.placeholder = 'Enter your name...';
+                                }
+                            }, 2000);
+                        }
+                        return; // Don't hide the input or clear pending score
+                    }
+                    // Name accepted — proceed with hiding input and submitting score
+                    this.hideNameEntryInput();
+                    GameState.game.showNameEntry = false;
+
+                    // Submit the pending score
+                    const pending = GameState.game.pendingScore;
+                    if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
+                        LeaderboardService.submitScore(pending.floor, pending.orbsCollected);
+                    }
+                    GameState.game.pendingScore = null;
+                }
+            } else if (e.key === 'Escape') {
+                e.preventDefault();
+                // Cancel without setting a name
+                this.hideNameEntryInput();
+                GameState.game.showNameEntry = false;
+                GameState.game.pendingScore = null;
+            }
+        });
+
+        // On mobile, if the virtual keyboard is dismissed by tapping outside,
+        // the input loses focus. Re-focus it to keep the keyboard open so the
+        // user isn't stuck on an overlay they can't interact with.
+        input.addEventListener('blur', () => {
+            setTimeout(() => {
+                if (document.getElementById('nameEntryInput')) {
+                    input.focus();
+                }
+            }, 100);
+        });
+
+        // Create a full-screen transparent backdrop behind the input.
+        // Tapping this backdrop cancels the name entry (same as Escape).
+        const backdrop = document.createElement('div');
+        backdrop.id = 'nameEntryBackdrop';
+        backdrop.className = 'name-entry-backdrop';
+        backdrop.addEventListener('click', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.hideNameEntryInput();
+            GameState.game.showNameEntry = false;
+            GameState.game.pendingScore = null;
+        });
+        backdrop.addEventListener('touchend', (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            this.hideNameEntryInput();
+            GameState.game.showNameEntry = false;
+            GameState.game.pendingScore = null;
+        }, { passive: false });
+
+        document.body.appendChild(backdrop);
+        document.body.appendChild(input);
+
+        // Store resize handler for cleanup
+        this._nameEntryResizeHandler = () => {
+            const input = document.getElementById('nameEntryInput');
+            if (!input) return;
+            const canvas = document.getElementById('gameCanvas');
+            if (!canvas) return;
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = rect.width / CONFIG.CANVAS.WIDTH;
+            const scaleY = rect.height / CONFIG.CANVAS.HEIGHT;
+            const panelWidth = 420;
+            const panelHeight = 220;
+            const panelX = (CONFIG.CANVAS.WIDTH - panelWidth) / 2;
+            const panelY = (CONFIG.CANVAS.HEIGHT - panelHeight) / 2;
+            const inputX = panelX + 50;
+            const inputY = panelY + 115;
+            const inputW = panelWidth - 100;
+            const inputH = 36;
+            input.style.left = (rect.left + inputX * scaleX) + 'px';
+            input.style.top = (rect.top + inputY * scaleY) + 'px';
+            input.style.width = (inputW * scaleX) + 'px';
+            input.style.height = (inputH * scaleY) + 'px';
+        };
+        window.addEventListener('resize', this._nameEntryResizeHandler);
+
+        // Focus the input after a brief delay to ensure it's rendered
+        setTimeout(() => {
+            input.focus();
+        }, 50);
+    },
+
+    // Remove the HTML name entry input element and backdrop
+    hideNameEntryInput() {
+        if (this._nameEntryResizeHandler) {
+            window.removeEventListener('resize', this._nameEntryResizeHandler);
+            this._nameEntryResizeHandler = null;
+        }
+        const existing = document.getElementById('nameEntryInput');
+        if (existing) {
+            existing.remove();
+        }
+        const backdrop = document.getElementById('nameEntryBackdrop');
+        if (backdrop) {
+            backdrop.remove();
+        }
+    },
+
+    // Handle score submission with name entry flow
+    handleScoreSubmission(floor, orbsCollected) {
+        if (!window.LeaderboardService || !LeaderboardService.isReady()) {
+            return;
+        }
+
+        if (LeaderboardService.hasPlayerName()) {
+            // Player already has a name, submit directly
+            LeaderboardService.submitScore(floor, orbsCollected);
+        } else {
+            // Need to collect player name first
+            GameState.game.pendingScore = { floor: floor, orbsCollected: orbsCollected };
+            GameState.game.showNameEntry = true;
+            this.showNameEntryInput();
+        }
+    },
+
     // Handle death screen clicks
     handleDeathScreenClick(x, y) {
+        const isMobileDeath = this.isMobile || this.hasTouchSupport;
         const btnY = CONFIG.CANVAS.HEIGHT - 140;
-        const btnHeight = 50;
-        const btnGap = 20;
+        const btnWidth = isMobileDeath ? 200 : 180;
+        const btnHeight = isMobileDeath ? 58 : 50;
+        const btnGap = isMobileDeath ? 24 : 20;
         const centerX = CONFIG.CANVAS.WIDTH / 2;
 
         // Respawn button
-        if (x >= centerX - 200 - btnGap &&
-            x <= centerX - 20 - btnGap &&
+        if (x >= centerX - btnWidth - btnGap &&
+            x <= centerX - btnGap &&
             y >= btnY && y <= btnY + btnHeight) {
             GameState.respawnAtCheckpoint();
         }
 
-        // Quit button (starts at center + btnGap, width 180)
+        // Quit button (starts at center + btnGap, width btnWidth)
         if (x >= centerX + btnGap &&
-            x <= centerX + btnGap + 180 &&
+            x <= centerX + btnGap + btnWidth &&
             y >= btnY && y <= btnY + btnHeight) {
             GameState.quitToMenu();
         }

@@ -4,11 +4,6 @@ const EntityManager = {
     collectOrb(game, orb) {
         orb.collected = true;
 
-        // Play orb collection sound based on type
-        if (window.SoundManager) {
-            SoundManager.playOrbCollection(orb.type);
-        }
-
         const orbType = ORB_TYPES[orb.type];
         if (!orbType) return;
 
@@ -59,6 +54,11 @@ const EntityManager = {
                 orb.collected = false;
                 return false; // Indicate collection failed
             }
+        }
+
+        // Play orb collection sound only on successful pickup
+        if (window.SoundManager) {
+            SoundManager.playOrbCollection(orb.type);
         }
 
         // Create collection particle effect only if successfully collected
@@ -172,105 +172,47 @@ const EntityManager = {
         // Create victory overlay
         const victoryOverlay = document.createElement('div');
         victoryOverlay.id = 'victory-overlay';
-        victoryOverlay.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(45deg, rgba(10,5,5,0.95), rgba(42,24,16,0.98));
-            display: flex;
-            flex-direction: column;
-            justify-content: flex-start;
-            align-items: center;
-            z-index: 1000;
-            color: #ffffff;
-            text-align: center;
-            animation: fadeIn 2s ease-in;
-            overflow-y: auto;
-            -webkit-overflow-scrolling: touch;
-        `;
+        victoryOverlay.className = 'victory-overlay';
 
         const victoryContent = `
-            <div style="max-width: 600px; padding: 40px 40px 60px; margin: auto 0;">
-                <h1 style="
-                    color: #FFD700;
-                    font-size: 3.5em;
-                    margin-bottom: 20px;
-                    text-shadow: 0 0 25px rgba(139,0,0,0.8);
-                    animation: glow 2s ease-in-out infinite alternate;
-                    font-family: serif;
-                ">⚜ TRIUMPH ⚜</h1>
+            <div class="victory-content">
+                <h1 class="victory-title">⚜ TRIUMPH ⚜</h1>
 
-                <h2 style="
-                    color: #CD853F;
-                    font-size: 2em;
-                    margin-bottom: 30px;
-                    text-shadow: 0 0 15px rgba(139,0,0,0.5);
-                    font-family: serif;
-                ">The Sacred Pearl is Reclaimed!</h2>
+                <h2 class="victory-subtitle">The Sacred Pearl is Reclaimed!</h2>
 
-                <div style="
-                    background: rgba(139,69,19,0.2);
-                    border: 3px solid #8B4513;
-                    border-radius: 15px;
-                    padding: 35px;
-                    margin: 30px 0;
-                    box-shadow: 0 0 35px rgba(139,69,19,0.4);
-                ">
-                    <p style="font-size: 1.4em; line-height: 1.7; color: #DAA520; font-family: serif;">
-                        Through courage and determination, you have retrieved the <strong style="color: #FFD700;">Sacred Pearl</strong>
+                <div class="victory-story-box">
+                    <p class="victory-story-text">
+                        Through courage and determination, you have retrieved the <strong>Sacred Pearl</strong>
                         from the cursed depths of the Buried Spire! Its divine radiance shall protect your realm
                         from the shadow beasts that haunt the darkness.
                     </p>
                     <br>
-                    <p style="font-size: 1.2em; color: #8B4513; font-family: serif;">
+                    <p class="victory-story-epilogue">
                         The ancient curse is shattered. The creatures of the void retreat in terror
                         before the Pearl's holy light, and your people shall know peace once more.
                     </p>
                 </div>
 
-                <div style="margin: 35px 0; color: #8B4513; font-family: serif;">
-                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">⚔ Conqueror</strong> - You descended all ${Math.abs(game.floor)} treacherous floors!</p>
-                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">💎 Seeker</strong> - You gathered ${game.player.orbsCollected || 0} mystical orbs!</p>
-                    <p style="font-size: 1.1em;"><strong style="color: #DAA520;">⚜ Champion</strong> - Your valor has saved an entire realm!</p>
+                <div class="victory-stats">
+                    <p><strong>⚔ Conqueror</strong> - You descended all ${Math.abs(game.floor)} treacherous floors!</p>
+                    <p><strong>💎 Seeker</strong> - You gathered ${game.player.orbsCollected || 0} mystical orbs!</p>
+                    <p><strong>⚜ Champion</strong> - Your valor has saved an entire realm!</p>
                 </div>
 
-                <button id="victory-menu-btn" style="
-                    background: linear-gradient(45deg, #8B4513, #654321);
-                    color: #FFD700;
-                    border: 3px solid #DAA520;
-                    padding: 18px 36px;
-                    font-size: 1.3em;
-                    border-radius: 10px;
-                    cursor: pointer;
-                    margin: 15px;
-                    min-height: 48px;
-                    box-shadow: 0 6px 20px rgba(139,69,19,0.5);
-                    transition: all 0.3s ease;
-                    font-family: serif;
-                    font-weight: bold;
-                    -webkit-tap-highlight-color: transparent;
-                    touch-action: manipulation;
-                " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                <button id="victory-menu-btn" class="victory-menu-btn victory-hover-btn">
                     ♦ Return to Sanctum
                 </button>
             </div>
-
-            <style>
-                @keyframes fadeIn {
-                    from { opacity: 0; }
-                    to { opacity: 1; }
-                }
-                @keyframes glow {
-                    from { text-shadow: 0 0 25px rgba(139,0,0,0.8); }
-                    to { text-shadow: 0 0 35px rgba(139,0,0,1), 0 0 45px rgba(255,215,0,0.8); }
-                }
-            </style>
         `;
 
         victoryOverlay.innerHTML = victoryContent;
         document.body.appendChild(victoryOverlay);
+
+        // Attach hover effects via addEventListener (CSP-safe, no inline handlers)
+        victoryOverlay.querySelectorAll('.victory-hover-btn').forEach(btn => {
+            btn.addEventListener('mouseover', function() { this.style.transform = 'scale(1.05)'; });
+            btn.addEventListener('mouseout', function() { this.style.transform = 'scale(1)'; });
+        });
 
         // Add event listener for menu button (both click and touch)
         const victoryMenuBtn = document.getElementById('victory-menu-btn');

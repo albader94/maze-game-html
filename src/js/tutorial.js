@@ -92,111 +92,56 @@ const TutorialSystem = {
         // Create tutorial popup
         const popup = document.createElement('div');
         popup.id = 'tutorialPopup';
-        popup.style.cssText = `
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.9);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 15000;
-            font-family: monospace;
-            pointer-events: auto;
-        `;
+        popup.className = 'tutorial-overlay';
 
         popup.innerHTML = `
-            <div style="
-                background: linear-gradient(135deg, #2a1810 0%, #1a0f08 50%, #0f0705 100%);
-                border: 3px solid #8B4513;
-                border-radius: 15px;
-                padding: 30px;
-                max-width: 600px;
-                width: 90%;
-                box-shadow: 0 0 30px rgba(139, 69, 19, 0.5), inset 0 0 20px rgba(218, 165, 32, 0.1);
-                position: relative;
-                text-align: center;
-                font-family: serif;
-                pointer-events: auto;
-            ">
+            <div class="tutorial-dialog">
                 <!-- Golden inner border -->
-                <div style="position: absolute; top: 5px; left: 5px; right: 5px; bottom: 5px; border: 1px solid #DAA520; border-radius: 10px;"></div>
-                
+                <div class="tutorial-inner-border"></div>
+
                 <!-- Gothic corner decorations -->
-                <div style="position: absolute; top: 10px; left: 10px; color: #DAA520; font-size: 16px;">╔</div>
-                <div style="position: absolute; top: 10px; right: 15px; color: #DAA520; font-size: 16px;">╗</div>
-                <div style="position: absolute; bottom: 10px; left: 10px; color: #DAA520; font-size: 16px;">╚</div>
-                <div style="position: absolute; bottom: 10px; right: 15px; color: #DAA520; font-size: 16px;">╝</div>
-                
+                <div class="tutorial-corner tutorial-corner--tl">╔</div>
+                <div class="tutorial-corner tutorial-corner--tr">╗</div>
+                <div class="tutorial-corner tutorial-corner--bl">╚</div>
+                <div class="tutorial-corner tutorial-corner--br">╝</div>
+
                 ${isTutorialStep ? `
-                <div style="position: absolute; top: 15px; right: 15px; color: #CD853F; font-size: 12px; font-weight: bold;">
+                <div class="tutorial-step-counter">
                     Lesson ${currentStep + 1} of ${totalSteps}
                 </div>
                 ` : ''}
-                
-                <h2 style="margin: 0 0 20px 0; color: #FFD700; text-shadow: 0 0 15px rgba(139, 0, 0, 0.7); font-size: 24px; font-weight: bold;">
+
+                <h2 class="tutorial-title">
                     ⚜ ${title}
                 </h2>
-                
-                <div style="margin-bottom: 25px; padding: 20px; background: rgba(139, 69, 19, 0.2); border-radius: 10px; border: 2px solid #654321; line-height: 1.6;">
-                    <p style="margin: 0; color: #CD853F; font-size: 16px;">
+
+                <div class="tutorial-message-box">
+                    <p class="tutorial-message-text">
                         ${message}
                     </p>
                 </div>
-                
+
                 ${instruction ? `
-                <div style="margin-bottom: 25px; padding: 15px; background: rgba(139, 69, 19, 0.3); border-radius: 8px; border: 2px solid #8B4513;">
-                    <p style="margin: 0; color: #DAA520; font-size: 14px; font-weight: bold;">
+                <div class="tutorial-instruction-box">
+                    <p class="tutorial-instruction-text">
                         ♦ ${instruction}
                     </p>
                 </div>
                 ` : ''}
-                
-                <div style="display: flex; gap: 15px; justify-content: center; align-items: center;">
-                    <button id="tutorialContinue" style="
-                        padding: 12px 24px;
-                        background: linear-gradient(135deg, #8B4513, #654321);
-                        color: #FFD700;
-                        border: 2px solid #DAA520;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: bold;
-                        font-family: serif;
-                        font-size: 16px;
-                        text-shadow: 0 0 10px rgba(139, 0, 0, 0.5);
-                        box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
-                        transition: all 0.3s ease;
-                        pointer-events: auto;
-                        z-index: 16000;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+
+                <div class="tutorial-actions">
+                    <button id="tutorialContinue" class="tutorial-continue-btn tutorial-hover-btn">
                         ♦ Continue
                     </button>
-                    
+
                     ${isTutorialStep ? `
-                    <button id="tutorialSkip" style="
-                        padding: 12px 24px;
-                        background: linear-gradient(135deg, #654321, #3d2817);
-                        color: #CD853F;
-                        border: 2px solid #8B4513;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        font-weight: bold;
-                        font-family: serif;
-                        font-size: 16px;
-                        text-shadow: 0 0 10px rgba(139, 0, 0, 0.3);
-                        box-shadow: 0 4px 15px rgba(101, 67, 33, 0.3);
-                        transition: all 0.3s ease;
-                        pointer-events: auto;
-                        z-index: 16000;
-                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                    <button id="tutorialSkip" class="tutorial-skip-btn tutorial-hover-btn">
                         ♠ Skip Lessons
                     </button>
                     ` : ''}
                 </div>
-                
-                <div style="margin-top: 15px; color: #654321; font-size: 12px;">
+
+                <div class="tutorial-dismiss-hint">
                     ${(typeof InputManager !== 'undefined' && (InputManager.isMobile || InputManager.hasTouchSupport)) ? 'Tap Continue or press ESC to dismiss' : 'Press ESC to dismiss'}
                 </div>
             </div>
@@ -205,18 +150,24 @@ const TutorialSystem = {
         document.body.appendChild(popup);
         game.tutorial.tutorialPopup = popup;
 
+        // Attach hover effects via addEventListener (CSP-safe, no inline handlers)
+        popup.querySelectorAll('.tutorial-hover-btn').forEach(btn => {
+            btn.addEventListener('mouseover', function() { this.style.transform = 'scale(1.05)'; });
+            btn.addEventListener('mouseout', function() { this.style.transform = 'scale(1)'; });
+        });
+
         // Debug: Log the actual HTML to see if buttons are created
         console.log('🔍 Generated HTML contains Continue button:', popup.innerHTML.includes('tutorialContinue'));
         console.log('🔍 Generated HTML contains Skip button:', popup.innerHTML.includes('tutorialSkip'));
 
-        // Debug: Log that popup was created with inline onclick handlers
-        console.log('🔍 Tutorial popup created with inline onclick handlers');
+        // Debug: Log that popup was created with programmatic event listeners
+        console.log('🔍 Tutorial popup created with programmatic event listeners');
         
         // Test if TutorialSystem is accessible globally
         console.log('🔍 TutorialSystem accessible globally?', typeof window.TutorialSystem !== 'undefined');
         console.log('🔍 TutorialSystem object:', TutorialSystem);
         
-        // Make TutorialSystem globally accessible for onclick handlers
+        // Make TutorialSystem globally accessible for event listeners
         window.TutorialSystem = TutorialSystem;
         
         // Add event handlers to the tutorial buttons after they're in the DOM
@@ -230,10 +181,10 @@ const TutorialSystem = {
 
             if (continueBtn) {
                 // Click handler for desktop
-                continueBtn.onclick = function(e) {
+                continueBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     TutorialSystem.handleTutorialContinue();
-                };
+                });
                 // Touch handler for mobile - use touchend so it doesn't conflict
                 continueBtn.addEventListener('touchend', function(e) {
                     e.preventDefault();
@@ -243,10 +194,10 @@ const TutorialSystem = {
             }
 
             if (skipBtn) {
-                skipBtn.onclick = function(e) {
+                skipBtn.addEventListener('click', function(e) {
                     e.preventDefault();
                     TutorialSystem.skipTutorial();
-                };
+                });
                 skipBtn.addEventListener('touchend', function(e) {
                     e.preventDefault();
                     e.stopPropagation();
@@ -386,10 +337,10 @@ const TutorialSystem = {
                     // Just update the instruction text to acknowledge movement
                     const popup = document.getElementById('tutorialPopup');
                     if (popup) {
-                        const instructionDiv = popup.querySelector('[style*="background: rgba(76, 175, 80, 0.2)"]');
+                        const instructionDiv = popup.querySelector('.tutorial-instruction-box');
                         if (instructionDiv) {
                             instructionDiv.innerHTML = `
-                                <p style="margin: 0; color: #4caf50; font-size: 14px; font-weight: bold;">
+                                <p class="tutorial-success-text">
                                     ✅ Great! You're moving around. Click Continue when ready to proceed.
                                 </p>
                             `;

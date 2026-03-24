@@ -11,7 +11,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Buried Spire">
-    
+
+    <!-- Content Security Policy -->
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' https://www.gstatic.com; connect-src https://firestore.googleapis.com https://identitytoolkit.googleapis.com https://www.googleapis.com https://securetoken.googleapis.com wss://firestore.googleapis.com; style-src 'self'; img-src 'self' data:; font-src 'self'; media-src 'self';">
+
     <!-- PWA Manifest -->
     <link rel="manifest" href="./manifest.json">
     
@@ -26,10 +29,10 @@
 <body>
     <div id="gameContainer">
         <canvas id="gameCanvas"></canvas>
-        <canvas id="minimap" style="display: none;"></canvas>
+        <canvas id="minimap"></canvas>
         
         <!-- Game UI -->
-        <div id="ui" style="display: none;">
+        <div id="ui">
             <div>Floor: <span id="floor">-1</span></div>
             <div>Light: <span id="lightTime">100</span>%</div>
             <div class="light-bar">
@@ -41,22 +44,30 @@
         </div>
 
         <!-- Inventory -->
-        <div id="inventory" style="display: none;">
+        <div id="inventory">
             <div class="inventory-slot" id="slot1" data-key="1"></div>
             <div class="inventory-slot" id="slot2" data-key="2"></div>
             <div class="inventory-slot" id="slot3" data-key="3"></div>
         </div>
         
         <!-- Story/Message Display -->
-        <div id="story" style="display: none; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(0,0,0,0.9); color: white; padding: 20px; border-radius: 8px; z-index: 1000; max-width: 400px; text-align: center; border: 2px solid #ffeb3b;"></div>
+        <div id="story"></div>
         
         <!-- PWA Install Prompt -->
-        <div id="installPrompt" style="display: none; position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: rgba(0,0,0,0.9); color: white; padding: 15px; border-radius: 8px; z-index: 10000;">
+        <div id="installPrompt">
             <p>Install this game for offline play!</p>
-            <button id="installBtn" style="background: #8B4513; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer;">Install</button>
-            <button id="dismissInstall" style="background: transparent; color: #ccc; border: 1px solid #ccc; padding: 8px 16px; border-radius: 4px; cursor: pointer; margin-left: 8px;">Not now</button>
+            <button id="installBtn" class="install-btn">Install</button>
+            <button id="dismissInstall" class="install-dismiss-btn">Not now</button>
         </div>
     </div>
+
+    <!-- Firebase SDK -->
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-app-compat.js" integrity="sha384-nMqKrgk2MOVr+J6K7dYFdt02ATuHV/Bqbpl7SQl+GYXyf1CHx9oLuiXNpVdd0rJh" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-auth-compat.js" integrity="sha384-I1LYojsZ5RM1cOda44Z2h42Qa6YfsQ1XkXxREnhp4ueYBR/4d1pG1K+NZM537Vsj" crossorigin="anonymous"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.14.0/firebase-firestore-compat.js" integrity="sha384-DRaDw8zunay8Id8djbfyBTcL38QknHkXONVwo0TBWCAQGSpIANj+4OSCTdxxaY5T" crossorigin="anonymous"></script>
+
+    <!-- Leaderboard (depends on Firebase SDK) -->
+    <script src="../src/js/leaderboard.js"></script>
 
     <!-- JavaScript files in dependency order -->
     <!-- Core configuration and constants -->
@@ -90,54 +101,6 @@
     <script src="../src/js/main.js"></script>
     
     <!-- PWA Service Worker Registration -->
-    <script>
-        // Register service worker for offline support
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('./sw.js')
-                    .then(registration => {
-                        console.log('✅ SW registered: ', registration);
-                    })
-                    .catch(registrationError => {
-                        console.log('❌ SW registration failed: ', registrationError);
-                    });
-            });
-        }
-        
-        // PWA Install Prompt
-        let deferredPrompt;
-        const installPrompt = document.getElementById('installPrompt');
-        const installBtn = document.getElementById('installBtn');
-        const dismissBtn = document.getElementById('dismissInstall');
-        
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-            installPrompt.style.display = 'block';
-        });
-        
-        installBtn.addEventListener('click', () => {
-            installPrompt.style.display = 'none';
-            if (deferredPrompt) {
-                deferredPrompt.prompt();
-                deferredPrompt.userChoice.then((choiceResult) => {
-                    if (choiceResult.outcome === 'accepted') {
-                        console.log('User accepted the install prompt');
-                    }
-                    deferredPrompt = null;
-                });
-            }
-        });
-        
-        dismissBtn.addEventListener('click', () => {
-            installPrompt.style.display = 'none';
-        });
-        
-        // Hide install prompt if already installed
-        window.addEventListener('appinstalled', () => {
-            installPrompt.style.display = 'none';
-            console.log('PWA was installed');
-        });
-    </script>
+    <script src="../src/js/pwa.js"></script>
 </body>
 </html> 

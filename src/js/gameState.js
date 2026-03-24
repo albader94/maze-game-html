@@ -164,7 +164,7 @@ const GameState = {
             if (typeof MESSAGES !== 'undefined' && MESSAGES.STORY && MESSAGES.STORY.INTRO) {
                 Utils.showMessage(MESSAGES.STORY.INTRO, 4000);
             } else {
-                Utils.showMessage('Welcome to the Buried Spire of Kuwait. Navigate the darkness and find the stairs to descend deeper.', 4000);
+                Utils.showMessage('Welcome to the Buried Spire. Navigate the darkness and find the stairs to descend deeper.', 4000);
             }
         }
         

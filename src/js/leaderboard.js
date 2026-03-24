@@ -2,7 +2,7 @@
 // Replace these placeholder values with your actual Firebase project details.
 // You can find these in your Firebase Console > Project Settings > General > Your apps.
 const firebaseConfig = {
-    apiKey: "AIzaSyAwoAecC1bRCHFAYKB3xXu1cYqykNs9HfE",
+    apiKey: "AIzaSyC51aXH-ZIycyRRXOMZkN0jOGpo2bo8tO4",
     authDomain: "maze-game-html-184c8.firebaseapp.com",
     projectId: "maze-game-html-184c8",
     storageBucket: "maze-game-html-184c8.firebasestorage.app",

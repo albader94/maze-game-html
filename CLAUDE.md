@@ -1,127 +1,73 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+This file provides guidance to Claude Code when working with this repository.
 
-## Development Commands
+## Commands
 
-### Running the Game
 ```bash
-# Start local development server (Python)
-npm run start
-# OR
-npm run serve
-
-# Alternative with live-server (if available)
-npm run dev
+npm start          # Python HTTP server at http://localhost:8000 (game at /public/)
+npm run dev        # live-server with auto-reload (requires npm install first)
 ```
 
-The game runs at `http://localhost:8000` and loads from `public/index.html`.
+No build step — all JS is loaded directly via `<script>` tags in `public/index.html`.
 
-### Testing the Game
-- Open browser console and use `window.GameDebug` for debugging:
-  - `GameDebug.getGame()` - Get current game state
-  - `GameDebug.getStats()` - View game statistics  
-  - `GameDebug.teleportToFloor(n)` - Jump to specific floor
-  - `GameDebug.giveOrb('type')` - Add orb to inventory
-  - `GameDebug.setLight(amount)` - Set light level
+## Testing
 
-## Architecture Overview
+Manual testing only. Open browser console and use `window.GameDebug`:
+- `GameDebug.getGame()` — current game state
+- `GameDebug.getStats()` — statistics
+- `GameDebug.teleportToFloor(n)` — jump to floor
+- `GameDebug.giveOrb('type')` — add orb to inventory
+- `GameDebug.setLight(amount)` — set light 0-100
 
-This is a modular JavaScript game with canvas-based rendering. The architecture follows a component-based pattern where each system is self-contained.
+Test on both desktop (keyboard) and mobile (touch/joystick) when changing input or UI code.
 
-### Core Game Loop
-- **main.js**: Entry point, initializes all systems and runs the main game loop at 60 FPS
-- **gameLogic.js**: Central controller that orchestrates all game systems and handles error management
-- **gameState.js**: Global state management with nested objects for game, player, entities, and UI state
+## Architecture
 
-### Key System Dependencies
 ```
-GameState (central state) 
+GameState (central state)
     ↓
-GameLogic (main controller)
-    ↓
-├── EntityManager (player, ghouls, orbs)
-├── InventoryManager (orb collection/usage)
-├── MapGenerator (procedural maze generation)
-├── Renderer (canvas drawing)
-└── InputManager (keyboard/mouse)
+GameLogic (orchestrator)
+    ├── EntityManager (player, ghouls, orbs)
+    ├── InventoryManager (3-slot orb inventory)
+    ├── MapGenerator (procedural maze)
+    ├── Renderer (canvas + minimap)
+    ├── InputManager (keyboard/mouse/touch)
+    ├── TutorialSystem (step-based)
+    ├── SoundManager (Web Audio API)
+    └── LeaderboardService (Firebase)
 ```
 
-### Data Flow Pattern
-1. **Input** → InputManager captures and normalizes input
-2. **Update** → GameLogic calls entity managers to update state
-3. **Render** → Renderer draws current game state to canvas
-4. **State** → All systems read/write to centralized GameState
+**Game loop**: Input → Update → Render → State. All systems read/write `GameState`. 60 FPS via `requestAnimationFrame`.
 
-### Entity System
-- **EntityManager** handles all game objects (player, ghouls, orbs)
-- Entities are stored as arrays in GameState (e.g. `game.ghouls`, `game.orbs`)
-- Each entity type has dedicated update methods that modify position, behavior, and collision
-- Collision detection uses distance-based circular collision
+**Dual canvas**: Main game canvas + minimap canvas. Camera follows player with smooth movement.
 
-### Map and Level Generation
-- **MapGenerator** creates procedural mazes using recursive backtracking
-- Maps are grid-based (`CONFIG.MAP.WIDTH` x `CONFIG.MAP.HEIGHT`)  
-- Each floor has unique layout with walls, orbs, and ghoul spawn points
-- Checkpoints every 5 floors save player progress
+## Configuration
 
-### Rendering Architecture
-- **Renderer** uses HTML5 Canvas with 2D context
-- Dual canvas setup: main game canvas + minimap canvas
-- Camera system follows player with smooth movement
-- Light system creates dynamic visibility using radial gradients
-- UI elements rendered as overlays on top of game world
+All game constants live in `config.js`:
+- `CONFIG.PLAYER` — speed, light mechanics, collision size
+- `CONFIG.MAP` — dimensions (30x20 cells, 40px each), generation params
+- `CONFIG.ORBS` — orb types, effects, spawn rates
+- `CONFIG.GHOULS` — AI behavior, speeds, aggression
 
-## Configuration System
+## Adding Features
 
-All game constants are centralized in `config.js`:
-- **CONFIG.PLAYER**: Movement speed, light mechanics, collision size
-- **CONFIG.MAP**: Dimensions, cell size, generation parameters  
-- **CONFIG.ORBS**: All orb types, effects, spawn rates
-- **CONFIG.GHOULS**: AI behavior, speeds, aggression levels
+- **New orb**: Add to `CONFIG.ORBS` in `config.js`, implement effect in `inventory.js`
+- **New entity**: Add update/render methods in `entities.js`
+- **New UI element**: Add drawing in `renderer.js`, styles in `src/css/`
+- **New game mode**: Extend `GameState` initialization in `gameState.js`
+- **Game balance**: Modify values in `config.js`
 
-## State Management Patterns
+## Gotchas
 
-### Game State Structure
-```javascript
-GameState.game = {
-    state: 'menu'|'playing'|'paused',
-    mode: 'explorer',
-    player: { x, y, light, powers, inventory },
-    ghouls: [...], orbs: [...], walls: [...],
-    floor: number, lastCheckpoint: number
-}
-```
+- **CSP headers**: `index.html` has a strict Content Security Policy for Firebase. If adding external scripts/resources, update the CSP meta tag.
+- **Firebase placeholder check**: `leaderboard.js` checks for `YOUR_API_KEY` in config — if values are placeholders, leaderboard silently disables itself.
+- **Mobile HUD band**: Portrait mode uses a 195px HUD band at top. Changes to HUD elements must account for this in `renderer.js`.
+- **Service Worker caching**: After changing files, the SW may serve stale versions. Update the cache version in `sw.js` when deploying changes.
+- **Timing model (mixed — do NOT "fix")**: Player/particle movement uses `deltaTime / 16` scaling. Ghoul movement, power durations, swarm timers, and `game.time` are all frame-based (no deltaTime). This is intentional. Power durations use integer decrement (`--`) with exact equality checks (e.g., `=== 1`), so they must NOT be converted to floating-point deltaTime. New powers/timers should follow the frame-counter pattern. Light decays at 0.02%/frame; ghouls drain 0.3%/frame when near.
+- **Orb auto-collect vs inventory**: Blue/Golden/Wisp orbs auto-collect on contact. Purple/Green/White/Red go to the 3-slot inventory. This split is handled in `entities.js` collision logic.
 
-### Tutorial System Integration
-- Tutorial state tracked in `GameState.game.tutorial`
-- Step-based progression with completion tracking
-- Contextual popups triggered by game events (first orb collection, death, etc.)
+## Documentation Maintenance
 
-## Power/Orb System
-
-Orbs provide temporary powers managed by **InventoryManager**:
-- **Collection**: Orbs auto-collect on collision, added to 3-slot inventory
-- **Usage**: Numeric keys (1-3) instantly consume orbs from inventory slots
-- **Effects**: Powers have duration timers (phase, regen, reveal) or instant effects (light restore)
-
-## Debug and Development Tools
-
-### Available Debug Functions
-Access via browser console with `window.GameDebug`:
-- State inspection, floor teleportation, inventory manipulation
-- Error logging system in GameLogic tracks game errors with context
-- Settings system in main.js allows runtime configuration changes
-
-### Adding New Features
-- **New Orb**: Add to `CONFIG.ORBS` object and implement effect in InventoryManager
-- **New Entity**: Extend EntityManager with new update/render methods
-- **New UI**: Add to Renderer and update CSS in `src/css/`
-- **New Game Mode**: Extend GameState initialization and add mode-specific logic
-
-### File Modification Guidelines
-- **config.js**: Modify for game balance, new constants, orb definitions
-- **gameState.js**: Extend for new persistent state, player properties
-- **entities.js**: Add new entity types, modify AI behavior, collision logic
-- **renderer.js**: Add visual effects, UI elements, drawing optimizations
-- **mapGenerator.js**: Modify maze generation, floor layouts, spawn logic
+- **CHANGELOG.md**: Follows [Keep a Changelog](https://keepachangelog.com/) format. When making notable changes, add an entry under the `[Unreleased]` section with the appropriate category (Added, Changed, Fixed, Removed, Security). The `[Unreleased]` section is **manual** — it is not auto-updated on commit. Always check and update it before committing.
+- **README.md**: Keep in sync when adding user-facing features, changing controls, adding orb types, or modifying the project structure. The Firebase setup instructions in the README include the Firestore security rules — update both places if rules change.

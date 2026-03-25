@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.3.2] - 2026-03-25
+
 ### Fixed
 - Tutorial not showing on first playthrough — `storyNarration.js` checked `window.TutorialSystem` but `const` declarations don't attach to `window`; tutorial only worked on subsequent plays because an orb popup would set it
 - Leaderboard silently dropping score submissions when player's floor equaled their previous best — changed `<=` to `<` so re-completions with different time/deaths are recorded

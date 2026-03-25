@@ -15,6 +15,12 @@
             "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+push' && { cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && unreleased=$(sed -n '/^## \\[Unreleased\\]/,/^## \\[/p' CHANGELOG.md 2>/dev/null | sed '1d;$d'); if echo \"$unreleased\" | grep -qE '\\S'; then echo '{\"decision\":\"block\",\"reason\":\"CHANGELOG.md has unreleased entries. Per the Commit & Release Workflow in CLAUDE.md, you MUST ask the user whether to cut a new version release BEFORE pushing.\"}'; fi; } || true",
             "timeout": 10,
             "statusMessage": "Checking release workflow..."
+          },
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.command' | grep -qE '^\\s*git\\s+push' && { cd \"$(git rev-parse --show-toplevel 2>/dev/null || echo .)\" && HTML_SCRIPTS=$(grep -oP 'src=\"\\.\\./(src/js/[^\"]+)\"' public/index.html 2>/dev/null | grep -oP 'src/js/[^\"]+' | sort) && SW_ENTRIES=$(grep -oP \"'\\.\\./(src/js/[^']+)'\" public/sw.js 2>/dev/null | grep -oP \"src/js/[^'\\\"]+\" | sort) && MISSING=$(comm -23 <(echo \"$HTML_SCRIPTS\") <(echo \"$SW_ENTRIES\")); if [ -n \"$MISSING\" ]; then echo \"{\\\"decision\\\":\\\"block\\\",\\\"reason\\\":\\\"Service worker cache is missing files loaded by index.html: $(echo $MISSING | tr '\\n' ', '). Run /sw-hygiene fix to update the cache manifest.\\\"}\"; fi; } || true",
+            "timeout": 10,
+            "statusMessage": "Checking service worker cache sync..."
           }
         ]
       }

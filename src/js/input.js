@@ -706,7 +706,7 @@ const InputManager = {
                     // Submit the pending score
                     const pending = GameState.game.pendingScore;
                     if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
-                        LeaderboardService.submitScore(pending.floor, pending.orbsCollected);
+                        LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
                     }
                     GameState.game.pendingScore = null;
                 }
@@ -800,17 +800,17 @@ const InputManager = {
     },
 
     // Handle score submission with name entry flow
-    handleScoreSubmission(floor, orbsCollected) {
+    handleScoreSubmission(floor, orbsCollected, extra) {
         if (!window.LeaderboardService || !LeaderboardService.isReady()) {
             return;
         }
 
         if (LeaderboardService.hasPlayerName()) {
             // Player already has a name, submit directly
-            LeaderboardService.submitScore(floor, orbsCollected);
+            LeaderboardService.submitScore(floor, orbsCollected, extra);
         } else {
             // Need to collect player name first
-            GameState.game.pendingScore = { floor: floor, orbsCollected: orbsCollected };
+            GameState.game.pendingScore = { floor: floor, orbsCollected: orbsCollected, extra: extra };
             GameState.game.showNameEntry = true;
             this.showNameEntryInput();
         }

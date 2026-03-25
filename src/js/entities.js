@@ -163,6 +163,16 @@ const EntityManager = {
         // Pause the game
         game.state = 'victory';
 
+        // Submit score to leaderboard on victory
+        if (window.InputManager && InputManager.handleScoreSubmission) {
+            const completionTimeMs = Date.now() - game.gameStartTime;
+            InputManager.handleScoreSubmission(
+                game.floor,
+                game.player.orbsCollected,
+                { completionTimeMs: completionTimeMs, deaths: GameState.stats.totalDeaths }
+            );
+        }
+
         // Show victory screen
         this.showVictoryScreen(game);
     },

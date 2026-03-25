@@ -58,6 +58,14 @@ const Renderer = {
         }
     },
 
+    // Format milliseconds to mm:ss string
+    formatTime(ms) {
+        const totalSeconds = Math.floor(ms / 1000);
+        const minutes = Math.floor(totalSeconds / 60);
+        const seconds = totalSeconds % 60;
+        return `${minutes}:${seconds.toString().padStart(2, '0')}`;
+    },
+
     // Main render function
     render(game) {
         // Safety check for game object
@@ -1292,8 +1300,15 @@ const Renderer = {
                 const symbol = rankSymbols[i] || '♦';
                 this.ctx.fillStyle = i === 0 ? '#FFD700' : (i === 1 ? '#C0C0C0' : '#CD7F32');
                 this.ctx.font = '14px serif';
+                let details = `Floor ${score.deepestFloor}`;
+                if (score.completionTimeMs) {
+                    details += ` | ${this.formatTime(score.completionTimeMs)}`;
+                }
+                if (score.deaths != null) {
+                    details += ` | ${score.deaths}☠`;
+                }
                 this.ctx.fillText(
-                    `${symbol} ${score.name} - Floor ${score.deepestFloor}`,
+                    `${symbol} ${score.name} - ${details}`,
                     CONFIG.CANVAS.WIDTH / 2,
                     355 + (i * 20) + deathOffsetY
                 );
@@ -1446,14 +1461,15 @@ const Renderer = {
         } else {
             // Column headers
             this.ctx.fillStyle = '#CD853F';
-            this.ctx.font = 'bold 14px serif';
+            this.ctx.font = 'bold 13px serif';
             const headerY = 135;
             this.ctx.textAlign = 'left';
-            this.ctx.fillText('RANK', 80, headerY);
-            this.ctx.fillText('ADVENTURER', 140, headerY);
+            this.ctx.fillText('RANK', 55, headerY);
+            this.ctx.fillText('ADVENTURER', 110, headerY);
             this.ctx.textAlign = 'right';
-            this.ctx.fillText('FLOOR', CONFIG.CANVAS.WIDTH - 200, headerY);
-            this.ctx.fillText('ORBS', CONFIG.CANVAS.WIDTH - 90, headerY);
+            this.ctx.fillText('FLOOR', CONFIG.CANVAS.WIDTH - 280, headerY);
+            this.ctx.fillText('TIME', CONFIG.CANVAS.WIDTH - 185, headerY);
+            this.ctx.fillText('DEATHS', CONFIG.CANVAS.WIDTH - 95, headerY);
             this.ctx.textAlign = 'center';
 
             // Divider below headers
@@ -1496,24 +1512,29 @@ const Renderer = {
                 }
 
                 const symbol = rankSymbols[i] || '♦';
-                this.ctx.font = '16px serif';
+                this.ctx.font = '15px serif';
 
                 // Rank
                 this.ctx.textAlign = 'left';
-                this.ctx.fillText(`${symbol} ${i + 1}`, 80, rowY);
+                this.ctx.fillText(`${symbol} ${i + 1}`, 55, rowY);
 
                 // Player name (truncate if too long)
-                const displayName = score.name && score.name.length > 18
-                    ? score.name.substring(0, 16) + '...'
+                const displayName = score.name && score.name.length > 14
+                    ? score.name.substring(0, 12) + '...'
                     : (score.name || 'Unknown');
-                this.ctx.fillText(displayName, 140, rowY);
+                this.ctx.fillText(displayName, 110, rowY);
 
                 // Floor depth
                 this.ctx.textAlign = 'right';
-                this.ctx.fillText(`${score.deepestFloor || 0}`, CONFIG.CANVAS.WIDTH - 200, rowY);
+                this.ctx.fillText(`${score.deepestFloor || 0}`, CONFIG.CANVAS.WIDTH - 280, rowY);
 
-                // Orbs collected
-                this.ctx.fillText(`${score.orbsCollected || 0}`, CONFIG.CANVAS.WIDTH - 90, rowY);
+                // Completion time
+                const timeStr = score.completionTimeMs ? this.formatTime(score.completionTimeMs) : '--:--';
+                this.ctx.fillText(timeStr, CONFIG.CANVAS.WIDTH - 185, rowY);
+
+                // Deaths
+                const deathStr = score.deaths != null ? `${score.deaths}` : '-';
+                this.ctx.fillText(deathStr, CONFIG.CANVAS.WIDTH - 95, rowY);
             });
 
             this.ctx.textAlign = 'center';

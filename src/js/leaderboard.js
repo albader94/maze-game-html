@@ -115,6 +115,8 @@ const LeaderboardService = {
                     name: data.name,
                     deepestFloor: data.deepestFloor,
                     orbsCollected: data.orbsCollected,
+                    completionTimeMs: data.completionTimeMs || null,
+                    deaths: data.deaths != null ? data.deaths : null,
                     timestamp: data.timestamp,
                     playerUID: data.playerUID
                 };
@@ -160,8 +162,11 @@ const LeaderboardService = {
      * Converts to positive deepestFloor for storage and sorting.
      * Uses the player's anonymous UID as the document ID (one entry per player).
      * Only updates if the new score is deeper than the existing one.
+     * @param {number} floor - Current floor (negative number)
+     * @param {number} orbsCollected - Total orbs collected
+     * @param {object} [extra] - Optional extra fields: { completionTimeMs, deaths }
      */
-    async submitScore(floor, orbsCollected) {
+    async submitScore(floor, orbsCollected, extra) {
         if (!this.isReady()) {
             return;
         }
@@ -190,16 +195,29 @@ const LeaderboardService = {
                 return;
             }
 
-            // Always attempt to write - Firestore security rules enforce that
-            // deepestFloor can only increase, so worse scores are rejected server-side
-            const docRef = this._db.collection('leaderboard').doc(this.playerUID);
-            await docRef.set({
+            // Build document data
+            const docData = {
                 name: this.playerName,
                 deepestFloor: deepestFloor,
                 orbsCollected: validOrbsCollected,
                 timestamp: firebase.firestore.FieldValue.serverTimestamp(),
                 playerUID: this.playerUID
-            }, { merge: true });
+            };
+
+            // Add optional fields if provided
+            if (extra) {
+                if (extra.completionTimeMs != null && Number.isFinite(extra.completionTimeMs)) {
+                    docData.completionTimeMs = Math.round(extra.completionTimeMs);
+                }
+                if (extra.deaths != null && Number.isFinite(extra.deaths)) {
+                    docData.deaths = Math.max(0, Math.round(extra.deaths));
+                }
+            }
+
+            // Always attempt to write - Firestore security rules enforce that
+            // deepestFloor can only increase, so worse scores are rejected server-side
+            const docRef = this._db.collection('leaderboard').doc(this.playerUID);
+            await docRef.set(docData, { merge: true });
 
             this.playerBestFloor = deepestFloor;
             console.log('LeaderboardService: Score submitted, floor:', deepestFloor);

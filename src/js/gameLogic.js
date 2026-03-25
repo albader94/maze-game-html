@@ -890,7 +890,8 @@ const GameLogic = {
                 if (window.InputManager && InputManager.handleScoreSubmission) {
                     InputManager.handleScoreSubmission(
                         GameState.game.floor,
-                        GameState.game.player.orbsCollected
+                        GameState.game.player.orbsCollected,
+                        { deaths: GameState.stats.totalDeaths }
                     );
                 }
 

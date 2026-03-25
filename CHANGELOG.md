@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.3.0] - 2026-03-25
+
+### Added
+- Leaderboard now tracks completion time and number of deaths
+- Score submission triggers on game victory (previously only on death)
+- Full leaderboard screen shows TIME and DEATHS columns
+
+### Changed
+- Leaderboard data model extended with `completionTimeMs` and `deaths` fields
+- Death screen mini-leaderboard shows time and deaths inline
+
 ## [2.2.1] - 2026-03-25
 
 ### Fixed

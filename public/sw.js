@@ -1,4 +1,4 @@
-const CACHE_NAME = 'buried-spire-v2.2.1';
+const CACHE_NAME = 'buried-spire-v2.3.0';
 const urlsToCache = [
   './index.html',
   './manifest.json',

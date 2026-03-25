@@ -189,8 +189,8 @@ const LeaderboardService = {
                 return;
             }
 
-            // Skip submission if score isn't better than known best
-            if (deepestFloor <= this.playerBestFloor) {
+            // Skip submission if score is worse than known best
+            if (deepestFloor < this.playerBestFloor) {
                 console.log('LeaderboardService: Score not better than current best (' + this.playerBestFloor + '), skipping submission');
                 return;
             }

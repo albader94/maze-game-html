@@ -232,8 +232,8 @@ const StoryNarration = {
 
         // Start tutorial after game loads
         setTimeout(() => {
-            if (window.TutorialSystem && window.TutorialSystem.startTutorial) {
-                window.TutorialSystem.startTutorial();
+            if (typeof TutorialSystem !== 'undefined' && TutorialSystem.startTutorial) {
+                TutorialSystem.startTutorial();
             }
         }, 500);
 

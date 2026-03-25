@@ -709,6 +709,9 @@ const InputManager = {
                         LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
                     }
                     GameState.game.pendingScore = null;
+
+                    // Show deferred victory screen if pending
+                    this._showDeferredVictoryScreen();
                 }
             } else if (e.key === 'Escape') {
                 e.preventDefault();
@@ -716,6 +719,9 @@ const InputManager = {
                 this.hideNameEntryInput();
                 GameState.game.showNameEntry = false;
                 GameState.game.pendingScore = null;
+
+                // Show deferred victory screen even if name entry was cancelled
+                this._showDeferredVictoryScreen();
             }
         });
 
@@ -741,6 +747,7 @@ const InputManager = {
             this.hideNameEntryInput();
             GameState.game.showNameEntry = false;
             GameState.game.pendingScore = null;
+            this._showDeferredVictoryScreen();
         });
         backdrop.addEventListener('touchend', (e) => {
             e.preventDefault();
@@ -748,6 +755,7 @@ const InputManager = {
             this.hideNameEntryInput();
             GameState.game.showNameEntry = false;
             GameState.game.pendingScore = null;
+            this._showDeferredVictoryScreen();
         }, { passive: false });
 
         document.body.appendChild(backdrop);
@@ -799,20 +807,34 @@ const InputManager = {
         }
     },
 
+    // Show victory screen that was deferred while name entry was active
+    _showDeferredVictoryScreen() {
+        const game = GameState.game;
+        if (game && game._pendingVictoryScreen) {
+            game._pendingVictoryScreen = false;
+            if (typeof EntityManager !== 'undefined') {
+                EntityManager.showVictoryScreen(game);
+            }
+        }
+    },
+
     // Handle score submission with name entry flow
+    // Returns true if name entry is needed (caller should defer other UI)
     handleScoreSubmission(floor, orbsCollected, extra) {
         if (!window.LeaderboardService || !LeaderboardService.isReady()) {
-            return;
+            return false;
         }
 
         if (LeaderboardService.hasPlayerName()) {
             // Player already has a name, submit directly
             LeaderboardService.submitScore(floor, orbsCollected, extra);
+            return false;
         } else {
             // Need to collect player name first
             GameState.game.pendingScore = { floor: floor, orbsCollected: orbsCollected, extra: extra };
             GameState.game.showNameEntry = true;
             this.showNameEntryInput();
+            return true;
         }
     },
 

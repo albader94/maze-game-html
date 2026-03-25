@@ -164,17 +164,23 @@ const EntityManager = {
         game.state = 'victory';
 
         // Submit score to leaderboard on victory
+        let needsNameEntry = false;
         if (window.InputManager && InputManager.handleScoreSubmission) {
             const completionTimeMs = Date.now() - game.gameStartTime;
-            InputManager.handleScoreSubmission(
+            needsNameEntry = InputManager.handleScoreSubmission(
                 game.floor,
                 game.player.orbsCollected,
                 { completionTimeMs: completionTimeMs, deaths: GameState.stats.totalDeaths }
             );
         }
 
-        // Show victory screen
-        this.showVictoryScreen(game);
+        if (needsNameEntry) {
+            // Defer victory screen until name entry completes
+            game._pendingVictoryScreen = true;
+        } else {
+            // Show victory screen immediately
+            this.showVictoryScreen(game);
+        }
     },
 
     // Show the victory screen

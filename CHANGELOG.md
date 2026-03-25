@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Final floor (50) never spawning the Ancient Pearl — `placeOrbs` ignored the `floorNum` parameter from `generateFloor`, always reading `game.floor` (which defaults to 1 after reset)
+- Bump service worker cache version to force browsers to pick up the fix
+
 ## [2.3.0] - 2026-03-25
 
 ### Added

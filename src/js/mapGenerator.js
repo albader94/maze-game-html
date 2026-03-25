@@ -59,7 +59,7 @@ const MapGenerator = {
         
         // Place game entities
         this.placeDeathMarkers(game, floorNum);
-        this.placeOrbs(game, emptySpaces);
+        this.placeOrbs(game, emptySpaces, floorNum);
         this.placeGhouls(game, emptySpaces, floorNum);
         
         // Reset player position using the same empty spaces
@@ -199,8 +199,8 @@ const MapGenerator = {
     },
 
     // Place orbs on the floor
-    placeOrbs(game, emptySpaces) {
-        const floorNum = Math.abs(game.floor);
+    placeOrbs(game, emptySpaces, floorNum) {
+        floorNum = floorNum != null ? Math.abs(floorNum) : Math.abs(game.floor);
         const availableSpaces = [...emptySpaces];
         
         // Special handling for final level - place only the Pearl

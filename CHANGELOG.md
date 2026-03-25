@@ -9,6 +9,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 ### Fixed
 - CSP: added `*.firebaseapp.com` to frame-src and `unsafe-inline` to script-src for Firebase auth
 - Bump service worker cache version to force browsers to load updated CSP headers
+- Leaderboard name entry popup never appearing due to `window.InputManager` being undefined (`const` doesn't create window properties)
+- Leaderboard silently failing on Safari due to Firestore streaming fetch being blocked (added `experimentalAutoDetectLongPolling`)
+- Leaderboard init failures invisible in production because diagnostic messages used `console.warn` (suppressed); changed to `console.error`
 
 ## [2.2.0] - 2026-03-24
 

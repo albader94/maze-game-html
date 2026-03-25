@@ -945,3 +945,6 @@ const InputManager = {
         };
     }
 };
+
+// Make InputManager globally accessible
+window.InputManager = InputManager;

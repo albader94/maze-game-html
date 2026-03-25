@@ -33,7 +33,7 @@ const LeaderboardService = {
         try {
             // Check if Firebase config has been filled in
             if (this._hasPlaceholderConfig()) {
-                console.warn('LeaderboardService: Firebase config contains placeholder values. Leaderboard disabled.');
+                console.error('LeaderboardService: Firebase config contains placeholder values. Leaderboard disabled.');
                 this.isConfigured = false;
                 this.initialized = false;
                 return;
@@ -41,7 +41,7 @@ const LeaderboardService = {
 
             // Check if Firebase SDK is loaded
             if (typeof firebase === 'undefined') {
-                console.warn('LeaderboardService: Firebase SDK not loaded.');
+                console.error('LeaderboardService: Firebase SDK not loaded. Check if an ad blocker is blocking gstatic.com.');
                 this.isConfigured = false;
                 this.initialized = false;
                 return;
@@ -53,6 +53,7 @@ const LeaderboardService = {
             }
 
             this._db = firebase.firestore();
+            this._db.settings({ experimentalAutoDetectLongPolling: true });
             this._auth = firebase.auth();
 
             // Sign in anonymously

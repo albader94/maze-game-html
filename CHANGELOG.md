@@ -13,6 +13,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Leaderboard allowing worse scores to overwrite better ones on same floor — now compares time and deaths as tiebreakers before submitting
 - Leaderboard current-player highlighting used name matching instead of UID — two players with the same name would both appear highlighted; now uses playerUID for accurate identification
 
+### Added
+- Leaderboard name uniqueness check — queries Firestore on name entry to reject names already taken by another player
+
 ## [2.3.2] - 2026-03-25
 
 ### Fixed

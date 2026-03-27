@@ -328,6 +328,25 @@ const LeaderboardService = {
     },
 
     /**
+     * Check if a name is already taken by another player.
+     * Returns true if taken, false if available.
+     */
+    async isNameTaken(name) {
+        if (!this.isReady() || !name) return false;
+        try {
+            const snapshot = await this._db.collection('leaderboard')
+                .where('name', '==', name)
+                .limit(1)
+                .get();
+            // Name is taken if any document exists with a different UID
+            return snapshot.docs.some(doc => doc.id !== this.playerUID);
+        } catch (e) {
+            // If the check fails, allow the name to avoid blocking the player
+            return false;
+        }
+    },
+
+    /**
      * Check if the leaderboard service is fully ready (initialized and configured).
      */
     isReady() {

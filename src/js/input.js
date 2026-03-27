@@ -689,7 +689,6 @@ const InputManager = {
                             input.value = '';
                             input.placeholder = 'Invalid name, try again';
                             input.style.borderColor = '#DC143C';
-                            // Reset border color after 2 seconds
                             setTimeout(() => {
                                 if (document.getElementById('nameEntryInput')) {
                                     input.style.borderColor = '#DAA520';
@@ -697,21 +696,43 @@ const InputManager = {
                                 }
                             }, 2000);
                         }
-                        return; // Don't hide the input or clear pending score
+                        return;
                     }
-                    // Name accepted — proceed with hiding input and submitting score
-                    this.hideNameEntryInput();
-                    GameState.game.showNameEntry = false;
+                    // Check for duplicate name in leaderboard
+                    const checkAndSubmit = async () => {
+                        if (window.LeaderboardService && LeaderboardService.isReady()) {
+                            const taken = await LeaderboardService.isNameTaken(LeaderboardService.playerName);
+                            if (taken) {
+                                LeaderboardService.playerName = null;
+                                localStorage.removeItem('maze_leaderboard_name');
+                                const inp = document.getElementById('nameEntryInput');
+                                if (inp) {
+                                    inp.value = '';
+                                    inp.placeholder = 'Name taken, try another';
+                                    inp.style.borderColor = '#DC143C';
+                                    setTimeout(() => {
+                                        if (document.getElementById('nameEntryInput')) {
+                                            inp.style.borderColor = '#DAA520';
+                                            inp.placeholder = 'Enter your name...';
+                                        }
+                                    }, 2000);
+                                }
+                                return;
+                            }
+                        }
+                        // Name available — proceed
+                        this.hideNameEntryInput();
+                        GameState.game.showNameEntry = false;
 
-                    // Submit the pending score
-                    const pending = GameState.game.pendingScore;
-                    if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
-                        LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
-                    }
-                    GameState.game.pendingScore = null;
+                        const pending = GameState.game.pendingScore;
+                        if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
+                            LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
+                        }
+                        GameState.game.pendingScore = null;
 
-                    // Show deferred victory screen if pending
-                    this._showDeferredVictoryScreen();
+                        this._showDeferredVictoryScreen();
+                    };
+                    checkAndSubmit();
                 }
             } else if (e.key === 'Escape') {
                 e.preventDefault();

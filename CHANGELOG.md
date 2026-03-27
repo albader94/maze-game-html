@@ -6,6 +6,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+## [2.3.3] - 2026-03-27
+
 ### Fixed
 - Leaderboard score submissions rejected by Firestore security rules — rules only allowed 5 fields but code sends `completionTimeMs` and `deaths`; updated rules to include the extra fields
 - Leaderboard deaths counter accumulated across runs instead of tracking per-run deaths — added `runDeaths` counter that resets each new game

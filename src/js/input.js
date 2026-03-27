@@ -679,6 +679,7 @@ const InputManager = {
 
             if (e.key === 'Enter') {
                 e.preventDefault();
+                if (this._nameSubmitting) return; // Prevent double-submit
                 const name = input.value.trim();
                 if (name.length > 0) {
                     const nameSet = window.LeaderboardService ? LeaderboardService.setPlayerName(name) : false;
@@ -699,38 +700,43 @@ const InputManager = {
                         return;
                     }
                     // Check for duplicate name in leaderboard
+                    this._nameSubmitting = true;
                     const checkAndSubmit = async () => {
-                        if (window.LeaderboardService && LeaderboardService.isReady()) {
-                            const taken = await LeaderboardService.isNameTaken(LeaderboardService.playerName);
-                            if (taken) {
-                                LeaderboardService.playerName = null;
-                                localStorage.removeItem('maze_leaderboard_name');
-                                const inp = document.getElementById('nameEntryInput');
-                                if (inp) {
-                                    inp.value = '';
-                                    inp.placeholder = 'Name taken, try another';
-                                    inp.style.borderColor = '#DC143C';
-                                    setTimeout(() => {
-                                        if (document.getElementById('nameEntryInput')) {
-                                            inp.style.borderColor = '#DAA520';
-                                            inp.placeholder = 'Enter your name...';
-                                        }
-                                    }, 2000);
+                        try {
+                            if (window.LeaderboardService && LeaderboardService.isReady()) {
+                                const taken = await LeaderboardService.isNameTaken(LeaderboardService.playerName);
+                                if (taken) {
+                                    LeaderboardService.playerName = null;
+                                    localStorage.removeItem('maze_leaderboard_name');
+                                    const inp = document.getElementById('nameEntryInput');
+                                    if (inp) {
+                                        inp.value = '';
+                                        inp.placeholder = 'Name taken, try another';
+                                        inp.style.borderColor = '#DC143C';
+                                        setTimeout(() => {
+                                            if (document.getElementById('nameEntryInput')) {
+                                                inp.style.borderColor = '#DAA520';
+                                                inp.placeholder = 'Enter your name...';
+                                            }
+                                        }, 2000);
+                                    }
+                                    return;
                                 }
-                                return;
                             }
-                        }
-                        // Name available — proceed
-                        this.hideNameEntryInput();
-                        GameState.game.showNameEntry = false;
+                            // Name available — proceed
+                            this.hideNameEntryInput();
+                            GameState.game.showNameEntry = false;
 
-                        const pending = GameState.game.pendingScore;
-                        if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
-                            LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
-                        }
-                        GameState.game.pendingScore = null;
+                            const pending = GameState.game.pendingScore;
+                            if (pending && window.LeaderboardService && LeaderboardService.isReady()) {
+                                LeaderboardService.submitScore(pending.floor, pending.orbsCollected, pending.extra);
+                            }
+                            GameState.game.pendingScore = null;
 
-                        this._showDeferredVictoryScreen();
+                            this._showDeferredVictoryScreen();
+                        } finally {
+                            this._nameSubmitting = false;
+                        }
                     };
                     checkAndSubmit();
                 }

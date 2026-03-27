@@ -753,9 +753,10 @@ const GameState = {
             mapHeight: CONFIG.MAP.HEIGHT || 20,
             gameStartTime: Date.now(),
             distanceTraveled: 0,
+            runDeaths: 0,
             survivalTime: 0,
             showNameEntry: false,
             pendingScore: null
         };
     }
-}; 
+};

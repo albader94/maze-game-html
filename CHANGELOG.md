@@ -14,7 +14,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 - Leaderboard current-player highlighting used name matching instead of UID — two players with the same name would both appear highlighted; now uses playerUID for accurate identification
 
 ### Added
-- Leaderboard name uniqueness check — queries Firestore on name entry to reject names already taken by another player
+- Leaderboard name uniqueness check — queries Firestore on name entry to reject names already taken by another player (case-insensitive)
 
 ## [2.3.2] - 2026-03-25
 

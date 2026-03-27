@@ -1477,9 +1477,9 @@ const Renderer = {
             this.ctx.font = '10px serif';
             this.ctx.fillText('────────────────────────────────────────────────────', centerX, headerY + 12);
 
-            // Get current player name for highlighting
-            const currentPlayerName = (window.LeaderboardService && LeaderboardService.getPlayerName)
-                ? LeaderboardService.getPlayerName()
+            // Get current player UID for highlighting
+            const currentPlayerUID = (window.LeaderboardService && LeaderboardService.playerUID)
+                ? LeaderboardService.playerUID
                 : null;
 
             // Show top 10 scores
@@ -1490,7 +1490,7 @@ const Renderer = {
 
             top10.forEach((score, i) => {
                 const rowY = startY + (i * rowHeight);
-                const isCurrentPlayer = currentPlayerName && score.name === currentPlayerName;
+                const isCurrentPlayer = currentPlayerUID && score.playerUID === currentPlayerUID;
 
                 // Row highlight for current player
                 if (isCurrentPlayer) {

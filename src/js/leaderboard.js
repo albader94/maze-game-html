@@ -20,6 +20,8 @@ const LeaderboardService = {
     playerUID: null,
     isConfigured: false,
     playerBestFloor: 0,
+    playerBestTimeMs: null,
+    playerBestDeaths: null,
 
     // Firebase references (set during init)
     _db: null,
@@ -122,10 +124,12 @@ const LeaderboardService = {
                 };
             });
 
-            // Sync playerBestFloor from cached scores
+            // Sync player's best stats from cached scores
             const playerScore = this.cachedScores.find(s => s.playerUID === this.playerUID);
             if (playerScore) {
                 this.playerBestFloor = playerScore.deepestFloor;
+                this.playerBestTimeMs = playerScore.completionTimeMs;
+                this.playerBestDeaths = playerScore.deaths;
             }
 
             // If player's score wasn't in top results, fetch their document directly
@@ -135,6 +139,8 @@ const LeaderboardService = {
                     if (playerDoc.exists) {
                         const data = playerDoc.data();
                         this.playerBestFloor = data.deepestFloor || 0;
+                        this.playerBestTimeMs = data.completionTimeMs || null;
+                        this.playerBestDeaths = data.deaths != null ? data.deaths : null;
                     }
                 } catch (e) {
                     // Non-critical, just skip
@@ -189,10 +195,25 @@ const LeaderboardService = {
                 return;
             }
 
-            // Skip submission if score is worse than known best
+            // Skip submission if score is not better than known best
+            // Priority: floor (higher is better) > time (lower is better) > deaths (lower is better)
             if (deepestFloor < this.playerBestFloor) {
-                console.log('LeaderboardService: Score not better than current best (' + this.playerBestFloor + '), skipping submission');
+                console.log('LeaderboardService: Floor not better than current best (' + this.playerBestFloor + '), skipping submission');
                 return;
+            }
+            if (deepestFloor === this.playerBestFloor) {
+                const newTimeMs = (extra && extra.completionTimeMs != null) ? Math.round(extra.completionTimeMs) : null;
+                const newDeaths = (extra && extra.deaths != null) ? Math.max(0, Math.round(extra.deaths)) : null;
+                // Same floor: check if time is faster
+                if (newTimeMs != null && this.playerBestTimeMs != null && newTimeMs > this.playerBestTimeMs) {
+                    console.log('LeaderboardService: Same floor but slower time, skipping submission');
+                    return;
+                }
+                // Same floor and same/no time: check if deaths are fewer
+                if (newTimeMs === this.playerBestTimeMs && newDeaths != null && this.playerBestDeaths != null && newDeaths >= this.playerBestDeaths) {
+                    console.log('LeaderboardService: Same floor, same time, deaths not better, skipping submission');
+                    return;
+                }
             }
 
             // Build document data
@@ -220,6 +241,12 @@ const LeaderboardService = {
             await docRef.set(docData, { merge: true });
 
             this.playerBestFloor = deepestFloor;
+            if (docData.completionTimeMs != null) {
+                this.playerBestTimeMs = docData.completionTimeMs;
+            }
+            if (docData.deaths != null) {
+                this.playerBestDeaths = docData.deaths;
+            }
             console.log('LeaderboardService: Score submitted, floor:', deepestFloor);
 
             // Re-fetch top scores after submitting

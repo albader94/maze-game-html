@@ -1278,7 +1278,7 @@ const Renderer = {
         this.ctx.fillText(`⚔ Final Depth: Floor ${-game.floor}`, statsX, 200 + deathOffsetY);
         this.ctx.fillText(`⚜ Last Sanctuary: Floor ${-game.checkpoint}`, statsX, 220 + deathOffsetY);
         this.ctx.fillText(`💎 Orbs Gathered: ${game.player.orbsCollected}`, statsX, 240 + deathOffsetY);
-        this.ctx.fillText(`💀 Deaths This Quest: ${GameState.stats.totalDeaths}`, statsX, 260 + deathOffsetY);
+        this.ctx.fillText(`💀 Deaths This Quest: ${GameState.game.runDeaths}`, statsX, 260 + deathOffsetY);
         this.ctx.fillText(`🏆 Deepest Descent: Floor ${-GameState.stats.deepestFloor}`, statsX, 280 + deathOffsetY);
 
         // Leaderboard with gothic theme

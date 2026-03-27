@@ -891,7 +891,7 @@ const GameLogic = {
                     InputManager.handleScoreSubmission(
                         GameState.game.floor,
                         GameState.game.player.orbsCollected,
-                        { deaths: GameState.stats.totalDeaths }
+                        { completionTimeMs: Date.now() - GameState.game.gameStartTime, deaths: GameState.game.runDeaths }
                     );
                 }
 

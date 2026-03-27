@@ -170,7 +170,7 @@ const EntityManager = {
             needsNameEntry = InputManager.handleScoreSubmission(
                 game.floor,
                 game.player.orbsCollected,
-                { completionTimeMs: completionTimeMs, deaths: GameState.stats.totalDeaths }
+                { completionTimeMs: completionTimeMs, deaths: game.runDeaths }
             );
         }
 

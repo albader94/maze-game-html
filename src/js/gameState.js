@@ -55,7 +55,8 @@ const GameState = {
         mapWidth: CONFIG.MAP.WIDTH,
         mapHeight: CONFIG.MAP.HEIGHT,
         gameStartTime: Date.now(),
-        distanceTraveled: 0
+        distanceTraveled: 0,
+        runDeaths: 0
     },
 
     // Game statistics
@@ -527,6 +528,7 @@ const GameState = {
     // Record player death
     recordDeath() {
         this.stats.totalDeaths++;
+        this.game.runDeaths++;
         this.saveStats();
     },
 

@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [Unreleased]
 
+### Fixed
+- Leaderboard score submissions rejected by Firestore security rules — rules only allowed 5 fields but code sends `completionTimeMs` and `deaths`; updated rules to include the extra fields
+
 ## [2.3.2] - 2026-03-25
 
 ### Fixed

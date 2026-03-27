@@ -137,7 +137,7 @@ To enable the online leaderboard on your fork:
          allow read: if true;
          allow create: if request.auth != null
                        && docId == request.auth.uid
-                       && request.resource.data.keys().hasOnly(['name', 'deepestFloor', 'orbsCollected', 'timestamp', 'playerUID'])
+                       && request.resource.data.keys().hasOnly(['name', 'deepestFloor', 'orbsCollected', 'timestamp', 'playerUID', 'completionTimeMs', 'deaths'])
                        && request.resource.data.playerUID == request.auth.uid
                        && request.resource.data.name is string
                        && request.resource.data.name.size() >= 1
@@ -149,7 +149,7 @@ To enable the online leaderboard on your fork:
                        && request.resource.data.orbsCollected >= 0;
          allow update: if request.auth != null
                        && docId == request.auth.uid
-                       && request.resource.data.keys().hasOnly(['name', 'deepestFloor', 'orbsCollected', 'timestamp', 'playerUID'])
+                       && request.resource.data.keys().hasOnly(['name', 'deepestFloor', 'orbsCollected', 'timestamp', 'playerUID', 'completionTimeMs', 'deaths'])
                        && request.resource.data.playerUID == request.auth.uid
                        && request.resource.data.name is string
                        && request.resource.data.name.size() >= 1
